@@ -7,7 +7,7 @@
 ## Пример иницилизации
 
 ```
-import "github.com/yourusername/dblayer"
+import "github.com/antibomberman/dblayer"
 
 // Инициализация
 db, _ := sqlx.Connect("postgres", "your_connection_string")
