@@ -4,80 +4,6 @@
 ## Установка
 ### go get github.com/antibomberman/dblayer
 
-## Пример иницилизации
-
-```
-import "github.com/antibomberman/dblayer"
-
-// Инициализация
-db, _ := sqlx.Connect("postgres", "your_connection_string")
-dbLayer := dblayer.NewDBLayer(db)
-
-// Использование методов
-record, err := dbLayer.GetRecord(ctx, "users", []dblayer.Condition{{Column: "id", Operator: "=", Value: 1}}, &User{})
-```
-
-### Основные операции
-Exists: Проверяет существование записи в таблице.
-```
-Exists(ctx context.Context, tableName string, conditions []Condition) (bool, error)
-```
-CreateRecord: Создает новую запись в таблице.
-```
-CreateRecord(ctx context.Context, tableName string, record interface{}) (int64, error)
-```
-GetRecord: Получает запись из таблицы.
-```
-GetRecord(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
-```
-UpdateRecord: Обновляет запись в таблице.
-```
-UpdateRecord(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
-```
-DeleteRecord: Удаляет запись из таблицы.
-```
-DeleteRecord(ctx context.Context, tableName string, conditions []Condition) (int64, error)
-```
-ListRecords: Получает список записей из таблицы.
-```
-ListRecords(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error
-```
-### Агрегатные функции
-
-Count: Подсчитывает количество записей.
-```
-Count(ctx context.Context, tableName string, conditions []Condition) (int64, error)
-```
-Avg: Вычисляет среднее значение.
-```
-Avg(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
-```
-Min: Находит минимальное значение.
-```
-Min(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
-```
-Max: Находит максимальное значение.
-```
-Max(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
-```
-Sum: Вычисляет сумму.
-```
-Sum(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
-```
-### Дополнительные операции
-InTransaction: Выполняет операции в транзакции.
-```
-InTransaction(ctx context.Context, fn func(context.Context, *sqlx.Tx) error) error
-```
-BatchInsert: Выполняет пакетную вставку записей.
-```
-BatchInsert(ctx context.Context, tableName string, records []interface{}) error
-```
-ExecuteRawQuery: Выполняет произвольный SQL-запрос.
-```
-ExecuteRawQuery(ctx context.Context, query string, args []interface{}, result interface{}) error
-```
-
 
 ## Пример
 
@@ -152,3 +78,66 @@ func main() {
 	fmt.Printf("Deleted %d user(s)\n", affected)
 }
 ```
+
+
+### Основные операции
+Exists: Проверяет существование записи в таблице.
+```
+Exists(ctx context.Context, tableName string, conditions []Condition) (bool, error)
+```
+CreateRecord: Создает новую запись в таблице.
+```
+CreateRecord(ctx context.Context, tableName string, record interface{}) (int64, error)
+```
+GetRecord: Получает запись из таблицы.
+```
+GetRecord(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
+```
+UpdateRecord: Обновляет запись в таблице.
+```
+UpdateRecord(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
+```
+DeleteRecord: Удаляет запись из таблицы.
+```
+DeleteRecord(ctx context.Context, tableName string, conditions []Condition) (int64, error)
+```
+ListRecords: Получает список записей из таблицы.
+```
+ListRecords(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error
+```
+### Агрегатные функции
+
+Count: Подсчитывает количество записей.
+```
+Count(ctx context.Context, tableName string, conditions []Condition) (int64, error)
+```
+Avg: Вычисляет среднее значение.
+```
+Avg(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
+```
+Min: Находит минимальное значение.
+```
+Min(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
+```
+Max: Находит максимальное значение.
+```
+Max(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
+```
+Sum: Вычисляет сумму.
+```
+Sum(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
+```
+### Дополнительные операции
+InTransaction: Выполняет операции в транзакции.
+```
+InTransaction(ctx context.Context, fn func(context.Context, *sqlx.Tx) error) error
+```
+BatchInsert: Выполняет пакетную вставку записей.
+```
+BatchInsert(ctx context.Context, tableName string, records []interface{}) error
+```
+ExecuteRawQuery: Выполняет произвольный SQL-запрос.
+```
+ExecuteRawQuery(ctx context.Context, query string, args []interface{}, result interface{}) error
+```
+
