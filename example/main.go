@@ -47,7 +47,7 @@ func main() {
 	dblayer := dblayer.NewDBLayer(db)
 	ctx := context.Background()
 
-	id, err := dblayer.CreateRecord(ctx, "products", Product{
+	id, err := dblayer.Create(ctx, "products", Product{
 		Name:        "Product 1",
 		Article:     "P12345",
 		Description: sql.NullString{String: "This is product 1", Valid: true},
