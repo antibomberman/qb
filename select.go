@@ -28,6 +28,30 @@ func (r *DBLayer) Get(ctx context.Context, tableName string, conditions []Condit
 
 	return nil
 }
+func (r *DBLayer) Last(ctx context.Context, tableName string, conditions []Condition, result interface{}) error {
+	query, args := r.buildSelectQuery(tableName, conditions)
+
+	query += " ORDER BY id DESC LIMIT 1"
+
+	err := r.db.GetContext(ctx, result, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func (r *DBLayer) First(ctx context.Context, tableName string, conditions []Condition, result interface{}) error {
+	query, args := r.buildSelectQuery(tableName, conditions)
+
+	query += " ORDER BY id ASC LIMIT 1"
+
+	err := r.db.GetContext(ctx, result, query, args...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (r *DBLayer) List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error {
 	query, args := r.buildSelectQuery(tableName, conditions)
