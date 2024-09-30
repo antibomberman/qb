@@ -28,6 +28,7 @@ func (r *DBLayer) Get(ctx context.Context, tableName string, conditions []Condit
 
 	return nil
 }
+
 func (r *DBLayer) Last(ctx context.Context, tableName string, conditions []Condition, result interface{}) error {
 	query, args := r.buildSelectQuery(tableName, conditions)
 
@@ -40,6 +41,7 @@ func (r *DBLayer) Last(ctx context.Context, tableName string, conditions []Condi
 
 	return nil
 }
+
 func (r *DBLayer) First(ctx context.Context, tableName string, conditions []Condition, result interface{}) error {
 	query, args := r.buildSelectQuery(tableName, conditions)
 
@@ -105,6 +107,7 @@ func (r *DBLayer) SelectFields(ctx context.Context, tableName string, fields []s
 
 	return nil
 }
+
 func (r *DBLayer) SearchLike(ctx context.Context, tableName string, searchColumn string, searchTerm string, additionalConditions []Condition, result interface{}) error {
 	conditions := append([]Condition{{Column: searchColumn, Operator: "LIKE", Value: "%" + searchTerm + "%"}}, additionalConditions...)
 	query, args := r.buildSelectQuery(tableName, conditions)
