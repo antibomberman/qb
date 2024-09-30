@@ -141,3 +141,8 @@ ExecuteRawQuery: Выполняет произвольный SQL-запрос.
 ExecuteRawQuery(ctx context.Context, query string, args []interface{}, result interface{}) error
 ```
 
+ExecuteWithRetry: Выполняет операцию с автоматическими повторными попытками в случае ошибки
+```
+ExecuteWithRetry(ctx context.Context, maxAttempts int, operation func(context.Context) error) error
+
+```

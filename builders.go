@@ -3,6 +3,7 @@ package dblayer
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
@@ -110,4 +111,23 @@ func (r *DBLayer) buildAggregateQuery(aggregation, tableName string, conditions 
 		query += " WHERE " + where
 	}
 	return query, args
+}
+
+func structToMap(item interface{}) (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	v := reflect.ValueOf(item)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("input must be a struct or a pointer to a struct")
+	}
+	typ := v.Type()
+	for i := 0; i < v.NumField(); i++ {
+		fi := typ.Field(i)
+		if tagValue := fi.Tag.Get("db"); tagValue != "" {
+			result[tagValue] = v.Field(i).Interface()
+		}
+	}
+	return result, nil
 }
