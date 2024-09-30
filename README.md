@@ -40,7 +40,7 @@ func main() {
 	// Создание нового пользователя
 	user := User{Name: "John Doe", Age: 30}
 	ctx := context.Background()
-	id, err := dbLayer.CreateRecord(ctx, "users", user)
+	id, err := dbLayer.Create(ctx, "users", user)
 	if err != nil {
 		log.Fatalf("Failed to create user: %v", err)
 	}
@@ -48,7 +48,7 @@ func main() {
 
 	// Получение пользователя
 	var retrievedUser User
-	err = dbLayer.GetRecord(ctx, "users", []dblayer.Condition{{Column: "id", Operator: "=", Value: id}}, &retrievedUser)
+	err = dbLayer.Get(ctx, "users", []dblayer.Condition{{Column: "id", Operator: "=", Value: id}}, &retrievedUser)
 	if err != nil {
 		log.Fatalf("Failed to get user: %v", err)
 	}
@@ -64,14 +64,14 @@ func main() {
 
 	// Получение списка пользователей
 	var users []User
-	err = dbLayer.ListRecords(ctx, "users", nil, "name ASC", 10, 0, &users)
+	err = dbLayer.List(ctx, "users", nil, "name ASC", 10, 0, &users)
 	if err != nil {
 		log.Fatalf("Failed to list users: %v", err)
 	}
 	fmt.Printf("Users: %+v\n", users)
 
 	// Удаление пользователя
-	affected, err = dbLayer.DeleteRecord(ctx, "users", []dblayer.Condition{{Column: "id", Operator: "=", Value: id}})
+	affected, err = dbLayer.Delete(ctx, "users", []dblayer.Condition{{Column: "id", Operator: "=", Value: id}})
 	if err != nil {
 		log.Fatalf("Failed to delete user: %v", err)
 	}
@@ -85,25 +85,25 @@ Exists: Проверяет существование записи в табли
 ```
 Exists(ctx context.Context, tableName string, conditions []Condition) (bool, error)
 ```
-CreateRecord: Создает новую запись в таблице.
+Create: Создает новую запись в таблице.
 ```
-CreateRecord(ctx context.Context, tableName string, record interface{}) (int64, error)
+Create(ctx context.Context, tableName string, record interface{}) (int64, error)
 ```
-GetRecord: Получает запись из таблицы.
+Get: Получает запись из таблицы.
 ```
-GetRecord(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
+Get(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
 ```
-UpdateRecord: Обновляет запись в таблице.
+Update: Обновляет запись в таблице.
 ```
-UpdateRecord(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
+Update(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
 ```
-DeleteRecord: Удаляет запись из таблицы.
+Delete: Удаляет запись из таблицы.
 ```
-DeleteRecord(ctx context.Context, tableName string, conditions []Condition) (int64, error)
+Delete(ctx context.Context, tableName string, conditions []Condition) (int64, error)
 ```
-ListRecords: Получает список записей из таблицы.
+List: Получает список записей из таблицы.
 ```
-ListRecords(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error
+List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error
 ```
 ### Агрегатные функции
 
