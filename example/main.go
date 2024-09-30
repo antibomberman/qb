@@ -58,12 +58,12 @@ func main() {
 	}
 	fmt.Printf("Inserted product with ID: %d\n", id)
 	products := faker()
-	err = dblayer.BatchInsertSlice(ctx, "products", products)
+	err = dblayer.BatchInsert(ctx, "products", products)
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 		return
 	}
-	err = dblayer.BatchInsertMap(ctx, "products", []map[string]interface{}{{
+	err = dblayer.BatchInsertRecords(ctx, "products", []map[string]interface{}{{
 		"name":        gofakeit.Company(),
 		"article":     1233,
 		"description": 123,
