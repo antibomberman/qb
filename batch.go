@@ -110,7 +110,7 @@ func (r *DBLayer) batchTypeInsert(ctx context.Context, tableName string, records
 	return nil
 }
 
-func (r *DBLayer) BatchInsertSlice(ctx context.Context, tableName string, records []interface{}) error {
+func (r *DBLayer) BatchInsert(ctx context.Context, tableName string, records []interface{}) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -165,7 +165,7 @@ func (r *DBLayer) BatchInsertSlice(ctx context.Context, tableName string, record
 	return nil
 }
 
-func (r *DBLayer) BatchInsertMap(ctx context.Context, tableName string, records []map[string]interface{}) error {
+func (r *DBLayer) BatchInsertRecords(ctx context.Context, tableName string, records []map[string]interface{}) error {
 	if len(records) == 0 {
 		return nil
 	}
