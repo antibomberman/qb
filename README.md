@@ -7,7 +7,7 @@
 
 ## Пример
 
-```
+```go
 package main
 
 import (
