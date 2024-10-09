@@ -82,67 +82,67 @@ func main() {
 
 ### Основные операции
 Exists: Проверяет существование записи в таблице.
-```
+```go
 Exists(ctx context.Context, tableName string, conditions []Condition) (bool, error)
 ```
 Create: Создает новую запись в таблице.
-```
+```go
 Create(ctx context.Context, tableName string, record interface{}) (int64, error)
 ```
 Get: Получает запись из таблицы.
-```
+```go
 Get(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
 ```
 Update: Обновляет запись в таблице.
-```
+```go
 Update(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
 ```
 Delete: Удаляет запись из таблицы.
-```
+```go
 Delete(ctx context.Context, tableName string, conditions []Condition) (int64, error)
 ```
 List: Получает список записей из таблицы.
-```
+```go
 List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error
 ```
 ### Агрегатные функции
 
 Count: Подсчитывает количество записей.
-```
+```go
 Count(ctx context.Context, tableName string, conditions []Condition) (int64, error)
 ```
 Avg: Вычисляет среднее значение.
-```
+```go
 Avg(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
 ```
 Min: Находит минимальное значение.
-```
+```go
 Min(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
 ```
 Max: Находит максимальное значение.
-```
+```go
 Max(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
 ```
 Sum: Вычисляет сумму.
-```
+```go
 Sum(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
 ```
 ### Дополнительные операции
 InTransaction: Выполняет операции в транзакции.
-```
+```go
 InTransaction(ctx context.Context, fn func(context.Context, *sqlx.Tx) error) error
 ```
 BatchInsert: Выполняет пакетную вставку записей.
-```
+```go
 BatchInsert(ctx context.Context, tableName string, records []interface{}) error
 ```
 ExecuteRawQuery: Выполняет произвольный SQL-запрос.
-```
+```go
 ExecuteRawQuery(ctx context.Context, query string, args []interface{}, result interface{}) error
 ```
 
 ExecuteWithRetry: Выполняет операцию с автоматическими повторными попытками в случае ошибки
-```
+```go
 ExecuteWithRetry(ctx context.Context, maxAttempts int, operation func(context.Context) error) error
 
 ```
