@@ -297,7 +297,7 @@ func (r *DBLayer) BulkUpdateRecord(ctx context.Context, tableName string, update
 	return nil
 }
 
-func (r *DBLayer) UpsertRecord(ctx context.Context, tableName string, record interface{}, uniqueColumns []string) error {
+func (r *DBLayer) Upsert(ctx context.Context, tableName string, record interface{}, uniqueColumns []string) error {
 	val := reflect.ValueOf(record)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
