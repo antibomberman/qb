@@ -2,7 +2,7 @@
 ### DBLayer - это Go пакет, предоставляющий удобный интерфейс для работы с реляционными базами данных. Он обеспечивает абстракцию над database/sql и sqlx, упрощая выполнение общих операций с базой данных.
 
 ## Установка
-### go get github.com/antibomberman/dblayer@v0.0.6
+### go get github.com/antibomberman/dblayer@v0.0.7
 
 
 ## Пример
@@ -88,6 +88,8 @@ Exists(ctx context.Context, tableName string, conditions []Condition) (bool, err
 Create: Создает новую запись в таблице.
 ```go
 Create(ctx context.Context, tableName string, record interface{}) (int64, error)
+CreateRecord(ctx context.Context, tableName string, record map[string]interface{}) (int64, error)
+GetOrCreate(ctx context.Context, tableName string, conditions []Condition, defaultValues map[string]interface{}, result interface{}) (bool, error) 
 ```
 Get: Получает запись из таблицы.
 ```go
@@ -96,6 +98,10 @@ Get(ctx context.Context, tableName string, conditions []Condition, result interf
 Update: Обновляет запись в таблице.
 ```go
 Update(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
+UpdateRecord(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
+BulkUpdate(ctx context.Context, tableName string, updates []interface{}, idColumn string)
+BulkUpdateRecord(ctx context.Context, tableName string, updates []map[string]interface{}, idColumn string) error
+Upsert(ctx context.Context, tableName string, record interface{}, uniqueColumns []string) error
 ```
 Delete: Удаляет запись из таблицы.
 ```go
@@ -107,24 +113,11 @@ List(ctx context.Context, tableName string, conditions []Condition, orderBy stri
 ```
 ### Агрегатные функции
 
-Count: Подсчитывает количество записей.
 ```go
 Count(ctx context.Context, tableName string, conditions []Condition) (int64, error)
-```
-Avg: Вычисляет среднее значение.
-```go
 Avg(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
-```
-Min: Находит минимальное значение.
-```go
 Min(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
-```
-Max: Находит максимальное значение.
-```go
 Max(ctx context.Context, tableName, column string, conditions []Condition) (interface{}, error)
-```
-Sum: Вычисляет сумму.
-```go
 Sum(ctx context.Context, tableName, column string, conditions []Condition) (float64, error)
 ```
 ### Дополнительные операции
@@ -135,6 +128,7 @@ InTransaction(ctx context.Context, fn func(context.Context, *sqlx.Tx) error) err
 BatchInsert: Выполняет пакетную вставку записей.
 ```go
 BatchInsert(ctx context.Context, tableName string, records []interface{}) error
+BatchInsertRecords(ctx context.Context, tableName string, records []map[string]interface{}) error
 ```
 ExecuteRawQuery: Выполняет произвольный SQL-запрос.
 ```go
