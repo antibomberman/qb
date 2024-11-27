@@ -94,6 +94,8 @@ GetOrCreate(ctx context.Context, tableName string, conditions []Condition, defau
 Get: Получает запись из таблицы.
 ```go
 Get(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
+First(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
+Last(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
 ```
 Update: Обновляет запись в таблице.
 ```go
@@ -110,6 +112,11 @@ Delete(ctx context.Context, tableName string, conditions []Condition) (int64, er
 List: Получает список записей из таблицы.
 ```go
 List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error
+PaginateWithCursor(ctx context.Context, tableName string, cursorColumn string, cursorValue interface{}, pageSize int, conditions []Condition, result interface{}) error
+SelectFields(ctx context.Context, tableName string, fields []string, conditions []Condition, result interface{}) error
+SearchLike(ctx context.Context, tableName string, searchColumn string, searchTerm string, additionalConditions []Condition, result interface{}) error
+GroupBy(ctx context.Context, tableName string, groupColumns []string, aggregations map[string]string, conditions []Condition) ([]map[string]interface{}, error)
+WithinRadius(ctx context.Context, tableName string, latColumn, lonColumn string, lat, lon float64, radiusKm float64, result interface{}) error
 ```
 ### Агрегатные функции
 
@@ -138,5 +145,4 @@ ExecuteRawQuery(ctx context.Context, query string, args []interface{}, result in
 ExecuteWithRetry: Выполняет операцию с автоматическими повторными попытками в случае ошибки
 ```go
 ExecuteWithRetry(ctx context.Context, maxAttempts int, operation func(context.Context) error) error
-
 ```

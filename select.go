@@ -120,19 +120,6 @@ func (r *DBLayer) SearchLike(ctx context.Context, tableName string, searchColumn
 	return nil
 }
 
-func (r *DBLayer) FullTextSearch(ctx context.Context, tableName string, searchColumns []string, searchTerm string, result interface{}) error {
-	query := fmt.Sprintf(`
-		SELECT * FROM %s
-		WHERE MATCH(%s) AGAINST(? IN BOOLEAN MODE)
-	`, tableName, strings.Join(searchColumns, ","))
-
-	err := r.db.SelectContext(ctx, result, query, searchTerm)
-	if err != nil {
-		return fmt.Errorf("failed to perform full-text search in %s: %w", tableName, err)
-	}
-	return nil
-}
-
 func (r *DBLayer) WithinRadius(ctx context.Context, tableName string, latColumn, lonColumn string, lat, lon float64, radiusKm float64, result interface{}) error {
 	query := fmt.Sprintf(`
 		SELECT *, 
