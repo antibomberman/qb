@@ -34,12 +34,12 @@ var schema = `
 `
 
 func main() {
-	db, err := sqlx.Open("sqlite", "example.db")
+	db, err := sqlx.Open("sqlite", "./example/example.db")
 	if err != nil {
 		log.Fatalln(err)
 	}
 	defer db.Close()
-	//_, err = db.Exec(schema)
+	_, err = db.Exec(schema)
 	if err != nil {
 		log.Fatalln(err)
 	}

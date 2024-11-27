@@ -148,3 +148,24 @@ func (r *DBLayer) WithinRadius(ctx context.Context, tableName string, latColumn,
 	}
 	return nil
 }
+
+func (r *DBLayer) GroupBy(ctx context.Context, tableName string, groupColumns []string, aggregations map[string]string, conditions []Condition) ([]map[string]interface{}, error) {
+	query, args := r.buildGroupByQuery(tableName, groupColumns, aggregations, conditions)
+	rows, err := r.db.QueryxContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute group by query on %s: %w", tableName, err)
+	}
+	defer rows.Close()
+
+	var result []map[string]interface{}
+	for rows.Next() {
+		row := make(map[string]interface{})
+		err := rows.MapScan(row)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan group by result: %w", err)
+		}
+		result = append(result, row)
+	}
+
+	return result, nil
+}

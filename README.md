@@ -58,7 +58,7 @@ func main() {
 	updates := map[string]interface{}{"age": 31}
 	affected, err := dbLayer.UpdateRecord(ctx, "users", updates, []dblayer.Condition{{Column: "id", Operator: "=", Value: id}})
 	if err != nil {
-		log.Fatalf("Failed to update user: %v", err)
+		log.Fatalf("Failed to operations user: %v", err)
 	}
 	fmt.Printf("Updated %d user(s)\n", affected)
 
