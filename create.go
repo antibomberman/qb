@@ -115,8 +115,7 @@ func (r *DBLayer) CreateRecord(ctx context.Context, tableName string, record map
 }
 
 func (r *DBLayer) GetOrCreate(ctx context.Context, tableName string, conditions []Condition, defaultValues map[string]interface{}, result interface{}) (bool, error) {
-	created := false
-	err := r.Get(ctx, tableName, conditions, result)
+	exists, err := r.Get(ctx, tableName, conditions, result)
 	if errors.Is(err, sql.ErrNoRows) {
 		for _, cond := range conditions {
 			defaultValues[cond.Column] = cond.Value
@@ -125,8 +124,7 @@ func (r *DBLayer) GetOrCreate(ctx context.Context, tableName string, conditions 
 		if err != nil {
 			return false, fmt.Errorf("failed to create record in %s: %w", tableName, err)
 		}
-		created = true
-		err = r.Get(ctx, tableName, conditions, result)
+		exists, err = r.Get(ctx, tableName, conditions, result)
 	}
-	return created, err
+	return exists, err
 }
