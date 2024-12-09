@@ -186,6 +186,7 @@ func (r *DBLayer) SelectRaw(ctx context.Context, query string, args []interface{
 	}
 	return true, nil
 }
+
 func (r *DBLayer) GetRaw(ctx context.Context, query string, args []interface{}, result interface{}) (bool, error) {
 	err := r.db.GetContext(ctx, result, query, args...)
 	if err != nil {
