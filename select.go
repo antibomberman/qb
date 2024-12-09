@@ -2,6 +2,8 @@ package dblayer
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -18,44 +20,50 @@ func (r *DBLayer) Exists(ctx context.Context, tableName string, conditions []Con
 	return exists, nil
 }
 
-func (r *DBLayer) Get(ctx context.Context, tableName string, conditions []Condition, result interface{}) error {
+func (r *DBLayer) Get(ctx context.Context, tableName string, conditions []Condition, result interface{}) (bool, error) {
 	query, args := r.buildSelectQuery(tableName, conditions)
 
 	err := r.db.GetContext(ctx, result, query, args...)
 	if err != nil {
-		return fmt.Errorf("failed to get record from %s: %w", tableName, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
-func (r *DBLayer) Last(ctx context.Context, tableName string, conditions []Condition, result interface{}) error {
+func (r *DBLayer) Last(ctx context.Context, tableName string, conditions []Condition, result interface{}) (bool, error) {
 	query, args := r.buildSelectQuery(tableName, conditions)
 
 	query += " ORDER BY id DESC LIMIT 1"
 
 	err := r.db.GetContext(ctx, result, query, args...)
 	if err != nil {
-		return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
-func (r *DBLayer) First(ctx context.Context, tableName string, conditions []Condition, result interface{}) error {
+func (r *DBLayer) First(ctx context.Context, tableName string, conditions []Condition, result interface{}) (bool, error) {
 	query, args := r.buildSelectQuery(tableName, conditions)
 
 	query += " ORDER BY id ASC LIMIT 1"
 
 	err := r.db.GetContext(ctx, result, query, args...)
 	if err != nil {
-		return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
-func (r *DBLayer) List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error {
+func (r *DBLayer) List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) (bool, error) {
 	query, args := r.buildSelectQuery(tableName, conditions)
 
 	if orderBy != "" {
@@ -71,10 +79,12 @@ func (r *DBLayer) List(ctx context.Context, tableName string, conditions []Condi
 
 	err := r.db.SelectContext(ctx, result, query, args...)
 	if err != nil {
-		return fmt.Errorf("failed to list records from %s: %w", tableName, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
 func (r *DBLayer) PaginateWithCursor(ctx context.Context, tableName string, cursorColumn string, cursorValue interface{}, pageSize int, conditions []Condition, result interface{}) error {
@@ -93,7 +103,7 @@ func (r *DBLayer) PaginateWithCursor(ctx context.Context, tableName string, curs
 	return nil
 }
 
-func (r *DBLayer) SelectFields(ctx context.Context, tableName string, fields []string, conditions []Condition, result interface{}) error {
+func (r *DBLayer) SelectFields(ctx context.Context, tableName string, fields []string, conditions []Condition, result interface{}) (bool, error) {
 	query := fmt.Sprintf("SELECT %s FROM %s", strings.Join(fields, ", "), tableName)
 	where, args := r.buildWhereClause(conditions)
 	if where != "" {
@@ -102,25 +112,29 @@ func (r *DBLayer) SelectFields(ctx context.Context, tableName string, fields []s
 
 	err := r.db.SelectContext(ctx, result, query, args...)
 	if err != nil {
-		return fmt.Errorf("failed to select fields from %s: %w", tableName, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
-func (r *DBLayer) SearchLike(ctx context.Context, tableName string, searchColumn string, searchTerm string, additionalConditions []Condition, result interface{}) error {
+func (r *DBLayer) SearchLike(ctx context.Context, tableName string, searchColumn string, searchTerm string, additionalConditions []Condition, result interface{}) (bool, error) {
 	conditions := append([]Condition{{Column: searchColumn, Operator: "LIKE", Value: "%" + searchTerm + "%"}}, additionalConditions...)
 	query, args := r.buildSelectQuery(tableName, conditions)
 
 	err := r.db.SelectContext(ctx, result, query, args...)
 	if err != nil {
-		return fmt.Errorf("failed to search in %s: %w", tableName, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
-func (r *DBLayer) WithinRadius(ctx context.Context, tableName string, latColumn, lonColumn string, lat, lon float64, radiusKm float64, result interface{}) error {
+func (r *DBLayer) WithinRadius(ctx context.Context, tableName string, latColumn, lonColumn string, lat, lon float64, radiusKm float64, result interface{}) (bool, error) {
 	query := fmt.Sprintf(`
 		SELECT *, 
 		       (6371 * acos(cos(radians(?)) * cos(radians(%s)) * cos(radians(%s) - radians(?)) + sin(radians(?)) * sin(radians(%s)))) AS distance 
@@ -131,9 +145,12 @@ func (r *DBLayer) WithinRadius(ctx context.Context, tableName string, latColumn,
 
 	err := r.db.SelectContext(ctx, result, query, lat, lon, lat, radiusKm)
 	if err != nil {
-		return fmt.Errorf("failed to find records within radius in %s: %w", tableName, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-	return nil
+	return true, nil
 }
 
 func (r *DBLayer) GroupBy(ctx context.Context, tableName string, groupColumns []string, aggregations map[string]string, conditions []Condition) ([]map[string]interface{}, error) {

@@ -96,6 +96,21 @@ func main() {
 	totalRevenue, err := dblayer.Sum(ctx, "products", "price", nil)
 
 	fmt.Printf("Total revenue: %v\n", totalRevenue)
+	err = dblayer.InTransaction(ctx, func(ctx context.Context, tx *sqlx.Tx) error {
+		product := Product{
+			Name:        "Smartphone",
+			Article:     "SMART123",
+			Description: sql.NullString{String: "A high-end smartphone", Valid: true},
+			Price:       999,
+		}
+		id, err := dblayer.Create(ctx, "products", product)
+		if err != nil {
+			return fmt.Errorf("failed to create product: %w", err)
+		}
+		fmt.Printf("Created product with ID: %d\n", id)
+
+		return nil
+	})
 
 }
 
