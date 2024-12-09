@@ -30,7 +30,6 @@ var schema = `
         description TEXT,
         price INTEGER NOT NULL
     )
-
 `
 
 func main() {
