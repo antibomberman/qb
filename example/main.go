@@ -111,7 +111,6 @@ func main() {
 
 		return nil
 	})
-
 }
 
 func faker() []interface{} {
