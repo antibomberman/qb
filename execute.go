@@ -2,17 +2,21 @@ package dblayer
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 )
 
-func (r *DBLayer) ExecuteRawQuery(ctx context.Context, query string, args []interface{}, result interface{}) error {
+func (r *DBLayer) ExecuteRawQuery(ctx context.Context, query string, args []interface{}, result interface{}) (bool, error) {
 	err := r.db.SelectContext(ctx, result, query, args...)
 	if err != nil {
-		return fmt.Errorf("failed to execute raw query: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
 func (r *DBLayer) ExecuteInBatches(ctx context.Context, items []interface{}, batchSize int, fn func(context.Context, []interface{}) error) error {
