@@ -2,7 +2,6 @@ package dblayer
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/lib/pq"
@@ -116,7 +115,7 @@ func (r *DBLayer) CreateRecord(ctx context.Context, tableName string, record map
 
 func (r *DBLayer) GetOrCreate(ctx context.Context, tableName string, conditions []Condition, defaultValues map[string]interface{}, result interface{}) (bool, error) {
 	exists, err := r.Get(ctx, tableName, conditions, result)
-	if errors.Is(err, sql.ErrNoRows) {
+	if !exists {
 		for _, cond := range conditions {
 			defaultValues[cond.Column] = cond.Value
 		}
