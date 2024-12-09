@@ -93,9 +93,9 @@ GetOrCreate(ctx context.Context, tableName string, conditions []Condition, defau
 ```
 Get: Получает запись из таблицы.
 ```go
-Get(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
-First(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
-Last(ctx context.Context, tableName string, conditions []Condition, result interface{}) error
+Get(ctx context.Context, tableName string, conditions []Condition, result interface{})  (bool,error)
+First(ctx context.Context, tableName string, conditions []Condition, result interface{}) (bool,error)
+Last(ctx context.Context, tableName string, conditions []Condition, result interface{}) (bool,error)
 ```
 Update: Обновляет запись в таблице.
 ```go
