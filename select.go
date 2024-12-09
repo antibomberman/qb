@@ -87,7 +87,7 @@ func (r *DBLayer) List(ctx context.Context, tableName string, conditions []Condi
 	return true, nil
 }
 
-func (r *DBLayer) PaginateWithCursor(ctx context.Context, tableName string, cursorColumn string, cursorValue interface{}, pageSize int, conditions []Condition, result interface{}) error {
+func (r *DBLayer) PaginateWithCursor(ctx context.Context, tableName string, cursorColumn string, cursorValue interface{}, pageSize int, conditions []Condition, result interface{}) (bool, error) {
 	cursorCondition := Condition{Column: cursorColumn, Operator: ">", Value: cursorValue}
 	allConditions := append(conditions, cursorCondition)
 
@@ -97,10 +97,12 @@ func (r *DBLayer) PaginateWithCursor(ctx context.Context, tableName string, curs
 
 	err := r.db.SelectContext(ctx, result, query, args...)
 	if err != nil {
-		return fmt.Errorf("failed to paginate %s: %w", tableName, err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
 	}
-
-	return nil
+	return true, nil
 }
 
 func (r *DBLayer) SelectFields(ctx context.Context, tableName string, fields []string, conditions []Condition, result interface{}) (bool, error) {
