@@ -99,8 +99,8 @@ Last(ctx context.Context, tableName string, conditions []Condition, result inter
 ```
 Update: Обновляет запись в таблице.
 ```go
-Update(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
-UpdateRecord(ctx context.Context, tableName string, updates map[string]interface{}, conditions []Condition) (int64, error)
+Update(ctx context.Context, tableName string, conditions []Condition, updates map[string]interface{}) (int64, error)
+UpdateRecord(ctx context.Context, tableName string,conditions []Condition, updates map[string]interface{}) (int64, error)
 BulkUpdate(ctx context.Context, tableName string, updates []interface{}, idColumn string)
 BulkUpdateRecord(ctx context.Context, tableName string, updates []map[string]interface{}, idColumn string) error
 Upsert(ctx context.Context, tableName string, record interface{}, uniqueColumns []string) error
