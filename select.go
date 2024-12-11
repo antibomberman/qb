@@ -63,6 +63,22 @@ func (r *DBLayer) First(ctx context.Context, tableName string, conditions []Cond
 	return true, nil
 }
 
+func (r *DBLayer) All(ctx context.Context, tableName string, conditions []Condition, orderBy string, result interface{}) (bool, error) {
+	query, args := r.buildSelectQuery(tableName, conditions)
+
+	if orderBy != "" {
+		query += " ORDER BY " + orderBy
+	}
+
+	err := r.db.SelectContext(ctx, result, query, args...)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
 func (r *DBLayer) List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) (bool, error) {
 	query, args := r.buildSelectQuery(tableName, conditions)
 
