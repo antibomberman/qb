@@ -111,6 +111,7 @@ Delete(ctx context.Context, tableName string, conditions []Condition) (int64, er
 ```
 List: Получает список записей из таблицы.
 ```go
+All(ctx context.Context, tableName string, conditions []Condition, orderBy string, result interface{}) error
 List(ctx context.Context, tableName string, conditions []Condition, orderBy string, limit, offset int, result interface{}) error
 PaginateWithCursor(ctx context.Context, tableName string, cursorColumn string, cursorValue interface{}, pageSize int, conditions []Condition, result interface{}) error
 SelectFields(ctx context.Context, tableName string, fields []string, conditions []Condition, result interface{}) error
