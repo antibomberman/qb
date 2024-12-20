@@ -772,6 +772,20 @@ func (qb *QueryBuilder) Delete() error {
 	return qb.execExec(query)
 }
 
+// DeleteContext удаляет записи с контекстом
+func (qb *QueryBuilder) DeleteContext(ctx context.Context) error {
+	if len(qb.conditions) == 0 {
+		return errors.New("delete without conditions is not allowed")
+	}
+
+	whereSQL := buildConditions(qb.conditions)
+	query := fmt.Sprintf("DELETE FROM %s WHERE %s",
+		qb.table,
+		whereSQL)
+
+	return qb.execExecContext(ctx, query)
+}
+
 // Count возвращает количество записей
 func (qb *QueryBuilder) Count() (int64, error) {
 	var count int64
