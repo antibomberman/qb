@@ -278,18 +278,30 @@ func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error
 }
 
 // CreateContext создает новую запись из структуры и возвращает её id
-func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}) (int64, error) {
-	fields, placeholders := qb.getStructInfo(data)
+func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
+	var insertFields, placeholders []string
+
+	if len(fields) > 0 {
+		// Используем только указанные поля
+		insertFields = fields
+		placeholders = make([]string, len(fields))
+		for i, field := range fields {
+			placeholders[i] = ":" + field
+		}
+	} else {
+		// Используем все поля из структуры
+		insertFields, placeholders = qb.getStructInfo(data)
+	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
 		qb.table,
-		strings.Join(fields, ", "),
+		strings.Join(insertFields, ", "),
 		strings.Join(placeholders, ", "))
 
 	if qb.getDriverName() == "postgres" {
 		var id int64
 		query += " RETURNING id"
-		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(ctx, query, data).Scan(&id)
+		err := qb.getExecutor().QueryRowx(query, data).Scan(&id)
 		return id, err
 	}
 
@@ -301,29 +313,17 @@ func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}) (in
 }
 
 // CreateMap создает новую запись из map и возвращает её id
-func (qb *QueryBuilder) CreateMap(data map[string]interface{}, fields ...string) (int64, error) {
+func (qb *QueryBuilder) CreateMap(data map[string]interface{}) (int64, error) {
 	columns := make([]string, 0)
 	placeholders := make([]string, 0)
 	values := make([]interface{}, 0)
 
-	if len(fields) > 0 {
-		// Используем только указанные поля
-		for _, field := range fields {
-			if val, ok := data[field]; ok {
-				columns = append(columns, field)
-				placeholders = append(placeholders, "?")
-				values = append(values, val)
-			}
-		}
-	} else {
-		// Используем все поля из map
-		for col, val := range data {
-			columns = append(columns, col)
-			placeholders = append(placeholders, "?")
-			values = append(values, val)
-		}
+	// Используем все поля из map
+	for col, val := range data {
+		columns = append(columns, col)
+		placeholders = append(placeholders, "?")
+		values = append(values, val)
 	}
-
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
 		qb.table,
 		strings.Join(columns, ", "),
@@ -457,7 +457,7 @@ func (qb *QueryBuilder) BulkInsert(records []map[string]interface{}) ([]int64, e
 	}
 	sort.Strings(columns)
 
-	// Создаем placeholders и значен��я
+	// Создаем placeholders и значения
 	var placeholders []string
 	var values []interface{}
 	for _, record := range records {
@@ -512,7 +512,7 @@ func (qb *QueryBuilder) BulkInsert(records []map[string]interface{}) ([]int64, e
 	return ids, nil
 }
 
-// BulkInsertContext выполняет массову�� вставку записей с возвратом ID и поддержкой контекста
+// BulkInsertContext выполняет массовую вставку записей с возвратом ID и поддержкой контекста
 func (qb *QueryBuilder) BulkInsertContext(ctx context.Context, records []map[string]interface{}) ([]int64, error) {
 	if len(records) == 0 {
 		return nil, nil
@@ -606,7 +606,7 @@ func (qb *QueryBuilder) Update(data interface{}, fields ...string) error {
 	return err
 }
 
-// UpdateContext об��овляет записи с контекстом
+// UpdateContext обновляет записи с контекстом
 func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
 	var sets []string
 	if len(fields) > 0 {
@@ -966,7 +966,7 @@ func (qb *QueryBuilder) DenseRank(partition string, orderBy string, alias string
 	return qb
 }
 
-// WhereRaw добавляет сы��ое условие WHERE
+// WhereRaw добавляет сырое условие WHERE
 func (qb *QueryBuilder) WhereRaw(sql string, args ...interface{}) *QueryBuilder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
