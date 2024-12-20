@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"sort"
 	"strings"
 	"time"
@@ -21,13 +20,6 @@ type DateFunctions struct {
 	Extract     string
 	DateAdd     string
 	CurrentDate string
-}
-type PaginationResult struct {
-	Data        interface{} `json:"data"`
-	Total       int64       `json:"total"`
-	PerPage     int         `json:"per_page"`
-	CurrentPage int         `json:"current_page"`
-	LastPage    int         `json:"last_page"`
 }
 
 // Select указывает колонки для выборки
@@ -786,56 +778,6 @@ func (qb *QueryBuilder) DeleteContext(ctx context.Context) error {
 	return qb.execExecContext(ctx, query)
 }
 
-// Count возвращает количество записей
-func (qb *QueryBuilder) Count() (int64, error) {
-	var count int64
-	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		query = qb.rebindQuery(query)
-		_, err := qb.execGet(&count, query)
-		return count, err
-	}
-	_, err := qb.execGet(&count, query)
-	return count, err
-}
-
-// Exists проверяет существование записей
-func (qb *QueryBuilder) Exists() (bool, error) {
-	count, err := qb.Count()
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
-// Paginate выполняет пагинацию результатов
-func (qb *QueryBuilder) Paginate(page int, perPage int, dest interface{}) (*PaginationResult, error) {
-	total, err := qb.Count()
-	if err != nil {
-		return nil, err
-	}
-
-	lastPage := int(math.Ceil(float64(total) / float64(perPage)))
-
-	qb.Limit(perPage)
-	qb.Offset((page - 1) * perPage)
-
-	_, err = qb.Get(dest)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PaginationResult{
-		Data:        dest,
-		Total:       total,
-		PerPage:     perPage,
-		CurrentPage: page,
-		LastPage:    lastPage,
-	}, nil
-}
-
 // SubQuery создает подзапрос
 func (qb *QueryBuilder) SubQuery(alias string) *QueryBuilder {
 	sql, args := qb.buildQuery()
@@ -959,6 +901,12 @@ func (qb *QueryBuilder) SkipLocked() *QueryBuilder {
 // NoWait не ждет разблокировки записей
 func (qb *QueryBuilder) NoWait() *QueryBuilder {
 	return qb.Lock("NOWAIT")
+}
+
+// Lock блокирует записи для обновления
+func (qb *QueryBuilder) Lock(mode string) *QueryBuilder {
+	qb.columns = append(qb.columns, mode)
+	return qb
 }
 
 // Window добавляет оконную функцию
@@ -1198,30 +1146,6 @@ func (qb *QueryBuilder) WhereAge(column string, operator string, age int) *Query
 	return qb
 }
 
-// getDateFunctions возвращает функции для текущей СУБД
-func (qb *QueryBuilder) getDateFunctions() DateFunctions {
-	if qb.getDriverName() == "postgres" {
-		return DateFunctions{
-			DateDiff:    "DATE_PART('day', %s::timestamp - %s::timestamp)",
-			DateTrunc:   "DATE_TRUNC",
-			DateFormat:  "TO_CHAR",
-			TimeZone:    "AT TIME ZONE",
-			Extract:     "EXTRACT",
-			DateAdd:     "% + INTERVAL '% %'",
-			CurrentDate: "CURRENT_DATE",
-		}
-	}
-	return DateFunctions{
-		DateDiff:    "DATEDIFF(%s, %s)",
-		DateTrunc:   "DATE_FORMAT", // MySQL не имеет прямого аналога DATE_TRUNC
-		DateFormat:  "DATE_FORMAT",
-		TimeZone:    "CONVERT_TZ",
-		Extract:     "EXTRACT",
-		DateAdd:     "DATE_ADD(%, INTERVAL % %)",
-		CurrentDate: "CURDATE()",
-	}
-}
-
 // WhereDateDiff добавляет условие по разнице между датами
 func (qb *QueryBuilder) WhereDateDiff(column1 string, column2 string, operator string, days int) *QueryBuilder {
 	df := qb.getDateFunctions()
@@ -1272,24 +1196,6 @@ func (qb *QueryBuilder) WhereDateTrunc(part string, column string, operator stri
 		args:     args,
 	})
 	return qb
-}
-
-// getMySQLDateFormat преобразует части даты в формат MySQL
-func getMySQLDateFormat(part string) string {
-	switch strings.ToLower(part) {
-	case "year":
-		return "%Y"
-	case "month":
-		return "%Y-%m"
-	case "day":
-		return "%Y-%m-%d"
-	case "hour":
-		return "%Y-%m-%d %H"
-	case "minute":
-		return "%Y-%m-%d %H:%i"
-	default:
-		return "%Y-%m-%d %H:%i:%s"
-	}
 }
 
 // WhereTimeWindow добавляет условие попадания времени в окно
@@ -1354,19 +1260,6 @@ func (qb *QueryBuilder) WhereDateFormat(column string, format string, operator s
 	return qb
 }
 
-// convertToPostgresFormat преобразует формат даты из MySQL в PostgreSQL
-func convertToPostgresFormat(mysqlFormat string) string {
-	replacer := strings.NewReplacer(
-		"%Y", "YYYY",
-		"%m", "MM",
-		"%d", "DD",
-		"%H", "HH24",
-		"%i", "MI",
-		"%s", "SS",
-	)
-	return replacer.Replace(mysqlFormat)
-}
-
 // WhereTimeZone добавляет условие с учетом временной зоны
 func (qb *QueryBuilder) WhereTimeZone(column string, operator string, value time.Time, timezone string) *QueryBuilder {
 	df := qb.getDateFunctions()
@@ -1384,5 +1277,158 @@ func (qb *QueryBuilder) WhereTimeZone(column string, operator string, value time
 			args:     []interface{}{timezone, value},
 		})
 	}
+	return qb
+}
+
+// Pluck получает значения одной колонки
+func (qb *QueryBuilder) Pluck(column string, dest interface{}) error {
+	query := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
+		_, err := qb.execSelect(dest, query)
+		return err
+	}
+	_, err := qb.execSelect(dest, query)
+	return err
+}
+
+// Chunk обрабатывает записи чанками
+func (qb *QueryBuilder) Chunk(size int, fn func(items interface{}) error) error {
+	offset := 0
+	for {
+		dest := make([]map[string]interface{}, 0, size)
+
+		query, args := qb.buildQuery()
+		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
+
+		found, err := qb.execSelect(&dest, query, args...)
+		if err != nil {
+			return err
+		}
+
+		if !found || len(dest) == 0 {
+			break
+		}
+
+		if err := fn(dest); err != nil {
+			return err
+		}
+
+		offset += size
+	}
+	return nil
+}
+
+// ChunkContext обрабатывает записи чанками с контекстом
+func (qb *QueryBuilder) ChunkContext(ctx context.Context, size int, fn func(context.Context, interface{}) error) error {
+	offset := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		dest := make([]map[string]interface{}, 0, size)
+
+		query, args := qb.buildQuery()
+		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
+
+		found, err := qb.execSelectContext(ctx, &dest, query, args...)
+		if err != nil {
+			return err
+		}
+
+		if !found || len(dest) == 0 {
+			break
+		}
+
+		if err := fn(ctx, dest); err != nil {
+			return err
+		}
+
+		offset += size
+	}
+	return nil
+}
+
+// WithinGroup выполняет оконную функцию
+func (qb *QueryBuilder) WithinGroup(column string, window string) *QueryBuilder {
+	qb.columns = append(qb.columns, fmt.Sprintf("%s WITHIN GROUP (%s)", column, window))
+	return qb
+}
+
+// Distinct добавляет DISTINCT к запросу
+func (qb *QueryBuilder) Distinct(columns ...string) *QueryBuilder {
+	if len(columns) == 0 {
+		qb.columns = append(qb.columns, "DISTINCT *")
+	} else {
+		qb.columns = append(qb.columns, "DISTINCT "+strings.Join(columns, ", "))
+	}
+	return qb
+}
+
+// Raw выполняет сырой SQL запрос
+func (qb *QueryBuilder) Raw(query string, args ...interface{}) error {
+	return qb.execExec(query, args...)
+}
+
+// RawQuery выполняет сырой SQL запрос с возвратом данных
+func (qb *QueryBuilder) RawQuery(dest interface{}, query string, args ...interface{}) error {
+	_, err := qb.execSelect(dest, query, args...)
+	return err
+}
+
+// Value получает значение одного поля
+func (qb *QueryBuilder) Value(column string) (interface{}, error) {
+	var result interface{}
+	query := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+	qb.Limit(1)
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
+		query = qb.rebindQuery(query)
+		_, err := qb.execGet(&result, query)
+		return result, err
+	}
+	query = qb.rebindQuery(query)
+	_, err := qb.execGet(&result, query)
+	return result, err
+}
+
+// Values получает значения одного поля для всех записей
+func (qb *QueryBuilder) Values(column string) ([]interface{}, error) {
+	var result []interface{}
+	query := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
+		query = qb.rebindQuery(query)
+		_, err := qb.execSelect(&result, query)
+		return result, err
+	}
+	query = qb.rebindQuery(query)
+	_, err := qb.execSelect(&result, query)
+	return result, err
+}
+
+// WhereExists добавляет условие EXISTS
+func (qb *QueryBuilder) WhereExists(subQuery *QueryBuilder) *QueryBuilder {
+	sql, args := subQuery.buildQuery()
+	qb.conditions = append(qb.conditions, Condition{
+		operator: "AND",
+		clause:   fmt.Sprintf("EXISTS (%s)", sql),
+		args:     args,
+	})
+	return qb
+}
+
+// WhereNotExists добавляет условие NOT EXISTS
+func (qb *QueryBuilder) WhereNotExists(subQuery *QueryBuilder) *QueryBuilder {
+	sql, args := subQuery.buildQuery()
+	qb.conditions = append(qb.conditions, Condition{
+		operator: "AND",
+		clause:   fmt.Sprintf("NOT EXISTS (%s)", sql),
+		args:     args,
+	})
 	return qb
 }
