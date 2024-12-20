@@ -46,6 +46,12 @@ func (qb *QueryBuilder) Where(condition string, args ...interface{}) *QueryBuild
 	return qb
 }
 
+// WhereId добавляет условие WHERE id = ?
+func (qb *QueryBuilder) WhereId(id interface{}) *QueryBuilder {
+	qb.Where("id = ?", id)
+	return qb
+}
+
 // OrWhere добавляет условие OR
 func (qb *QueryBuilder) OrWhere(condition string, args ...interface{}) *QueryBuilder {
 	qb.conditions = append(qb.conditions, Condition{
