@@ -10,7 +10,7 @@ type DBLayer struct {
 	db *sqlx.DB
 }
 
-func NewDbLayer(db *sqlx.DB) *DBLayer {
+func NewDBLayer(db *sqlx.DB) *DBLayer {
 	return &DBLayer{db: db}
 }
 
