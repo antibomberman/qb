@@ -12,6 +12,24 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// DateFunctions содержит SQL функции для разных СУБД
+type DateFunctions struct {
+	DateDiff    string
+	DateTrunc   string
+	DateFormat  string
+	TimeZone    string
+	Extract     string
+	DateAdd     string
+	CurrentDate string
+}
+type PaginationResult struct {
+	Data        interface{} `json:"data"`
+	Total       int64       `json:"total"`
+	PerPage     int         `json:"per_page"`
+	CurrentPage int         `json:"current_page"`
+	LastPage    int         `json:"last_page"`
+}
+
 // Select указывает колонки для выборки
 func (qb *QueryBuilder) Select(columns ...string) *QueryBuilder {
 	qb.columns = columns
@@ -772,14 +790,6 @@ func (qb *QueryBuilder) Exists() (bool, error) {
 	return count > 0, nil
 }
 
-type PaginationResult struct {
-	Data        interface{} `json:"data"`
-	Total       int64       `json:"total"`
-	PerPage     int         `json:"per_page"`
-	CurrentPage int         `json:"current_page"`
-	LastPage    int         `json:"last_page"`
-}
-
 // Paginate выполняет пагинацию результатов
 func (qb *QueryBuilder) Paginate(page int, perPage int, dest interface{}) (*PaginationResult, error) {
 	total, err := qb.Count()
@@ -1166,17 +1176,6 @@ func (qb *QueryBuilder) WhereAge(column string, operator string, age int) *Query
 		args:     []interface{}{age},
 	})
 	return qb
-}
-
-// DateFunctions содержит SQL функции для разных СУБД
-type DateFunctions struct {
-	DateDiff    string
-	DateTrunc   string
-	DateFormat  string
-	TimeZone    string
-	Extract     string
-	DateAdd     string
-	CurrentDate string
 }
 
 // getDateFunctions возвращает функции для текущей СУБД
