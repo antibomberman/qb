@@ -1,11 +1,14 @@
 package dblayer
 
 import (
-	"context"
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
+
+	"context"
+	"database/sql"
+	"encoding/json"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -33,28 +36,32 @@ type Condition struct {
 }
 
 type QueryBuilder struct {
-	table      string
-	conditions []Condition
-	db         interface{} // может быть *sqlx.DB или *sqlx.Tx
-	columns    []string
-	orderBy    []string
-	groupBy    []string
-	having     string
-	limit      int
-	offset     int
-	joins      []Join
-	alias      string
+	table         string
+	conditions    []Condition
+	db            interface{} // может быть *sqlx.DB или *sqlx.Tx
+	columns       []string
+	orderBy       []string
+	groupBy       []string
+	having        string
+	limit         int
+	offset        int
+	joins         []Join
+	alias         string
+	dbl           *DBLayer
+	cacheKey      string
+	cacheDuration time.Duration
 }
 
 // Executor интерфейс для выполнения запросов
 type Executor interface {
+	sqlx.Ext
+	sqlx.ExtContext
+	DriverName() string
 	Get(dest interface{}, query string, args ...interface{}) error
 	Select(dest interface{}, query string, args ...interface{}) error
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
-	Query(query string, args ...interface{}) (*sql.Rows, error)
 	NamedExec(query string, arg interface{}) (sql.Result, error)
 	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 }
 
 // getExecutor возвращает исполнитель запросов
@@ -71,14 +78,7 @@ func (qb *QueryBuilder) getExecutor() Executor {
 
 // rebindQuery преобразует плейсхолдеры под нужный диалект SQL
 func (qb *QueryBuilder) rebindQuery(query string) string {
-	switch db := qb.db.(type) {
-	case *sqlx.DB:
-		return db.Rebind(query)
-	case *sqlx.Tx:
-		return db.Rebind(query)
-	default:
-		return query
-	}
+	return qb.getExecutor().Rebind(query)
 }
 
 // buildConditions собирает условия WHERE в строку
@@ -174,4 +174,54 @@ func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeh
 		}
 	}
 	return
+}
+
+// getDriverName возвращает имя драйвера базы данных
+func (qb *QueryBuilder) getDriverName() string {
+	if db, ok := qb.db.(*sqlx.DB); ok {
+		return db.DriverName()
+	}
+	if tx, ok := qb.db.(*sqlx.Tx); ok {
+		return tx.DriverName()
+	}
+	return ""
+}
+
+// Remember включает кеширование для запроса
+func (qb *QueryBuilder) Remember(duration time.Duration, key string) *QueryBuilder {
+	qb.cacheKey = key
+	qb.cacheDuration = duration
+	return qb
+}
+
+// GetCached получает данные с учетом кеша
+func (qb *QueryBuilder) GetCached(dest interface{}) (bool, error) {
+	// Проверяем наличие ключа кеша
+	if qb.cacheKey != "" {
+		// Пытаемся получить из кеша
+		if cached, ok := qb.dbl.getCache(qb.cacheKey); ok {
+			// Копируем закешированные данные
+			if data, ok := cached.([]byte); ok {
+				return true, json.Unmarshal(data, dest)
+			}
+		}
+	}
+
+	// Если в кеше нет, получаем из БД
+	found, err := qb.Get(dest)
+	if err != nil {
+		return false, err
+	}
+
+	// Сохраняем результат в кеш
+	if found && qb.cacheKey != "" {
+		// Сериализуем данные перед сохранением
+		data, err := json.Marshal(dest)
+		if err != nil {
+			return false, err
+		}
+		qb.dbl.setCache(qb.cacheKey, data, qb.cacheDuration)
+	}
+
+	return found, nil
 }
