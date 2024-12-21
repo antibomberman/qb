@@ -1,5 +1,20 @@
 package dblayer
 
+type JoinType string
+
+const (
+	InnerJoin JoinType = "INNER JOIN"
+	LeftJoin  JoinType = "LEFT JOIN"
+	RightJoin JoinType = "RIGHT JOIN"
+	CrossJoin JoinType = "CROSS JOIN"
+)
+
+type Join struct {
+	Type      JoinType
+	Table     string
+	Condition string
+}
+
 // Join добавляет INNER JOIN
 func (qb *QueryBuilder) Join(table string, condition string) *QueryBuilder {
 	qb.joins = append(qb.joins, Join{
