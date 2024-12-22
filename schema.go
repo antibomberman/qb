@@ -46,6 +46,10 @@ func (s *Schema) ModifyColumn(name string, fn func(*ColumnBuilder)) *Schema {
 	return s
 }
 
+func (s *Schema) ID() *ColumnBuilder {
+	return s.addColumn(Column{Name: "id", Type: "BIGINT", AutoIncrement: true, Primary: true})
+}
+
 // BigIncrements добавляет автоинкрементное большое целое
 func (s *Schema) BigIncrements(name string) *ColumnBuilder {
 	return s.addColumn(Column{Name: name, Type: "BIGINT", AutoIncrement: true, Primary: true})
@@ -126,9 +130,9 @@ func (s *Schema) Float(name string, precision, scale int) *ColumnBuilder {
 	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("FLOAT(%d,%d)", precision, scale)})
 }
 
-// ForeignId добавляет внешний ключ
-func (s *Schema) ForeignId(name string, table string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: "id"}})
+// ForeignKey добавляет внешний ключ
+func (s *Schema) ForeignKey(name string, table string, column string) *ColumnBuilder {
+	return s.addColumn(Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: column}})
 }
 
 // Uuid добавляет поле UUID
@@ -339,9 +343,9 @@ func (s *Schema) Seo() *Schema {
 
 // Audit добавляет поля аудита
 func (s *Schema) Audit() *Schema {
-	s.ForeignId("created_by", "users").Nullable()
-	s.ForeignId("updated_by", "users").Nullable()
-	s.ForeignId("deleted_by", "users").Nullable()
+	s.ForeignKey("created_by", "users", "id").Nullable()
+	s.ForeignKey("updated_by", "users", "id").Nullable()
+	s.ForeignKey("deleted_by", "users", "id").Nullable()
 	s.Timestamps()
 	s.SoftDeletes()
 	return s

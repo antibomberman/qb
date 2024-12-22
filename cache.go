@@ -69,7 +69,7 @@ func (d *DBLayer) cleanup() {
 }
 
 // Remember включает кеширование для запроса
-func (qb *QueryBuilder) Remember(duration time.Duration, key string) *QueryBuilder {
+func (qb *QueryBuilder) Remember(key string, duration time.Duration) *QueryBuilder {
 	qb.cacheKey = key
 	qb.cacheDuration = duration
 	return qb

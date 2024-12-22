@@ -20,13 +20,18 @@ func main() {
 
 	DBLayer = dblayer.NewDBLayer("sqlite", db)
 
+}
+
+// CreateTable создает таблицу
+func CreateTable() {
 	DBLayer.Create("users", func(table *dblayer.Schema) {
 		table.BigIncrements("id")
 		table.String("name", 255)
 		table.String("email", 255)
 		table.Timestamps()
 	})
-
+}
+func UpdateTable() {
 	// Обновление таблицы
 	DBLayer.Update("users", func(table *dblayer.Schema) {
 		// Добавление новых колонок - тот же API, что и при создании
@@ -40,7 +45,7 @@ func main() {
 	})
 }
 
-func mainBuildTable() {
+func BuildTable() {
 	// Создание таблицы пользователей
 	userTable := DBLayer.Builder("users").
 		IfNotExists().
@@ -92,7 +97,7 @@ func mainBuildTable() {
 	fmt.Println(sql)
 }
 
-func mainAlterTable() {
+func AlterTable() {
 	DBLayer.Transaction(func(tx *dblayer.Transaction) error {
 		// Добавление колонок
 		alter := DBLayer.Alter("users").
@@ -141,28 +146,31 @@ func mainAlterTable() {
 	})
 }
 
-func main3() {
+func DropTable() {
+	// Удаление таблицы
+	DBLayer.Drop("users", "orders").
+		IfExists().
+		Cascade().
+		Execute()
+
+	// Удаление временной таблицы
+	DBLayer.Drop("temp_users").
+		Temporary().
+		Execute()
+
+	// Неблокирующее удаление (PostgreSQL)
+	DBLayer.Drop("large_table").
+		Concurrent().
+		Execute()
+
+	// Принудительное удаление (MySQL)
+	DBLayer.Drop("locked_table").
+		Force().
+		Execute()
+
+}
+func DropTruncate() {
 	DBLayer.Transaction(func(tx *dblayer.Transaction) error {
-		// Удаление таблицы
-		DBLayer.Drop("users", "orders").
-			IfExists().
-			Cascade().
-			Execute()
-
-		// Удаление временной таблицы
-		DBLayer.Drop("temp_users").
-			Temporary().
-			Execute()
-
-		// Неблокирующее удаление (PostgreSQL)
-		DBLayer.Drop("large_table").
-			Concurrent().
-			Execute()
-
-		// Принудительное удаление (MySQL)
-		DBLayer.Drop("locked_table").
-			Force().
-			Execute()
 
 		// Очистка таблицы со сбросом автоинкремента
 		DBLayer.Truncate("orders").
