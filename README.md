@@ -2,4 +2,4 @@
 ### DBLayer - это Go пакет, предоставляющий удобный интерфейс для работы с реляционными базами данных
 
 ## Установка
-### go get github.com/antibomberman/dblayer@v1.1.17
+### go get github.com/antibomberman/dblayer@v1.1.0
