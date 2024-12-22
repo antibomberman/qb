@@ -19,6 +19,26 @@ func main() {
 	defer db.Close()
 
 	DBLayer = dblayer.NewDBLayer("sqlite", db)
+
+	DBLayer.Create("users", func(table *dblayer.Schema) {
+		table.BigIncrements("id")
+		table.String("name", 255)
+		table.String("email", 255)
+		table.Timestamps()
+	})
+
+	// Обновление таблицы
+	DBLayer.Update("users", func(table *dblayer.Schema) {
+		// Добавление новых колонок - тот же API, что и при создании
+		table.String("phone", 20)
+
+		// Специфичные для обновления операции
+		table.RenameColumn("name", "full_name")
+		table.DropColumn("old_field")
+		table.ModifyColumn("email", func(col *dblayer.ColumnBuilder) {
+			col.Type("VARCHAR", 255).Unique()
+		})
+	})
 }
 
 func mainBuildTable() {

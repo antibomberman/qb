@@ -94,3 +94,19 @@ func (dbl *DBLayer) Create(name string, fn func(*Schema)) error {
 
 	return dbl.Raw(tb.Build()).Exec()
 }
+
+// Update обновляет существующую таблицу
+func (dbl *DBLayer) Update(name string, fn func(*Schema)) error {
+	alter := &AlterTable{
+		dbl:  dbl,
+		name: name,
+	}
+
+	schema := &Schema{
+		alter: alter,
+		mode:  "update",
+	}
+	fn(schema)
+
+	return alter.Execute()
+}
