@@ -3,11 +3,13 @@ package dblayer
 import (
 	"context"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"sort"
 	"strings"
+
+	"github.com/jmoiron/sqlx"
 )
 
+// Create add new record to database and return id
 // Create создает новую запись из структуры и возвращает её id
 func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error) {
 	var insertFields, placeholders []string

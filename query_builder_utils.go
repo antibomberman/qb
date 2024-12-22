@@ -68,13 +68,14 @@ func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeh
 
 // getDriverName возвращает имя драйвера базы данных
 func (qb *QueryBuilder) getDriverName() string {
-	if db, ok := qb.db.(*sqlx.DB); ok {
-		return db.DriverName()
-	}
-	if tx, ok := qb.db.(*sqlx.Tx); ok {
-		return tx.DriverName()
-	}
-	return ""
+	return qb.dbl.db.DriverName()
+	// if db, ok := qb.db.(*sqlx.DB); ok {
+	// 	return db.DriverName()
+	// }
+	// if tx, ok := qb.db.(*sqlx.Tx); ok {
+	// 	return tx.DriverName()
+	// }
+	// return ""
 }
 
 // buildQuery собирает полный SQL запрос
