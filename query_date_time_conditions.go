@@ -257,23 +257,6 @@ func (qb *QueryBuilder) WhereDateDiff(column1 string, column2 string, operator s
 	return qb
 }
 
-// WhereTimeOverlap проверяет пересечение временных интервалов
-func (qb *QueryBuilder) WhereTimeOverlap(startCol1, endCol1, startCol2, endCol2 string) *QueryBuilder {
-	if qb.getDriverName() == "postgres" {
-		qb.conditions = append(qb.conditions, Condition{
-			operator: "AND",
-			clause:   fmt.Sprintf("(%s, %s) OVERLAPS (%s, %s)", startCol1, endCol1, startCol2, endCol2),
-		})
-	} else {
-		// MySQL не имеет OVERLAPS - используем логическое выражение
-		qb.conditions = append(qb.conditions, Condition{
-			operator: "AND",
-			clause:   fmt.Sprintf("(%s <= %s AND %s >= %s)", startCol1, endCol2, endCol1, startCol2),
-		})
-	}
-	return qb
-}
-
 // WhereDateTrunc добавляет условие с усечением даты
 func (qb *QueryBuilder) WhereDateTrunc(part string, column string, operator string, value time.Time) *QueryBuilder {
 	df := qb.getDateFunctions()
