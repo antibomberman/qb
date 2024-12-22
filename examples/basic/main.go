@@ -3,15 +3,13 @@ package basoc
 import (
 	"database/sql"
 	"fmt"
+	"github.com/antibomberman/dblayer"
+	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"time"
-
-	_ "github.com/go-sql-driver/mysql"
-
-	"github.com/antibomberman/dblayer"
 )
 
-// Структуры для работы с данными
+// Data structures for working with database
 type User struct {
 	ID        int64     `db:"id"`
 	Email     string    `db:"email"`
@@ -37,26 +35,26 @@ type Comment struct {
 }
 
 func main() {
-	// Подключение к базе данных
+	// Connect to database
 	db, err := sql.Open("mysql", "user:password@tcp(localhost:3306)/testdb?parseTime=true")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	// Инициализация DBLayer
+	// Initialize DBLayer
 	dbl := dblayer.NewDBLayer("mysql", db)
-	// Создание таблиц
+	// Create tables
 	if err := createTables(dbl); err != nil {
 		log.Fatal(err)
 	}
-	// Примеры использования
+	// Usage examples
 	if err := examples(dbl); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func createTables(dbl *dblayer.DBLayer) error {
-	// Создание таблицы пользователей
+	// Create users table
 	err := dbl.Create("users", func(schema *dblayer.Schema) {
 		schema.ID()
 		schema.String("email", 255).Unique()
@@ -66,9 +64,9 @@ func createTables(dbl *dblayer.DBLayer) error {
 		schema.Integer("version").Default(1)
 	})
 	if err != nil {
-		return fmt.Errorf("ошибка создания таблицы users: %w", err)
+		return fmt.Errorf("error creating users table: %w", err)
 	}
-	// Создание таблицы постов
+	// Create posts table
 	err = dbl.Create("posts", func(schema *dblayer.Schema) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("user_id")
@@ -78,9 +76,9 @@ func createTables(dbl *dblayer.DBLayer) error {
 		schema.ForeignKey("user_id", "users", "id")
 	})
 	if err != nil {
-		return fmt.Errorf("ошибка создания таблицы posts: %w", err)
+		return fmt.Errorf("error creating posts table: %w", err)
 	}
-	// Создание таблицы комментариев
+	// Create comments table
 	err = dbl.Create("comments", func(schema *dblayer.Schema) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("post_id")
@@ -91,13 +89,13 @@ func createTables(dbl *dblayer.DBLayer) error {
 		schema.ForeignKey("user_id", "users", "id")
 	})
 	if err != nil {
-		return fmt.Errorf("ошибка создания таблицы comments: %w", err)
+		return fmt.Errorf("error creating comments table: %w", err)
 	}
 	return nil
 }
 
 func examples(dbl *dblayer.DBLayer) error {
-	// 1. Создание пользователя с транзакцией и аудитом
+	// 1. Create user with transaction and audit
 	tx, err := dbl.Begin()
 	if err != nil {
 		return err
@@ -110,17 +108,17 @@ func examples(dbl *dblayer.DBLayer) error {
 		Version:   1,
 	}
 	userID, err := tx.Table("users").
-		WithAudit(1). // ID администратора
+		WithAudit(1). // Admin ID
 		Create(user)
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
-	// 2. Создание поста для пользователя
+	// 2. Create post for user
 	post := &Post{
 		UserID:    userID,
-		Title:     "Мой первый пост",
-		Content:   "Привет, мир!",
+		Title:     "My first post",
+		Content:   "Hello world!",
 		CreatedAt: time.Now(),
 	}
 	postID, err := tx.Table("posts").Create(post)
@@ -128,11 +126,11 @@ func examples(dbl *dblayer.DBLayer) error {
 		tx.Rollback()
 		return err
 	}
-	// 3. Добавление комментария
+	// 3. Add comment
 	comment := &Comment{
 		PostID:    postID,
 		UserID:    userID,
-		Content:   "Первый комментарий",
+		Content:   "First comment",
 		CreatedAt: time.Now(),
 	}
 	_, err = tx.Table("comments").Create(comment)
@@ -140,11 +138,11 @@ func examples(dbl *dblayer.DBLayer) error {
 		tx.Rollback()
 		return err
 	}
-	// Фиксация транзакции
+	// Commit transaction
 	if err := tx.Commit(); err != nil {
 		return err
 	}
-	// 4. Сложный запрос с JOIN и кешированием
+	// 4. Complex query with JOIN and caching
 	var results []struct {
 		UserName     string    `db:"name"`
 		PostTitle    string    `db:"title"`
@@ -163,7 +161,7 @@ func examples(dbl *dblayer.DBLayer) error {
 	if err != nil {
 		return err
 	}
-	// 5. Пакетное обновление с оптимистичной блокировкой
+	// 5. Batch update with optimistic locking
 	users := []map[string]interface{}{
 		{"id": 1, "age": 26, "version": 2},
 		{"id": 2, "age": 31, "version": 2},
@@ -172,17 +170,17 @@ func examples(dbl *dblayer.DBLayer) error {
 	if err != nil {
 		return err
 	}
-	// 6. Полнотекстовый поиск
+	// 6. Full-text search
 	var searchResults []Post
 	_, err = dbl.Table("posts").
-		Search([]string{"title", "content"}, "привет").
+		Search([]string{"title", "content"}, "hello").
 		OrderBy("search_rank", "DESC").
 		Limit(10).
 		Get(&searchResults)
 	if err != nil {
 		return err
 	}
-	// 7. Пагинация с метриками
+	// 7. Pagination with metrics
 	var pagedUsers []User
 	collector := dblayer.NewMetricsCollector()
 	result, err := dbl.Table("users").
@@ -192,6 +190,6 @@ func examples(dbl *dblayer.DBLayer) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Всего пользователей: %d, Страниц: %d\n", result.Total, result.LastPage)
+	fmt.Printf("Total users: %d, Pages: %d\n", result.Total, result.LastPage)
 	return nil
 }
