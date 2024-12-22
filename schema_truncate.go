@@ -49,13 +49,13 @@ func (tt *TruncateTable) Force() *TruncateTable {
 }
 
 // Build генерирует SQL запрос
-func (tt *TruncateTable) Build(dialect string) string {
+func (tt *TruncateTable) Build() string {
 	var sql strings.Builder
 
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.tables, ", "))
 
-	if dialect == "postgres" {
+	if tt.dbl.db.DriverName() == "postgres" {
 		if tt.options.Restart {
 			sql.WriteString(" RESTART IDENTITY")
 		} else if tt.options.ContinueIdentity {
@@ -69,7 +69,7 @@ func (tt *TruncateTable) Build(dialect string) string {
 		}
 	}
 
-	if tt.options.Force && dialect == "mysql" {
+	if tt.options.Force && tt.dbl.db.DriverName() == "mysql" {
 		sql.WriteString(" FORCE")
 	}
 
@@ -77,6 +77,6 @@ func (tt *TruncateTable) Build(dialect string) string {
 }
 
 // Execute выполняет очистку таблицы
-func (tt *TruncateTable) Execute(dbl *DBLayer) error {
-	return dbl.Raw(tt.Build(dbl.db.DriverName())).Exec()
+func (tt *TruncateTable) Execute() error {
+	return tt.dbl.Raw(tt.Build()).Exec()
 }

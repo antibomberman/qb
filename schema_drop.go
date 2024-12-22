@@ -58,7 +58,7 @@ func (dt *DropTable) Force() *DropTable {
 }
 
 // Build генерирует SQL запрос
-func (dt *DropTable) Build(dialect string) string {
+func (dt *DropTable) Build() string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -67,7 +67,7 @@ func (dt *DropTable) Build(dialect string) string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent && dialect == "postgres" {
+	if dt.options.Concurrent && dt.dbl.db.DriverName() == "postgres" {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -77,15 +77,15 @@ func (dt *DropTable) Build(dialect string) string {
 
 	sql.WriteString(strings.Join(dt.tables, ", "))
 
-	if dt.options.Cascade && dialect == "postgres" {
+	if dt.options.Cascade && dt.dbl.db.DriverName() == "postgres" {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict && dialect == "postgres" {
+	if dt.options.Restrict && dt.dbl.db.DriverName() == "postgres" {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.options.Force && dialect == "mysql" {
+	if dt.options.Force && dt.dbl.db.DriverName() == "mysql" {
 		sql.WriteString(" FORCE")
 	}
 
@@ -93,6 +93,6 @@ func (dt *DropTable) Build(dialect string) string {
 }
 
 // Execute выполняет удаление таблицы
-func (dt *DropTable) Execute(dbl *DBLayer) error {
-	return dbl.Raw(dt.Build(dbl.db.DriverName())).Exec()
+func (dt *DropTable) Execute() error {
+	return dt.dbl.Raw(dt.Build()).Exec()
 }
