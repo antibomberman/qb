@@ -31,7 +31,6 @@ func main() {
 	DBLayer.Update("users", func(table *dblayer.Schema) {
 		// Добавление новых колонок - тот же API, что и при создании
 		table.String("phone", 20)
-
 		// Специфичные для обновления операции
 		table.RenameColumn("name", "full_name")
 		table.DropColumn("old_field")
