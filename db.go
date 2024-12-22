@@ -75,3 +75,22 @@ func (d *DBLayer) Drop(tables ...string) *DropTable {
 		tables: tables,
 	}
 }
+
+// Create создает новую таблицу
+func (dbl *DBLayer) Create(name string, fn func(*Schema)) error {
+	tb := &TableBuilder{
+		dbl:         dbl,
+		name:        name,
+		uniqueKeys:  make(map[string][]string),
+		indexes:     make(map[string][]string),
+		foreignKeys: make(map[string]*ForeignKey),
+		engine:      "InnoDB",
+		charset:     "utf8mb4",
+		collate:     "utf8mb4_unicode_ci",
+	}
+
+	schema := &Schema{table: tb}
+	fn(schema)
+
+	return dbl.Raw(tb.Build()).Exec()
+}
