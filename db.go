@@ -1,6 +1,7 @@
 package dblayer
 
 import (
+	"database/sql"
 	"sync"
 
 	"github.com/jmoiron/sqlx"
@@ -12,12 +13,12 @@ type DBLayer struct {
 	mu    sync.RWMutex
 }
 
-func NewDBLayer(db *sqlx.DB) *DBLayer {
+func NewDBLayer(db *sql.DB, driverName string) *DBLayer {
+	x := sqlx.NewDb(db, driverName)
 	d := &DBLayer{
-		db:    db,
+		db:    x,
 		cache: make(map[string]cacheItem),
 	}
-	// Запускаем очистку кеша
 	go d.startCleanup()
 	return d
 }
