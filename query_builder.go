@@ -30,6 +30,7 @@ type QueryBuilder struct {
 	dbl           *DBLayer
 	cacheKey      string
 	cacheDuration time.Duration
+	events        map[EventType][]EventHandler
 }
 
 // Executor интерфейс для выполнения запросов
@@ -42,4 +43,12 @@ type Executor interface {
 	NamedExec(query string, arg interface{}) (sql.Result, error)
 	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
 	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+}
+
+// On регистрирует обработчик события
+func (qb *QueryBuilder) On(event EventType, handler EventHandler) {
+	if qb.events == nil {
+		qb.events = make(map[EventType][]EventHandler)
+	}
+	qb.events[event] = append(qb.events[event], handler)
 }

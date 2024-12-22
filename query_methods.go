@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // DateFunctions содержит SQL функции для разных СУБД
@@ -318,7 +319,7 @@ func (qb *QueryBuilder) WhereNotNull(column string) *QueryBuilder {
 	return qb
 }
 
-// WhereBetween добавляет условие BETWEEN
+// WhereBetween добавляет услов��е BETWEEN
 func (qb *QueryBuilder) WhereBetween(column string, start, end interface{}) *QueryBuilder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
@@ -561,4 +562,33 @@ func (qb *QueryBuilder) Values(column string) ([]interface{}, error) {
 	query = qb.rebindQuery(query)
 	_, err := qb.execSelect(&result, query)
 	return result, err
+}
+
+// SoftDelete добавляет поддержку мягкого удаления
+type SoftDelete struct {
+	DeletedAt *time.Time `db:"deleted_at"`
+}
+
+// WithTrashed включает удаленные записи в выборку
+func (qb *QueryBuilder) WithTrashed() *QueryBuilder {
+	return qb
+}
+
+// OnlyTrashed выбирает только удаленные записи
+func (qb *QueryBuilder) OnlyTrashed() *QueryBuilder {
+	return qb.WhereNotNull("deleted_at")
+}
+
+// SoftDelete помечает записи как удаленные
+func (qb *QueryBuilder) SoftDelete() error {
+	return qb.UpdateMap(map[string]interface{}{
+		"deleted_at": time.Now(),
+	})
+}
+
+// Restore восстанавливает удаленные записи
+func (qb *QueryBuilder) Restore() error {
+	return qb.UpdateMap(map[string]interface{}{
+		"deleted_at": nil,
+	})
 }
