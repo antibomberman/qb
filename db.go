@@ -13,7 +13,7 @@ type DBLayer struct {
 	mu    sync.RWMutex
 }
 
-func NewDBLayer(db *sql.DB, driverName string) *DBLayer {
+func NewDBLayer(driverName string, db *sql.DB) *DBLayer {
 	x := sqlx.NewDb(db, driverName)
 	d := &DBLayer{
 		db:    x,
@@ -27,8 +27,7 @@ func NewDBLayer(db *sql.DB, driverName string) *DBLayer {
 func (d *DBLayer) Table(name string) *QueryBuilder {
 	return &QueryBuilder{
 		table: name,
-		db:    d.db,
-		dbl:   d, // Добавляем ссылку на DBLayer
+		dbl:   d,
 	}
 }
 

@@ -1,24 +1,24 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 
 	"github.com/antibomberman/dblayer"
-	"github.com/jmoiron/sqlx"
 )
 
 var DBLayer *dblayer.DBLayer
 
 func main() {
 
-	db, err := sqlx.Open("sqlite", "./examples/example.db")
+	db, err := sql.Open("sqlite", "./examples/example.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	DBLayer = dblayer.NewDBLayer(db)
+	DBLayer = dblayer.NewDBLayer("sqlite", db)
 }
 
 func mainBuildTable() {

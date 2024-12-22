@@ -16,9 +16,10 @@ type Condition struct {
 }
 
 type QueryBuilder struct {
+	db            interface{} // может быть *sqlx.DB или *sqlx.Tx
+	dbl           *DBLayer
 	table         string
 	conditions    []Condition
-	db            interface{} // может быть *sqlx.DB или *sqlx.Tx
 	columns       []string
 	orderBy       []string
 	groupBy       []string
@@ -27,7 +28,6 @@ type QueryBuilder struct {
 	offset        int
 	joins         []Join
 	alias         string
-	dbl           *DBLayer
 	cacheKey      string
 	cacheDuration time.Duration
 	events        map[EventType][]EventHandler
