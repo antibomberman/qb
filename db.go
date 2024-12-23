@@ -124,7 +124,7 @@ func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 }
 
 // Update обновляет существующую таблицу
-func (dbl *DBLayer) Update(name string, fn func(*Schema)) error {
+func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl:  dbl,
 		name: name,
