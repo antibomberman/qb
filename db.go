@@ -89,28 +89,6 @@ func (t *Transaction) Table(name string) *QueryBuilder {
 	}
 }
 
-// Builder создает построитель таблиц
-func (d *DBLayer) Builder(name string) *TableBuilder {
-	return &TableBuilder{
-		dbl:         d,
-		name:        name,
-		uniqueKeys:  make(map[string][]string),
-		indexes:     make(map[string][]string),
-		foreignKeys: make(map[string]*ForeignKey),
-		engine:      "InnoDB",
-		charset:     "utf8mb4",
-		collate:     "utf8mb4_unicode_ci",
-	}
-}
-
-// Alter создает построитель изменений таблиц
-func (d *DBLayer) Alter(name string) *AlterTable {
-	return &AlterTable{
-		dbl:  d,
-		name: name,
-	}
-}
-
 // Truncate создает построитель очистки таблиц
 func (d *DBLayer) Truncate(tables ...string) *TruncateTable {
 	return &TruncateTable{
@@ -127,8 +105,8 @@ func (d *DBLayer) Drop(tables ...string) *DropTable {
 }
 
 // Create создает новую таблицу
-func (dbl *DBLayer) Create(name string, fn func(*Schema)) error {
-	tb := &TableBuilder{
+func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
+	schema := &Schema{
 		dbl:         dbl,
 		name:        name,
 		uniqueKeys:  make(map[string][]string),
@@ -137,26 +115,23 @@ func (dbl *DBLayer) Create(name string, fn func(*Schema)) error {
 		engine:      "InnoDB",
 		charset:     "utf8mb4",
 		collate:     "utf8mb4_unicode_ci",
+		mode:        "create",
 	}
 
-	schema := &Schema{table: tb}
 	fn(schema)
 
-	return dbl.Raw(tb.Build()).Exec()
+	return schema.Execute()
 }
 
 // Update обновляет существующую таблицу
 func (dbl *DBLayer) Update(name string, fn func(*Schema)) error {
-	alter := &AlterTable{
+	schema := &Schema{
 		dbl:  dbl,
 		name: name,
+		mode: "update",
 	}
 
-	schema := &Schema{
-		alter: alter,
-		mode:  "update",
-	}
 	fn(schema)
 
-	return alter.Execute()
+	return schema.Execute()
 }

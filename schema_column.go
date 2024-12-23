@@ -5,6 +5,23 @@ import (
 	"strings"
 )
 
+// Column представляет колонку таблицы
+type Column struct {
+	Name          string
+	Type          string
+	Length        int
+	Nullable      bool
+	Default       interface{}
+	AutoIncrement bool
+	Primary       bool
+	Unique        bool
+	Index         bool
+	Comment       string
+	After         string
+	First         bool
+	References    *ForeignKey
+}
+
 // ColumnBuilder построитель колонок
 type ColumnBuilder struct {
 	schema *Schema

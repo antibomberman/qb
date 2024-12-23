@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+// Реализации для разных БД
+type MySQLDialect struct{}
+type PostgresDialect struct{}
+
 // Schema представляет построитель схемы таблицы
 type Schema struct {
 	dbl         *DBLayer
@@ -23,31 +27,6 @@ type Schema struct {
 	commands    []string
 
 	mode string // "create" или "update"
-}
-
-// Column представляет колонку таблицы
-type Column struct {
-	Name          string
-	Type          string
-	Length        int
-	Nullable      bool
-	Default       interface{}
-	AutoIncrement bool
-	Primary       bool
-	Unique        bool
-	Index         bool
-	Comment       string
-	After         string
-	First         bool
-	References    *ForeignKey
-}
-
-// ForeignKey представляет внешний ключ
-type ForeignKey struct {
-	Table    string
-	Column   string
-	OnDelete string
-	OnUpdate string
 }
 
 // Добавляем методы для обновления
@@ -134,10 +113,6 @@ type Dialect interface {
 	SupportsJSON() bool
 	GetCreateTableSQL(schema *Schema) string
 }
-
-// Реализации для разных БД
-type MySQLDialect struct{}
-type PostgresDialect struct{}
 
 // PrimaryKey устанавливает первичный ключ
 func (s *Schema) PrimaryKey(columns ...string) *Schema {

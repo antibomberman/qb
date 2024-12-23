@@ -2,6 +2,14 @@ package dblayer
 
 import "fmt"
 
+// ForeignKey представляет внешний ключ
+type ForeignKey struct {
+	Table    string
+	Column   string
+	OnDelete string
+	OnUpdate string
+}
+
 // ForeignKeyBuilder построитель внешних ключей
 
 type ForeignKeyBuilder struct {

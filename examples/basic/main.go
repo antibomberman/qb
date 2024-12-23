@@ -55,7 +55,7 @@ func main() {
 
 func createTables(dbl *dblayer.DBLayer) error {
 	// Create users table
-	err := dbl.Create("users", func(schema *dblayer.Schema) {
+	err := dbl.CreateTable("users", func(schema *dblayer.Schema) {
 		schema.ID()
 		schema.String("email", 255).Unique()
 		schema.String("name", 100)
@@ -67,7 +67,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating users table: %w", err)
 	}
 	// Create posts table
-	err = dbl.Create("posts", func(schema *dblayer.Schema) {
+	err = dbl.CreateTable("posts", func(schema *dblayer.Schema) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("user_id")
 		schema.String("title", 200)
@@ -79,7 +79,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating posts table: %w", err)
 	}
 	// Create comments table
-	err = dbl.Create("comments", func(schema *dblayer.Schema) {
+	err = dbl.CreateTable("comments", func(schema *dblayer.Schema) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("post_id")
 		schema.Integer("user_id")
