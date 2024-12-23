@@ -59,59 +59,6 @@ func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 	return &ColumnBuilder{column: column}
 }
 
-func (cb *ColumnBuilder) Type(typ string, length ...int) *ColumnBuilder {
-	cb.column.Type = typ
-	if len(length) > 0 {
-		cb.column.Length = length[0]
-	}
-	return cb
-}
-
-func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
-	cb.column.Nullable = true
-	return cb
-}
-
-func (cb *ColumnBuilder) Default(value interface{}) *ColumnBuilder {
-	cb.column.Default = value
-	return cb
-}
-
-func (cb *ColumnBuilder) AutoIncrement() *ColumnBuilder {
-	cb.column.AutoIncrement = true
-	return cb
-}
-
-func (cb *ColumnBuilder) Primary() *ColumnBuilder {
-	cb.column.Primary = true
-	return cb
-}
-
-func (cb *ColumnBuilder) Unique() *ColumnBuilder {
-	cb.column.Unique = true
-	return cb
-}
-
-func (cb *ColumnBuilder) Index() *ColumnBuilder {
-	cb.column.Index = true
-	return cb
-}
-
-func (cb *ColumnBuilder) Comment(comment string) *ColumnBuilder {
-	cb.column.Comment = comment
-	return cb
-}
-
-func (cb *ColumnBuilder) After(column string) *ColumnBuilder {
-	cb.column.After = column
-	return cb
-}
-
-func (cb *ColumnBuilder) First() *ColumnBuilder {
-	cb.column.First = true
-	return cb
-}
-
 func (s *Schema) ID() *ColumnBuilder {
 	return s.addColumn(Column{Name: "id", Type: "BIGINT", AutoIncrement: true, Primary: true})
 }
@@ -336,4 +283,57 @@ func (s *Schema) Set(name string, values []string) *ColumnBuilder {
 // RememberToken добавляет поле для токена remember_token
 func (s *Schema) RememberToken() *ColumnBuilder {
 	return s.String("remember_token", 100).Nullable()
+}
+
+func (cb *ColumnBuilder) Type(typ string, length ...int) *ColumnBuilder {
+	cb.column.Type = typ
+	if len(length) > 0 {
+		cb.column.Length = length[0]
+	}
+	return cb
+}
+
+func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
+	cb.column.Nullable = true
+	return cb
+}
+
+func (cb *ColumnBuilder) Default(value interface{}) *ColumnBuilder {
+	cb.column.Default = value
+	return cb
+}
+
+func (cb *ColumnBuilder) AutoIncrement() *ColumnBuilder {
+	cb.column.AutoIncrement = true
+	return cb
+}
+
+func (cb *ColumnBuilder) Primary() *ColumnBuilder {
+	cb.column.Primary = true
+	return cb
+}
+
+func (cb *ColumnBuilder) Unique() *ColumnBuilder {
+	cb.column.Unique = true
+	return cb
+}
+
+func (cb *ColumnBuilder) Index() *ColumnBuilder {
+	cb.column.Index = true
+	return cb
+}
+
+func (cb *ColumnBuilder) Comment(comment string) *ColumnBuilder {
+	cb.column.Comment = comment
+	return cb
+}
+
+func (cb *ColumnBuilder) After(column string) *ColumnBuilder {
+	cb.column.After = column
+	return cb
+}
+
+func (cb *ColumnBuilder) First() *ColumnBuilder {
+	cb.column.First = true
+	return cb
 }
