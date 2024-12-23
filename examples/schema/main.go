@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/antibomberman/dblayer"
+	_ "modernc.org/sqlite"
 )
 
 var DBLayer *dblayer.DBLayer
@@ -18,7 +19,7 @@ func main() {
 	defer db.Close()
 
 	DBLayer = dblayer.New("sqlite", db)
-
+	BuildTable()
 }
 
 // CreateTable создает таблицу
@@ -48,8 +49,7 @@ func UpdateTable() {
 }
 
 func BuildTable() {
-	// Создание таблицы пользователей
-	DBLayer.CreateTable("users", func(table *dblayer.Schema) {
+	err := DBLayer.CreateTable("users", func(table *dblayer.Schema) {
 		table.Column("id").Type("bigint").AutoIncrement().Primary().Add()
 		table.Column("name").Type("varchar", 255).Comment("Имя пользователя").Add()
 		table.Column("email").Type("varchar", 255).Unique().Add()
@@ -62,20 +62,8 @@ func BuildTable() {
 		table.Index("idx_status", "status")
 		table.Comment("Таблица пользователей")
 	})
-	// Создание таблицы заказов с внешними ключами
-	DBLayer.CreateTable("orders", func(table *dblayer.Schema) {
-		table.Column("id").Type("bigint").AutoIncrement().Primary().Add()
-		table.Column("user_id").Type("bigint").Add()
-		table.Column("total").Type("decimal", 10).Default(0).Add()
-		table.Column("status").Type("varchar", 50).Default("pending").Add()
-		table.Column("created_at").Type("timestamp").Default("CURRENT_TIMESTAMP").Add()
-		table.ForeignKey("user_id", "users", "id").
-			OnDelete("CASCADE").
-			OnUpdate("CASCADE").
-			Add()
-		table.Index("idx_user", "user_id")
-		table.Index("idx_status", "status")
-
-	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
