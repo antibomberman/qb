@@ -51,6 +51,25 @@ func main() {
 	if err := examples(dbl); err != nil {
 		log.Fatal(err)
 	}
+
+	count, err := dbl.Table("users").WhereAge("age", ">", 3).WhereDateIsNotNull("created_at").Count()
+	if err != nil {
+		fmt.Printf("Error count table")
+	}
+	fmt.Printf("Number of users older than 3: %d\n", count)
+
+	//example 2
+	var post Post
+
+	fount, err := dbl.Table("posts").First(&post)
+	if err != nil {
+		fmt.Printf("Error")
+	}
+	if !fount {
+		fmt.Printf("No post")
+	}
+	fmt.Printf("Title: %s, Content: %s\n", post.Title, post.Content)
+
 }
 
 func createTables(dbl *dblayer.DBLayer) error {
