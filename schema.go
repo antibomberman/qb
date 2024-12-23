@@ -9,6 +9,13 @@ import (
 type MySQLDialect struct{}
 type PostgresDialect struct{}
 
+type Dialect interface {
+	GetAutoIncrement() string
+	GetTimestampType() string
+	SupportsJSON() bool
+	GetCreateTableSQL(schema *Schema) string
+}
+
 // Schema представляет построитель схемы таблицы
 type Schema struct {
 	dbl         *DBLayer
@@ -70,33 +77,6 @@ func (s *Schema) FullText(name string, columns ...string) *Schema {
 	return s
 }
 
-// Dimensions добавляет поля размеров
-func (s *Schema) Dimensions(prefix string) *Schema {
-	s.Decimal(prefix+"_length", 8, 2)
-	s.Decimal(prefix+"_width", 8, 2)
-	s.Decimal(prefix+"_height", 8, 2)
-	return s
-}
-
-// Address добавляет поля адреса
-func (s *Schema) Address() *Schema {
-	s.String("country", 2)
-	s.String("city", 100)
-	s.String("street", 255)
-	s.String("house", 20)
-	s.String("apartment", 20).Nullable()
-	s.String("postal_code", 20)
-	return s
-}
-
-// Seo добавляет поля для SEO
-func (s *Schema) Seo() *Schema {
-	s.String("meta_title", 255).Nullable()
-	s.String("meta_description", 255).Nullable()
-	s.String("meta_keywords", 255).Nullable()
-	return s
-}
-
 // Audit добавляет поля аудита
 func (s *Schema) Audit() *Schema {
 	s.ForeignKey("created_by", "users", "id")
@@ -105,13 +85,6 @@ func (s *Schema) Audit() *Schema {
 	s.Timestamps()
 	s.SoftDeletes()
 	return s
-}
-
-type Dialect interface {
-	GetAutoIncrement() string
-	GetTimestampType() string
-	SupportsJSON() bool
-	GetCreateTableSQL(schema *Schema) string
 }
 
 // PrimaryKey устанавливает первичный ключ
