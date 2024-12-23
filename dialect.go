@@ -6,8 +6,8 @@ type PostgresDialect struct{}
 type SQLiteDialect struct{}
 
 type Dialect interface {
-	GetAutoIncrement() string
-	GetTimestampType() string
-	SupportsJSON() bool
-	GetCreateTableSQL(schema *Schema) string
+	// GetAutoIncrement() string
+	// GetTimestampType() string
+	// SupportsJSON() bool
+	// GetCreateTableSQL(schema *Schema) string
 }

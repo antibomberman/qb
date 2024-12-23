@@ -12,9 +12,21 @@ import (
 )
 
 type DBLayer struct {
-	db    *sqlx.DB
-	cache map[string]cacheItem
-	mu    sync.RWMutex
+	db      *sqlx.DB
+	cache   map[string]cacheItem
+	mu      sync.RWMutex
+	dialect Dialect
+}
+
+func (d *DBLayer) SetDialect(driverName string) {
+	switch driverName {
+	case "mysql":
+		d.dialect = &MySQLDialect{}
+	case "postgres":
+		d.dialect = &PostgresDialect{}
+	case "sqlite":
+		d.dialect = &SQLiteDialect{}
+	}
 }
 
 func New(driverName string, db *sql.DB) *DBLayer {
@@ -23,6 +35,8 @@ func New(driverName string, db *sql.DB) *DBLayer {
 		db:    x,
 		cache: make(map[string]cacheItem),
 	}
+	d.SetDialect(driverName)
+
 	go d.startCleanup()
 	return d
 }
@@ -31,6 +45,7 @@ func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 		db:    dbx,
 		cache: make(map[string]cacheItem),
 	}
+	d.SetDialect(driverName)
 	go d.startCleanup()
 	return d
 }
