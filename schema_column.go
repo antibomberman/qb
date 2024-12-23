@@ -39,7 +39,7 @@ func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 		buildColumnDefinition(column),
 		position,
 	))
-	return s
+	return &ColumnBuilder{column: column}
 }
 
 func (cb *ColumnBuilder) Type(typ string, length ...int) *ColumnBuilder {
