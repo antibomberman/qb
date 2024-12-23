@@ -69,10 +69,10 @@ func BuildTable() {
 		table.Column("total").Type("decimal", 10).Default(0).Add()
 		table.Column("status").Type("varchar", 50).Default("pending").Add()
 		table.Column("created_at").Type("timestamp").Default("CURRENT_TIMESTAMP").Add()
-		//table.ForeignKey("user_id", "users", "id").
-		//	OnDelete("CASCADE").
-		//	OnUpdate("CASCADE").
-		//	Add()
+		table.ForeignKey("user_id", "users", "id").
+			OnDelete("CASCADE").
+			OnUpdate("CASCADE").
+			Add()
 		table.Index("idx_user", "user_id")
 		table.Index("idx_status", "status")
 

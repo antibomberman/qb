@@ -34,7 +34,7 @@ func (fkb *ForeignKeyBuilder) Add() *Schema {
 }
 
 // ForeignKey добавляет внешний ключ
-func (s *Schema) _ForeignKey(column, refTable, refColumn string) *ForeignKeyBuilder {
+func (s *Schema) ForeignKey(column, refTable, refColumn string) *ForeignKeyBuilder {
 	return &ForeignKeyBuilder{
 		schema: s,
 		fk: &ForeignKey{

@@ -99,9 +99,9 @@ func (s *Schema) Seo() *Schema {
 
 // Audit добавляет поля аудита
 func (s *Schema) Audit() *Schema {
-	s.ForeignKey("created_by", "users", "id").Nullable()
-	s.ForeignKey("updated_by", "users", "id").Nullable()
-	s.ForeignKey("deleted_by", "users", "id").Nullable()
+	s.ForeignKey("created_by", "users", "id")
+	s.ForeignKey("updated_by", "users", "id")
+	s.ForeignKey("deleted_by", "users", "id")
 	s.Timestamps()
 	s.SoftDeletes()
 	return s

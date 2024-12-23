@@ -192,10 +192,10 @@ func (s *Schema) Float(name string, precision, scale int) *ColumnBuilder {
 	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("FLOAT(%d,%d)", precision, scale)})
 }
 
-// ForeignKey добавляет внешний ключ
-func (s *Schema) ForeignKey(name string, table string, column string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: column}})
-}
+//// ForeignKey добавляет внешний ключ
+//func (s *Schema) ForeignKey(name string, table string, column string) *ColumnBuilder {
+//	return s.addColumn(Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: column}})
+//}
 
 // Uuid добавляет поле UUID
 func (s *Schema) Uuid(name string) *ColumnBuilder {
