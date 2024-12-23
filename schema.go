@@ -7,140 +7,58 @@ import (
 
 // Schema представляет построитель схемы таблицы
 type Schema struct {
-	table *TableBuilder
-	alter *AlterTable // Добавляем поле для ALTER TABLE
-	mode  string      // "create" или "update"
+	dbl         *DBLayer
+	name        string
+	columns     []Column
+	primaryKey  []string
+	uniqueKeys  map[string][]string
+	indexes     map[string][]string
+	foreignKeys map[string]*ForeignKey
+	engine      string
+	charset     string
+	collate     string
+	comment     string
+	temporary   bool
+	ifNotExists bool
+	commands    []string
+
+	mode string // "create" или "update"
 }
 
-// Модифицируем существующие методы для поддержки обоих режимов
-func (s *Schema) addColumn(col Column) *ColumnBuilder {
-	if s.mode == "create" {
-		s.table.columns = append(s.table.columns, col)
-	} else {
-		s.alter.AddColumn(col)
-	}
-	return &ColumnBuilder{column: col}
+// Column представляет колонку таблицы
+type Column struct {
+	Name          string
+	Type          string
+	Length        int
+	Nullable      bool
+	Default       interface{}
+	AutoIncrement bool
+	Primary       bool
+	Unique        bool
+	Index         bool
+	Comment       string
+	After         string
+	First         bool
+	References    *ForeignKey
+}
+
+// ForeignKey представляет внешний ключ
+type ForeignKey struct {
+	Table    string
+	Column   string
+	OnDelete string
+	OnUpdate string
 }
 
 // Добавляем методы для обновления
 func (s *Schema) RenameColumn(from, to string) *Schema {
 	if s.mode == "update" {
-		s.alter.RenameColumn(from, to)
+		s.commands = append(s.commands, fmt.Sprintf(
+			"RENAME COLUMN %s TO %s",
+			from, to,
+		))
 	}
 	return s
-}
-
-func (s *Schema) DropColumn(name string) *Schema {
-	if s.mode == "update" {
-		s.alter.DropColumn(name)
-	}
-	return s
-}
-
-func (s *Schema) ModifyColumn(name string, fn func(*ColumnBuilder)) *Schema {
-	if s.mode == "update" {
-		cb := &ColumnBuilder{column: Column{Name: name}}
-		fn(cb)
-		s.alter.ModifyColumn(cb.column)
-	}
-	return s
-}
-
-func (s *Schema) ID() *ColumnBuilder {
-	return s.addColumn(Column{Name: "id", Type: "BIGINT", AutoIncrement: true, Primary: true})
-}
-
-// BigIncrements добавляет автоинкрементное большое целое
-func (s *Schema) BigIncrements(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BIGINT", AutoIncrement: true, Primary: true})
-}
-
-// String добавляет строковое поле
-func (s *Schema) String(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "VARCHAR", Length: length})
-}
-
-// Enum добавляет поле с перечислением
-func (s *Schema) Enum(name string, values []string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))})
-}
-
-// Timestamp добавляет поле метки времени
-func (s *Schema) Timestamp(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TIMESTAMP"})
-}
-
-// Index добавляет индекс
-func (s *Schema) Index(name string, columns ...string) *TableBuilder {
-	return s.table.Index(name, columns...)
-}
-
-// Comment добавляет комментарий к таблице
-func (s *Schema) Comment(comment string) *TableBuilder {
-	return s.table.Comment(comment)
-}
-
-// Integer добавляет целочисленное поле
-func (s *Schema) Integer(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "INT"})
-}
-
-// TinyInteger добавляет малое целое
-func (s *Schema) TinyInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TINYINT"})
-}
-
-// Boolean добавляет логическое поле
-func (s *Schema) Boolean(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BOOLEAN"})
-}
-
-// Text добавляет текстовое поле
-func (s *Schema) Text(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TEXT"})
-}
-
-// Date добавляет поле даты
-func (s *Schema) Date(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "DATE"})
-}
-
-// DateTime добавляет поле даты и времени
-func (s *Schema) DateTime(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "DATETIME"})
-}
-
-// Decimal добавляет десятичное поле
-func (s *Schema) Decimal(name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("DECIMAL(%d,%d)", precision, scale)})
-}
-
-// Json добавляет JSON поле
-func (s *Schema) Json(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "JSON"})
-}
-
-// Binary добавляет бинарное поле
-func (s *Schema) Binary(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BINARY", Length: length})
-}
-
-// Float добавляет поле с плавающей точкой
-func (s *Schema) Float(name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("FLOAT(%d,%d)", precision, scale)})
-}
-
-// ForeignKey добавляет внешний ключ
-func (s *Schema) ForeignKey(name string, table string, column string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: column}})
-}
-
-// Uuid добавляет поле UUID
-func (s *Schema) Uuid(name string) *ColumnBuilder {
-	if s.table.dbl.db.DriverName() == "postgres" {
-		return s.addColumn(Column{Name: name, Type: "UUID"})
-	}
-	return s.addColumn(Column{Name: name, Type: "CHAR", Length: 36})
 }
 
 // Timestamps добавляет поля created_at и updated_at
@@ -148,76 +66,6 @@ func (s *Schema) Timestamps() *Schema {
 	s.Timestamp("created_at").Default("CURRENT_TIMESTAMP")
 	s.Timestamp("updated_at").Nullable()
 	return s
-}
-
-// SoftDeletes добавляет поле deleted_at для мягкого удаления
-func (s *Schema) SoftDeletes() *ColumnBuilder {
-	return s.addColumn(Column{Name: "deleted_at", Type: "TIMESTAMP", Nullable: true})
-}
-
-// MediumText добавляет поле MEDIUMTEXT
-func (s *Schema) MediumText(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "MEDIUMTEXT"})
-}
-
-// LongText добавляет поле LONGTEXT
-func (s *Schema) LongText(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "LONGTEXT"})
-}
-
-// Char добавляет поле фиксированной длины
-func (s *Schema) Char(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "CHAR", Length: length})
-}
-
-// SmallInteger добавляет малое целое
-func (s *Schema) SmallInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "SMALLINT"})
-}
-
-// MediumInteger добавляет среднее целое
-func (s *Schema) MediumInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "MEDIUMINT"})
-}
-
-// Year добавляет поле года
-func (s *Schema) Year(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "YEAR"})
-}
-
-// Time добавляет поле времени
-func (s *Schema) Time(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TIME"})
-}
-
-// Ip добавляет поле для IP-адреса
-func (s *Schema) Ip(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "VARCHAR", Length: 45})
-}
-
-// MacAddress добавляет поле для MAC-адреса
-func (s *Schema) MacAddress(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "VARCHAR", Length: 17})
-}
-
-// Point добавляет геометрическое поле точки
-func (s *Schema) Point(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "POINT"})
-}
-
-// Polygon добавляет геометрическое поле полигона
-func (s *Schema) Polygon(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "POLYGON"})
-}
-
-// Set добавляет поле SET
-func (s *Schema) Set(name string, values []string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("SET('%s')", strings.Join(values, "','"))})
-}
-
-// RememberToken добавляет поле для токена remember_token
-func (s *Schema) RememberToken() *ColumnBuilder {
-	return s.String("remember_token", 100).Nullable()
 }
 
 // Morphs добавляет поля для полиморфных отношений
@@ -229,89 +77,18 @@ func (s *Schema) Morphs(name string) *Schema {
 }
 
 // UniqueIndex добавляет уникальный индекс
-func (s *Schema) UniqueIndex(name string, columns ...string) *TableBuilder {
-	return s.table.UniqueKey(name, columns...)
+func (s *Schema) UniqueIndex(name string, columns ...string) *Schema {
+	return s.UniqueKey(name, columns...)
 }
 
 // FullText добавляет полнотекстовый индекс
-func (s *Schema) FullText(name string, columns ...string) *TableBuilder {
+func (s *Schema) FullText(name string, columns ...string) *Schema {
 	// Реализация зависит от типа БД
-	if s.table.dbl.db.DriverName() == "mysql" {
-		s.table.indexes[name] = columns
-		return s.table
+	if s.dbl.db.DriverName() == "mysql" {
+		s.indexes[name] = columns
+		return s
 	}
-	return s.table
-}
-
-// Computed добавляет вычисляемую колонку (для MySQL 5.7+)
-func (s *Schema) Computed(name string, expression string) *ColumnBuilder {
-	if s.table.dbl.db.DriverName() == "mysql" {
-		return s.addColumn(Column{Name: name, Type: fmt.Sprintf("AS (%s) STORED", expression)})
-	}
-	return nil
-}
-
-// Virtual добавляет виртуальную колонку
-func (s *Schema) Virtual(name string, expression string) *ColumnBuilder {
-	if s.table.dbl.db.DriverName() == "mysql" {
-		return s.addColumn(Column{Name: name, Type: fmt.Sprintf("AS (%s) VIRTUAL", expression)})
-	}
-	return nil
-}
-
-// Money добавляет денежное поле
-func (s *Schema) Money(name string) *ColumnBuilder {
-	return s.Decimal(name, 19, 4)
-}
-
-// Price добавляет поле цены
-func (s *Schema) Price(name string) *ColumnBuilder {
-	return s.Decimal(name, 10, 2)
-}
-
-// Percentage добавляет поле процентов
-func (s *Schema) Percentage(name string) *ColumnBuilder {
-	return s.Decimal(name, 5, 2)
-}
-
-// Status добавляет поле статуса
-func (s *Schema) Status(name string, statuses []string) *ColumnBuilder {
-	return s.Enum(name, statuses).Default(statuses[0])
-}
-
-// Slug добавляет поле для URL-совместимой строки
-func (s *Schema) Slug(name string) *ColumnBuilder {
-	return s.String(name, 255).Unique()
-}
-
-// Phone добавляет поле телефона
-func (s *Schema) Phone(name string) *ColumnBuilder {
-	return s.String(name, 20)
-}
-
-// Color добавляет поле цвета (HEX)
-func (s *Schema) Color(name string) *ColumnBuilder {
-	return s.Char(name, 7)
-}
-
-// Language добавляет поле языка
-func (s *Schema) Language(name string) *ColumnBuilder {
-	return s.Char(name, 2)
-}
-
-// Country добавляет поле страны
-func (s *Schema) Country(name string) *ColumnBuilder {
-	return s.Char(name, 2)
-}
-
-// Currency добавляет поле валюты
-func (s *Schema) Currency(name string) *ColumnBuilder {
-	return s.Char(name, 3)
-}
-
-// Timezone добавляет поле часового пояса
-func (s *Schema) Timezone(name string) *ColumnBuilder {
-	return s.String(name, 64)
+	return s
 }
 
 // Dimensions добавляет поля размеров
@@ -348,5 +125,120 @@ func (s *Schema) Audit() *Schema {
 	s.ForeignKey("deleted_by", "users", "id").Nullable()
 	s.Timestamps()
 	s.SoftDeletes()
+	return s
+}
+
+type Dialect interface {
+	GetAutoIncrement() string
+	GetTimestampType() string
+	SupportsJSON() bool
+	GetCreateTableSQL(schema *Schema) string
+}
+
+// Реализации для разных БД
+type MySQLDialect struct{}
+type PostgresDialect struct{}
+
+// PrimaryKey устанавливает первичный ключ
+func (s *Schema) PrimaryKey(columns ...string) *Schema {
+	s.primaryKey = columns
+	return s
+}
+
+// UniqueKey добавляет уникальный ключ
+func (s *Schema) UniqueKey(name string, columns ...string) *Schema {
+	s.uniqueKeys[name] = columns
+	return s
+}
+
+// Engine устанавливает движок таблицы
+func (s *Schema) Engine(engine string) *Schema {
+	s.engine = engine
+	return s
+}
+
+// Charset устанавливает кодировку
+func (s *Schema) Charset(charset string) *Schema {
+	s.charset = charset
+	return s
+}
+
+// Collate устанавливает сравнение
+func (s *Schema) Collate(collate string) *Schema {
+	s.collate = collate
+	return s
+}
+
+// Comment добавляет комментарий
+func (s *Schema) Comment(comment string) *Schema {
+	s.comment = comment
+	return s
+}
+
+// Temporary делает таблицу временной
+func (s *Schema) Temporary() *Schema {
+	s.temporary = true
+	return s
+}
+
+// IfNotExists добавляет проверку существования
+func (s *Schema) IfNotExists() *Schema {
+	s.ifNotExists = true
+	return s
+}
+
+// DropColumn удаляет колонку
+func (s *Schema) DropColumn(name string) *Schema {
+	s.commands = append(s.commands, fmt.Sprintf("DROP COLUMN %s", name))
+	return s
+}
+
+// ModifyColumn изменяет колонку
+func (s *Schema) ModifyColumn(column Column) *Schema {
+	s.commands = append(s.commands, fmt.Sprintf(
+		"MODIFY COLUMN %s",
+		buildColumnDefinition(column),
+	))
+	return s
+}
+
+// AddIndex добавляет индекс
+func (s *Schema) AddIndex(name string, columns []string, unique bool) *Schema {
+	indexType := "INDEX"
+	if unique {
+		indexType = "UNIQUE INDEX"
+	}
+	s.commands = append(s.commands, fmt.Sprintf(
+		"ADD %s %s (%s)",
+		indexType, name,
+		strings.Join(columns, ", "),
+	))
+	return s
+}
+
+// DropIndex удаляет индекс
+func (s *Schema) DropIndex(name string) *Schema {
+	s.commands = append(s.commands, fmt.Sprintf("DROP INDEX %s", name))
+	return s
+}
+
+// RenameTable переименовывает таблицу
+func (s *Schema) RenameTable(newName string) *Schema {
+	s.commands = append(s.commands, fmt.Sprintf("RENAME TO %s", newName))
+	return s
+}
+
+// ChangeEngine меняет движок таблицы
+func (s *Schema) ChangeEngine(engine string) *Schema {
+	s.commands = append(s.commands, fmt.Sprintf("ENGINE = %s", engine))
+	return s
+}
+
+// ChangeCharset меняет кодировку
+func (s *Schema) ChangeCharset(charset, collse string) *Schema {
+	s.commands = append(s.commands, fmt.Sprintf(
+		"CHARACTER SET = %s COLLsE = %s",
+		charset, collse,
+	))
 	return s
 }
