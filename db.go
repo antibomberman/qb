@@ -1,8 +1,12 @@
 package dblayer
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
+	"log"
 	"sync"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -13,7 +17,7 @@ type DBLayer struct {
 	mu    sync.RWMutex
 }
 
-func NewDBLayer(driverName string, db *sql.DB) *DBLayer {
+func Open(driverName string, db *sql.DB) *DBLayer {
 	x := sqlx.NewDb(db, driverName)
 	d := &DBLayer{
 		db:    x,
@@ -21,6 +25,53 @@ func NewDBLayer(driverName string, db *sql.DB) *DBLayer {
 	}
 	go d.startCleanup()
 	return d
+}
+func OpenX(driverName string, dbx *sqlx.DB) *DBLayer {
+	d := &DBLayer{
+		db:    dbx,
+		cache: make(map[string]cacheItem),
+	}
+	go d.startCleanup()
+	return d
+}
+
+func Connect(driverName string, dataSourceName string) *DBLayer {
+	db, err := sql.Open(driverName, dataSourceName)
+	if err != nil {
+		panic(err)
+	}
+	return Open(driverName, db)
+}
+func Connection(ctx context.Context, driverName string, dataSourceName string, maxAttempts int, connectionTimeout time.Duration) (*DBLayer, error) {
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		log.Printf("Attempting to connect to MySQL (attempt %d/%d)", attempt, maxAttempts)
+
+		db, err := sql.Open(driverName, dataSourceName)
+		if err != nil {
+			log.Printf("Failed to open database connection: %v", err)
+			time.Sleep(connectionTimeout)
+			continue
+		}
+		ctx, cancel := context.WithTimeout(ctx, connectionTimeout)
+		err = db.PingContext(ctx)
+		cancel()
+
+		if err == nil {
+
+			log.Println("Connected to database")
+			return Open(driverName, db), nil
+		}
+		log.Printf("Failed to ping database: %v", err)
+		db.Close()
+		time.Sleep(connectionTimeout)
+	}
+
+	return nil, fmt.Errorf("failed to connect to database after %d attempts", maxAttempts)
+}
+
+func (d *DBLayer) Close() error {
+	return d.db.Close()
 }
 
 // Table теперь возвращает QueryBuilder с доступом к кешу
