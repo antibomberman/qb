@@ -67,7 +67,6 @@ func (qb *QueryBuilder) Count() (int64, error) {
 	if len(qb.conditions) > 0 {
 		whereSQL := buildConditions(qb.conditions)
 		query += " WHERE " + whereSQL
-		query = qb.rebindQuery(query)
 		_, err := qb.execGet(&count, query)
 		return count, err
 	}

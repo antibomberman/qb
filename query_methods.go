@@ -168,7 +168,6 @@ func (qb *QueryBuilder) Increment(column string, value interface{}) error {
 	if len(qb.conditions) > 0 {
 		whereSQL := buildConditions(qb.conditions)
 		query += " WHERE " + whereSQL
-		// Добавляем аргументы из условий WHERE
 		for _, cond := range qb.conditions {
 			args = append(args, cond.args...)
 		}
@@ -187,7 +186,6 @@ func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
 	if len(qb.conditions) > 0 {
 		whereSQL := buildConditions(qb.conditions)
 		query += " WHERE " + whereSQL
-		// Добавляем аргументы из условий WHERE
 		for _, cond := range qb.conditions {
 			args = append(args, cond.args...)
 		}
