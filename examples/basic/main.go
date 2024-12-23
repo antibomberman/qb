@@ -42,7 +42,7 @@ func main() {
 	}
 	defer db.Close()
 	// Initialize DBLayer
-	dbl := dblayer.NewDBLayer("mysql", db)
+	dbl := dblayer.New("mysql", db)
 	// Create tables
 	if err := createTables(dbl); err != nil {
 		log.Fatal(err)
