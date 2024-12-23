@@ -17,7 +17,7 @@ type DBLayer struct {
 	mu    sync.RWMutex
 }
 
-func Open(driverName string, db *sql.DB) *DBLayer {
+func New(driverName string, db *sql.DB) *DBLayer {
 	x := sqlx.NewDb(db, driverName)
 	d := &DBLayer{
 		db:    x,
@@ -26,7 +26,7 @@ func Open(driverName string, db *sql.DB) *DBLayer {
 	go d.startCleanup()
 	return d
 }
-func OpenX(driverName string, dbx *sqlx.DB) *DBLayer {
+func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 	d := &DBLayer{
 		db:    dbx,
 		cache: make(map[string]cacheItem),
@@ -40,7 +40,7 @@ func Connect(driverName string, dataSourceName string) *DBLayer {
 	if err != nil {
 		panic(err)
 	}
-	return Open(driverName, db)
+	return New(driverName, db)
 }
 func Connection(ctx context.Context, driverName string, dataSourceName string, maxAttempts int, connectionTimeout time.Duration) (*DBLayer, error) {
 
@@ -58,9 +58,8 @@ func Connection(ctx context.Context, driverName string, dataSourceName string, m
 		cancel()
 
 		if err == nil {
-
 			log.Println("Connected to database")
-			return Open(driverName, db), nil
+			return New(driverName, db), nil
 		}
 		log.Printf("Failed to ping database: %v", err)
 		db.Close()

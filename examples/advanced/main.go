@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	dbl := dblayer.NewDBLayer("mysql", db)
+	dbl := dblayer.New("mysql", db)
 	// Пример использования очередей
 	// Queue usage example
 	if err := queueExample(dbl); err != nil {
