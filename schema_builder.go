@@ -5,14 +5,6 @@ import (
 	"strings"
 )
 
-// Column добавляет колонку
-func (s *Schema) Column(name string) *ColumnBuilder {
-	return &ColumnBuilder{
-		schema: s,
-		column: Column{Name: name},
-	}
-}
-
 // Build генерирует SQL запрос
 func (s *Schema) BuildCreate() string {
 	var sql strings.Builder

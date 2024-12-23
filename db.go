@@ -13,7 +13,7 @@ import (
 
 type DBLayer struct {
 	db      *sqlx.DB
-	cache   map[string]cacheItem
+	cache   CacheDriver
 	mu      sync.RWMutex
 	dialect Dialect
 }
@@ -32,22 +32,26 @@ func (d *DBLayer) SetDialect(driverName string) {
 func New(driverName string, db *sql.DB) *DBLayer {
 	x := sqlx.NewDb(db, driverName)
 	d := &DBLayer{
-		db:    x,
-		cache: make(map[string]cacheItem),
+		db: x,
 	}
 	d.SetDialect(driverName)
 
-	go d.startCleanup()
 	return d
 }
 func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 	d := &DBLayer{
-		db:    dbx,
-		cache: make(map[string]cacheItem),
+		db: dbx,
 	}
 	d.SetDialect(driverName)
-	go d.startCleanup()
+
 	return d
+}
+
+func (d *DBLayer) SeRedisCacheDriver(addr string, password string, db int) {
+	d.cache = NewRedisCache(addr, password, db)
+}
+func (d *DBLayer) SeMemoryCacheDriver() {
+	d.cache = NewMemoryCache()
 }
 
 func Connect(driverName string, dataSourceName string) *DBLayer {

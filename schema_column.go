@@ -28,6 +28,14 @@ type ColumnBuilder struct {
 	column Column
 }
 
+// Column добавляет колонку
+func (s *Schema) Column(name string) *ColumnBuilder {
+	return &ColumnBuilder{
+		schema: s,
+		column: Column{Name: name},
+	}
+}
+
 func (s *Schema) addColumn(col Column) *ColumnBuilder {
 	if s.mode == "create" {
 		s.columns = append(s.columns, col)
@@ -57,6 +65,33 @@ func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 		position,
 	))
 	return &ColumnBuilder{column: column}
+}
+
+// buildColumnDefinition генерирует SQL определение колонки
+func buildColumnDefinition(col Column) string {
+	sql := col.Name + " " + col.Type
+
+	if col.Length > 0 {
+		sql += fmt.Sprintf("(%d)", col.Length)
+	}
+
+	if !col.Nullable {
+		sql += " NOT NULL"
+	}
+
+	if col.Default != nil {
+		sql += fmt.Sprintf(" DEFAULT %v", col.Default)
+	}
+
+	if col.AutoIncrement {
+		sql += " AUTO_INCREMENT"
+	}
+
+	if col.Comment != "" {
+		sql += fmt.Sprintf(" COMMENT '%s'", col.Comment)
+	}
+
+	return sql
 }
 
 func (s *Schema) ID() *ColumnBuilder {
