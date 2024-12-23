@@ -213,14 +213,6 @@ func (s *Schema) Computed(name string, expression string) *ColumnBuilder {
 	return nil
 }
 
-// Virtual добавляет виртуальную колонку
-func (s *Schema) Virtual(name string, expression string) *ColumnBuilder {
-	if s.dbl.db.DriverName() == "mysql" {
-		return s.addColumn(Column{Name: name, Type: fmt.Sprintf("AS (%s) VIRTUAL", expression)})
-	}
-	return nil
-}
-
 // Money добавляет денежное поле
 func (s *Schema) Money(name string) *ColumnBuilder {
 	return s.Decimal(name, 19, 4)
@@ -257,23 +249,23 @@ func (s *Schema) Color(name string) *ColumnBuilder {
 }
 
 // Language добавляет поле языка
-func (s *Schema) Language(name string) *ColumnBuilder {
-	return s.Char(name, 2)
+func (s *Schema) Language() *ColumnBuilder {
+	return s.Char("lang", 2)
 }
 
 // Country добавляет поле страны
-func (s *Schema) Country(name string) *ColumnBuilder {
-	return s.Char(name, 2)
+func (s *Schema) Country() *ColumnBuilder {
+	return s.Char("country", 2)
 }
 
 // Currency добавляет поле валюты
-func (s *Schema) Currency(name string) *ColumnBuilder {
-	return s.Char(name, 3)
+func (s *Schema) Currency() *ColumnBuilder {
+	return s.Char("currency", 3)
 }
 
 // Timezone добавляет поле часового пояса
-func (s *Schema) Timezone(name string) *ColumnBuilder {
-	return s.String(name, 64)
+func (s *Schema) Timezone() *ColumnBuilder {
+	return s.String("timezone", 64)
 }
 
 // SoftDeletes добавляет поле deleted_at для мягкого удаления
