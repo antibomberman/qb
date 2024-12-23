@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+//add  optional driver // redis | memcached | map
+
 type cacheItem struct {
 	value      interface{}
 	expiration time.Time
