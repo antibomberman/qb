@@ -6,17 +6,12 @@ import (
 )
 
 // Build генерирует SQL запрос
-func (s *Schema) Build() string {
+func (s *Schema) BuildAlter() string {
 	return fmt.Sprintf(
 		"ALTER TABLE %s\n%s",
 		s.name,
 		strings.Join(s.commands, ",\n"),
 	)
-}
-
-// Execute выполняет изменение таблицы
-func (s *Schema) Execute() error {
-	return s.dbl.Raw(s.Build()).Exec()
 }
 
 // buildColumnDefinition генерирует SQL определение колонки

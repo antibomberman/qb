@@ -135,7 +135,7 @@ func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 
 	fn(schema)
 
-	return schema.Execute()
+	return dbl.Raw(schema.BuildCreate()).Exec()
 }
 
 // Update обновляет существующую таблицу
@@ -148,5 +148,5 @@ func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 
 	fn(schema)
 
-	return schema.Execute()
+	return dbl.Raw(schema.BuildAlter()).Exec()
 }

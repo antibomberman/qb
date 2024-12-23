@@ -14,7 +14,7 @@ func (s *Schema) Column(name string) *ColumnBuilder {
 }
 
 // Build генерирует SQL запрос
-func (s *Schema) _Build() string {
+func (s *Schema) BuildCreate() string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
