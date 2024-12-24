@@ -12,46 +12,54 @@ import (
 )
 
 type DBLayer struct {
-	db      *sqlx.DB
-	cache   CacheDriver
-	mu      sync.RWMutex
-	dialect Dialect
+	db            *sqlx.DB
+	cache         CacheDriver
+	mu            sync.RWMutex
+	driverName    string
+	schemaDialect SchemaDialect
+	queryDialect  QueryDialect
 }
 
-func (d *DBLayer) SetDialect(driverName string) {
-	switch driverName {
+func (d *DBLayer) SetQueryDialect() {
+	switch d.driverName {
 	case "mysql":
-		d.dialect = &MySQLDialect{}
+		d.queryDialect = &MysqlQueryDialect{}
 	case "postgres":
-		d.dialect = &PostgresDialect{}
+		d.queryDialect = &PostgresQueryDialect{}
 	case "sqlite":
-		d.dialect = &SQLiteDialect{}
+		d.queryDialect = &SqliteQueryDialect{}
+	}
+}
+func (d *DBLayer) SetSchemaDialect() {
+	switch d.driverName {
+	case "mysql":
+		d.schemaDialect = &MysqlSchemaDialect{}
+	case "postgres":
+		d.schemaDialect = &PostgresSchemaDialect{}
+	case "sqlite":
+		d.schemaDialect = &SqliteSchemaDialect{}
 	}
 }
 
 func New(driverName string, db *sql.DB) *DBLayer {
 	x := sqlx.NewDb(db, driverName)
 	d := &DBLayer{
-		db: x,
+		db:         x,
+		driverName: driverName,
 	}
-	d.SetDialect(driverName)
+	d.SetQueryDialect()
+	d.SetSchemaDialect()
 
 	return d
 }
 func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 	d := &DBLayer{
-		db: dbx,
+		db:         dbx,
+		driverName: driverName,
 	}
-	d.SetDialect(driverName)
-
+	d.SetQueryDialect()
+	d.SetSchemaDialect()
 	return d
-}
-
-func (d *DBLayer) SeRedisCacheDriver(addr string, password string, db int) {
-	d.cache = NewRedisCache(addr, password, db)
-}
-func (d *DBLayer) SeMemoryCacheDriver() {
-	d.cache = NewMemoryCache()
 }
 
 func Connect(driverName string, dataSourceName string) *DBLayer {
@@ -90,6 +98,12 @@ func Connection(ctx context.Context, driverName string, dataSourceName string, m
 
 func (d *DBLayer) Close() error {
 	return d.db.Close()
+}
+func (d *DBLayer) SeRedisCacheDriver(addr string, password string, db int) {
+	d.cache = NewRedisCache(addr, password, db)
+}
+func (d *DBLayer) SeMemoryCacheDriver() {
+	d.cache = NewMemoryCache()
 }
 
 // Table теперь возвращает QueryBuilder с доступом к кешу

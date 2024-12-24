@@ -5,8 +5,7 @@ import (
 	"strings"
 )
 
-// Build генерирует SQL запрос
-func (s *Schema) BuildCreate() string {
+func (g *PostgresSchemaDialect) BuildCreateTable(s *Schema) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -60,46 +59,59 @@ func (s *Schema) BuildCreate() string {
 	sql.WriteString(strings.Join(columns, ",\n"))
 	sql.WriteString("\n)")
 
-	// Опции таблицы
-	if s.dbl.db.DriverName() == "mysql" {
-		sql.WriteString(fmt.Sprintf(" ENGINE=%s", s.engine))
-		sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s", s.charset))
-		sql.WriteString(fmt.Sprintf(" COLLATE=%s", s.collate))
-		if s.comment != "" {
-			sql.WriteString(fmt.Sprintf(" COMMENT='%s'", s.comment))
-		}
+	return sql.String()
+}
+
+func (g *PostgresSchemaDialect) BuildAlterTable(s *Schema) string {
+	return fmt.Sprintf(
+		"ALTER TABLE %s\n%s",
+		s.name,
+		strings.Join(s.commands, ",\n"),
+	)
+}
+
+func (g *PostgresSchemaDialect) BuildDropTable(dt *DropTable) string {
+	var sql strings.Builder
+
+	sql.WriteString("DROP ")
+	if dt.options.Temporary {
+		sql.WriteString("TEMPORARY ")
+	}
+	sql.WriteString("TABLE ")
+
+	if dt.options.Concurrent && dt.dbl.db.DriverName() == "postgres" {
+		sql.WriteString("CONCURRENTLY ")
+	}
+
+	if dt.options.IfExists {
+		sql.WriteString("IF EXISTS ")
+	}
+
+	sql.WriteString(strings.Join(dt.tables, ", "))
+
+	if dt.options.Cascade && dt.dbl.db.DriverName() == "postgres" {
+		sql.WriteString(" CASCADE")
+	}
+
+	if dt.options.Restrict && dt.dbl.db.DriverName() == "postgres" {
+		sql.WriteString(" RESTRICT")
+	}
+
+	if dt.options.Force && dt.dbl.db.DriverName() == "mysql" {
+		sql.WriteString(" FORCE")
 	}
 
 	return sql.String()
 }
 
-// buildColumn генерирует SQL для колонки
-func (s *Schema) buildColumn(col Column) string {
-	sql := col.Name + " " + col.Type
+func (g *PostgresSchemaDialect) BuildColumnDefinition(col Column) string {
+	return ""
+}
 
-	if col.Length > 0 {
-		sql += fmt.Sprintf("(%d)", col.Length)
-	}
+func (g *PostgresSchemaDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+	return ""
+}
 
-	if !col.Nullable {
-		sql += " NOT NULL"
-	}
-
-	if col.Default != nil {
-		sql += fmt.Sprintf(" DEFAULT %v", col.Default)
-	}
-
-	if col.AutoIncrement {
-		if s.dbl.db.DriverName() == "mysql" {
-			sql += " AUTO_INCREMENT"
-		} else if s.dbl.db.DriverName() == "postgres" {
-			sql = col.Name + " SERIAL"
-		}
-	}
-
-	if col.Comment != "" && s.dbl.db.DriverName() == "mysql" {
-		sql += fmt.Sprintf(" COMMENT '%s'", col.Comment)
-	}
-
-	return sql
+func (g *PostgresSchemaDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
+	return ""
 }

@@ -28,6 +28,36 @@ type ColumnBuilder struct {
 	column Column
 }
 
+func (s *Schema) buildColumn(col Column) string {
+	sql := col.Name + " " + col.Type
+
+	if col.Length > 0 {
+		sql += fmt.Sprintf("(%d)", col.Length)
+	}
+
+	if !col.Nullable {
+		sql += " NOT NULL"
+	}
+
+	if col.Default != nil {
+		sql += fmt.Sprintf(" DEFAULT %v", col.Default)
+	}
+
+	if col.AutoIncrement {
+		if s.dbl.db.DriverName() == "mysql" {
+			sql += " AUTO_INCREMENT"
+		} else if s.dbl.db.DriverName() == "postgres" {
+			sql = col.Name + " SERIAL"
+		}
+	}
+
+	if col.Comment != "" && s.dbl.db.DriverName() == "mysql" {
+		sql += fmt.Sprintf(" COMMENT '%s'", col.Comment)
+	}
+
+	return sql
+}
+
 // Column добавляет колонку
 func (s *Schema) Column(name string) *ColumnBuilder {
 	return &ColumnBuilder{

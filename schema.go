@@ -23,6 +23,14 @@ type Schema struct {
 	commands    []string
 
 	mode string // "create" или "update"
+
+}
+
+func (s *Schema) BuildCreate() string {
+	return s.dbl.schemaDialect.BuildCreateTable(s)
+}
+func (s *Schema) BuildAlter() string {
+	return s.dbl.schemaDialect.BuildAlterTable(s)
 }
 
 // Добавляем методы для обновления
