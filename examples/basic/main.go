@@ -1,4 +1,4 @@
-package basoc
+package main
 
 import (
 	"database/sql"
