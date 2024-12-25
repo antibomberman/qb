@@ -43,6 +43,9 @@ func (d *DBLayer) SetSchemaDialect() {
 
 func New(driverName string, db *sql.DB) *DBLayer {
 	x := sqlx.NewDb(db, driverName)
+	if x == nil {
+		panic("Couldn't create database new method")
+	}
 	d := &DBLayer{
 		db:         x,
 		driverName: driverName,
@@ -53,6 +56,9 @@ func New(driverName string, db *sql.DB) *DBLayer {
 	return d
 }
 func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
+	if dbx == nil {
+		panic("Couldn't create database newX method")
+	}
 	d := &DBLayer{
 		db:         dbx,
 		driverName: driverName,
@@ -111,6 +117,7 @@ func (d *DBLayer) Table(name string) *QueryBuilder {
 	return &QueryBuilder{
 		table: name,
 		dbl:   d,
+		db:    d.db,
 	}
 }
 
