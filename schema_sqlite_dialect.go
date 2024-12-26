@@ -137,6 +137,13 @@ func (g *SqliteDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(fmt.Sprintf(" DEFAULT %v", col.Definition.Default))
 	}
 
+	// SQLite не поддерживает ON UPDATE напрямую
+	// Можно реализовать через триггеры
+	if col.Definition.OnUpdate != "" {
+		// ON UPDATE реализуется через триггеры в SQLite
+		// Здесь можно добавить генерацию триггера
+	}
+
 	return sql.String()
 }
 

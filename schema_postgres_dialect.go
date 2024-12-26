@@ -129,6 +129,12 @@ func (g *PostgresDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(fmt.Sprintf(" DEFAULT %v", col.Definition.Default))
 	}
 
+	// PostgreSQL использует триггеры для ON UPDATE
+	if col.Definition.OnUpdate != "" {
+		// ON UPDATE реализуется через триггеры в PostgreSQL
+		// Здесь можно добавить генерацию триггера
+	}
+
 	return sql.String()
 }
 

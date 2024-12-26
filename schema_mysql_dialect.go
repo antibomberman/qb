@@ -41,7 +41,7 @@ func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 			name, strings.Join(cols, ", ")))
 	}
 
-	// Внешние ключи
+	// ��нешние ключи
 	for col, fk := range s.definition.constraints.foreignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
@@ -124,6 +124,10 @@ func (g *MysqlDialect) BuildColumnDefinition(col Column) string {
 
 	if col.Definition.Default != nil {
 		sql.WriteString(fmt.Sprintf(" DEFAULT %v", col.Definition.Default))
+	}
+
+	if col.Definition.OnUpdate != "" {
+		sql.WriteString(" ON UPDATE " + col.Definition.OnUpdate)
 	}
 
 	if col.Constraints.AutoIncrement {
