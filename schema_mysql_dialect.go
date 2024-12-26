@@ -9,9 +9,7 @@ func (g *MysqlSchemaDialect) BuildCreateTable(s *Schema) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
-	if s.temporary {
-		sql.WriteString("TEMPORARY ")
-	}
+
 	sql.WriteString("TABLE ")
 	if s.ifNotExists {
 		sql.WriteString("IF NOT EXISTS ")

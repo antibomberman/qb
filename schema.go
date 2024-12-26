@@ -18,7 +18,6 @@ type Schema struct {
 	charset     string
 	collate     string
 	comment     string
-	temporary   bool
 	ifNotExists bool
 	commands    []string
 
@@ -117,12 +116,6 @@ func (s *Schema) Collate(collate string) *Schema {
 // Comment добавляет комментарий
 func (s *Schema) Comment(comment string) *Schema {
 	s.comment = comment
-	return s
-}
-
-// Temporary делает таблицу временной
-func (s *Schema) Temporary() *Schema {
-	s.temporary = true
 	return s
 }
 
