@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func (g *SqliteSchemaDialect) BuildCreateTable(s *Schema) string {
+func (g *SqliteDialect) BuildCreateTable(s *Schema) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -54,7 +54,7 @@ func (g *SqliteSchemaDialect) BuildCreateTable(s *Schema) string {
 	return sql.String()
 }
 
-func (g *SqliteSchemaDialect) BuildAlterTable(s *Schema) string {
+func (g *SqliteDialect) BuildAlterTable(s *Schema) string {
 	var commands []string
 	for _, cmd := range s.definition.commands {
 		commands = append(commands, cmd.Type+" "+cmd.Name)
@@ -67,7 +67,7 @@ func (g *SqliteSchemaDialect) BuildAlterTable(s *Schema) string {
 	)
 }
 
-func (g *SqliteSchemaDialect) BuildDropTable(dt *DropTable) string {
+func (g *SqliteDialect) BuildDropTable(dt *DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -101,7 +101,7 @@ func (g *SqliteSchemaDialect) BuildDropTable(dt *DropTable) string {
 	return sql.String()
 }
 
-func (g *SqliteSchemaDialect) BuildColumnDefinition(col Column) string {
+func (g *SqliteDialect) BuildColumnDefinition(col Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -140,7 +140,7 @@ func (g *SqliteSchemaDialect) BuildColumnDefinition(col Column) string {
 	return sql.String()
 }
 
-func (g *SqliteSchemaDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+func (g *SqliteDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -164,7 +164,7 @@ func (g *SqliteSchemaDialect) BuildIndexDefinition(name string, columns []string
 	return sql.String()
 }
 
-func (g *SqliteSchemaDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
+func (g *SqliteDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
@@ -186,127 +186,127 @@ func (g *SqliteSchemaDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
 	return sql.String()
 }
 
-func (g *SqliteSchemaDialect) BuildTruncateTable(tt *TruncateTable) string {
+func (g *SqliteDialect) BuildTruncateTable(tt *TruncateTable) string {
 	// SQLite не поддерживает TRUNCATE, используем DELETE
 	return fmt.Sprintf("DELETE FROM %s", strings.Join(tt.tables, ", "))
 }
 
-func (g *SqliteSchemaDialect) SupportsDropConcurrently() bool {
+func (g *SqliteDialect) SupportsDropConcurrently() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) SupportsRestartIdentity() bool {
+func (g *SqliteDialect) SupportsRestartIdentity() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) SupportsCascade() bool {
+func (g *SqliteDialect) SupportsCascade() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) SupportsForce() bool {
+func (g *SqliteDialect) SupportsForce() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) GetAutoIncrementType() string {
+func (g *SqliteDialect) GetAutoIncrementType() string {
 	return "INTEGER PRIMARY KEY AUTOINCREMENT"
 }
 
-func (g *SqliteSchemaDialect) GetUUIDType() string {
+func (g *SqliteDialect) GetUUIDType() string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) GetBooleanType() string {
+func (g *SqliteDialect) GetBooleanType() string {
 	return "INTEGER"
 }
 
-func (g *SqliteSchemaDialect) GetIntegerType() string {
+func (g *SqliteDialect) GetIntegerType() string {
 	return "INTEGER"
 }
 
-func (g *SqliteSchemaDialect) GetBigIntegerType() string {
+func (g *SqliteDialect) GetBigIntegerType() string {
 	return "INTEGER"
 }
 
-func (g *SqliteSchemaDialect) GetFloatType() string {
+func (g *SqliteDialect) GetFloatType() string {
 	return "REAL"
 }
 
-func (g *SqliteSchemaDialect) GetDoubleType() string {
+func (g *SqliteDialect) GetDoubleType() string {
 	return "REAL"
 }
 
-func (g *SqliteSchemaDialect) GetDecimalType(precision, scale int) string {
+func (g *SqliteDialect) GetDecimalType(precision, scale int) string {
 	return "REAL"
 }
 
-func (g *SqliteSchemaDialect) GetStringType(length int) string {
+func (g *SqliteDialect) GetStringType(length int) string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) GetTextType() string {
+func (g *SqliteDialect) GetTextType() string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) GetBinaryType(length int) string {
+func (g *SqliteDialect) GetBinaryType(length int) string {
 	return "BLOB"
 }
 
-func (g *SqliteSchemaDialect) GetJsonType() string {
+func (g *SqliteDialect) GetJsonType() string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) GetTimestampType() string {
+func (g *SqliteDialect) GetTimestampType() string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) GetDateType() string {
+func (g *SqliteDialect) GetDateType() string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) GetTimeType() string {
+func (g *SqliteDialect) GetTimeType() string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) GetCurrentTimestampExpression() string {
+func (g *SqliteDialect) GetCurrentTimestampExpression() string {
 	return "CURRENT_TIMESTAMP"
 }
 
-func (g *SqliteSchemaDialect) QuoteIdentifier(name string) string {
+func (g *SqliteDialect) QuoteIdentifier(name string) string {
 	return "\"" + strings.Replace(name, "\"", "\"\"", -1) + "\""
 }
 
-func (g *SqliteSchemaDialect) QuoteString(value string) string {
+func (g *SqliteDialect) QuoteString(value string) string {
 	return "'" + strings.Replace(value, "'", "''", -1) + "'"
 }
 
-func (g *SqliteSchemaDialect) SupportsColumnPositioning() bool {
+func (g *SqliteDialect) SupportsColumnPositioning() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) SupportsEnum() bool {
+func (g *SqliteDialect) SupportsEnum() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) GetEnumType(values []string) string {
+func (g *SqliteDialect) GetEnumType(values []string) string {
 	return "TEXT"
 }
 
-func (g *SqliteSchemaDialect) SupportsColumnComments() bool {
+func (g *SqliteDialect) SupportsColumnComments() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) SupportsSpatialIndex() bool {
+func (g *SqliteDialect) SupportsSpatialIndex() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) SupportsFullTextIndex() bool {
+func (g *SqliteDialect) SupportsFullTextIndex() bool {
 	return false
 }
 
-func (g *SqliteSchemaDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
+func (g *SqliteDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
 	return ""
 }
 
-func (g *SqliteSchemaDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
+func (g *SqliteDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
 	return ""
 }

@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func (g *PostgresSchemaDialect) BuildCreateTable(s *Schema) string {
+func (g *PostgresDialect) BuildCreateTable(s *Schema) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -60,7 +60,7 @@ func (g *PostgresSchemaDialect) BuildCreateTable(s *Schema) string {
 	return sql.String()
 }
 
-func (g *PostgresSchemaDialect) BuildAlterTable(s *Schema) string {
+func (g *PostgresDialect) BuildAlterTable(s *Schema) string {
 	var commands []string
 	for _, cmd := range s.definition.commands {
 		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
@@ -73,7 +73,7 @@ func (g *PostgresSchemaDialect) BuildAlterTable(s *Schema) string {
 	)
 }
 
-func (g *PostgresSchemaDialect) BuildDropTable(dt *DropTable) string {
+func (g *PostgresDialect) BuildDropTable(dt *DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -103,7 +103,7 @@ func (g *PostgresSchemaDialect) BuildDropTable(dt *DropTable) string {
 	return sql.String()
 }
 
-func (g *PostgresSchemaDialect) BuildColumnDefinition(col Column) string {
+func (g *PostgresDialect) BuildColumnDefinition(col Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -132,7 +132,7 @@ func (g *PostgresSchemaDialect) BuildColumnDefinition(col Column) string {
 	return sql.String()
 }
 
-func (g *PostgresSchemaDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
 	var sql strings.Builder
 
 	if unique {
@@ -155,7 +155,7 @@ func (g *PostgresSchemaDialect) BuildIndexDefinition(name string, columns []stri
 	return sql.String()
 }
 
-func (g *PostgresSchemaDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
+func (g *PostgresDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
@@ -177,7 +177,7 @@ func (g *PostgresSchemaDialect) BuildForeignKeyDefinition(fk *ForeignKey) string
 	return sql.String()
 }
 
-func (g *PostgresSchemaDialect) BuildTruncateTable(tt *TruncateTable) string {
+func (g *PostgresDialect) BuildTruncateTable(tt *TruncateTable) string {
 	var sql strings.Builder
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.tables, ", "))
@@ -193,124 +193,124 @@ func (g *PostgresSchemaDialect) BuildTruncateTable(tt *TruncateTable) string {
 	return sql.String()
 }
 
-func (g *PostgresSchemaDialect) SupportsDropConcurrently() bool {
+func (g *PostgresDialect) SupportsDropConcurrently() bool {
 	return true
 }
 
-func (g *PostgresSchemaDialect) SupportsRestartIdentity() bool {
+func (g *PostgresDialect) SupportsRestartIdentity() bool {
 	return true
 }
 
-func (g *PostgresSchemaDialect) SupportsCascade() bool {
+func (g *PostgresDialect) SupportsCascade() bool {
 	return true
 }
 
-func (g *PostgresSchemaDialect) SupportsForce() bool {
+func (g *PostgresDialect) SupportsForce() bool {
 	return false
 }
 
-func (g *PostgresSchemaDialect) GetAutoIncrementType() string {
+func (g *PostgresDialect) GetAutoIncrementType() string {
 	return "SERIAL"
 }
 
-func (g *PostgresSchemaDialect) GetUUIDType() string {
+func (g *PostgresDialect) GetUUIDType() string {
 	return "UUID"
 }
 
-func (g *PostgresSchemaDialect) GetBooleanType() string {
+func (g *PostgresDialect) GetBooleanType() string {
 	return "BOOLEAN"
 }
 
-func (g *PostgresSchemaDialect) GetIntegerType() string {
+func (g *PostgresDialect) GetIntegerType() string {
 	return "INTEGER"
 }
 
-func (g *PostgresSchemaDialect) GetBigIntegerType() string {
+func (g *PostgresDialect) GetBigIntegerType() string {
 	return "BIGINT"
 }
 
-func (g *PostgresSchemaDialect) GetFloatType() string {
+func (g *PostgresDialect) GetFloatType() string {
 	return "REAL"
 }
 
-func (g *PostgresSchemaDialect) GetDoubleType() string {
+func (g *PostgresDialect) GetDoubleType() string {
 	return "DOUBLE PRECISION"
 }
 
-func (g *PostgresSchemaDialect) GetDecimalType(precision, scale int) string {
+func (g *PostgresDialect) GetDecimalType(precision, scale int) string {
 	return fmt.Sprintf("NUMERIC(%d,%d)", precision, scale)
 }
 
-func (g *PostgresSchemaDialect) GetStringType(length int) string {
+func (g *PostgresDialect) GetStringType(length int) string {
 	return fmt.Sprintf("VARCHAR(%d)", length)
 }
 
-func (g *PostgresSchemaDialect) GetTextType() string {
+func (g *PostgresDialect) GetTextType() string {
 	return "TEXT"
 }
 
-func (g *PostgresSchemaDialect) GetBinaryType(length int) string {
+func (g *PostgresDialect) GetBinaryType(length int) string {
 	return "BYTEA"
 }
 
-func (g *PostgresSchemaDialect) GetJsonType() string {
+func (g *PostgresDialect) GetJsonType() string {
 	return "JSONB"
 }
 
-func (g *PostgresSchemaDialect) GetTimestampType() string {
+func (g *PostgresDialect) GetTimestampType() string {
 	return "TIMESTAMP"
 }
 
-func (g *PostgresSchemaDialect) GetDateType() string {
+func (g *PostgresDialect) GetDateType() string {
 	return "DATE"
 }
 
-func (g *PostgresSchemaDialect) GetTimeType() string {
+func (g *PostgresDialect) GetTimeType() string {
 	return "TIME"
 }
 
-func (g *PostgresSchemaDialect) GetCurrentTimestampExpression() string {
+func (g *PostgresDialect) GetCurrentTimestampExpression() string {
 	return "CURRENT_TIMESTAMP"
 }
 
-func (g *PostgresSchemaDialect) QuoteIdentifier(name string) string {
+func (g *PostgresDialect) QuoteIdentifier(name string) string {
 	return "\"" + strings.Replace(name, "\"", "\"\"", -1) + "\""
 }
 
-func (g *PostgresSchemaDialect) QuoteString(value string) string {
+func (g *PostgresDialect) QuoteString(value string) string {
 	return "'" + strings.Replace(value, "'", "''", -1) + "'"
 }
 
-func (g *PostgresSchemaDialect) SupportsColumnPositioning() bool {
+func (g *PostgresDialect) SupportsColumnPositioning() bool {
 	return false
 }
 
-func (g *PostgresSchemaDialect) SupportsEnum() bool {
+func (g *PostgresDialect) SupportsEnum() bool {
 	return true
 }
 
-func (g *PostgresSchemaDialect) GetEnumType(values []string) string {
+func (g *PostgresDialect) GetEnumType(values []string) string {
 	return "TEXT"
 }
 
-func (g *PostgresSchemaDialect) SupportsColumnComments() bool {
+func (g *PostgresDialect) SupportsColumnComments() bool {
 	return true
 }
 
-func (g *PostgresSchemaDialect) SupportsSpatialIndex() bool {
+func (g *PostgresDialect) SupportsSpatialIndex() bool {
 	return true
 }
 
-func (g *PostgresSchemaDialect) SupportsFullTextIndex() bool {
+func (g *PostgresDialect) SupportsFullTextIndex() bool {
 	return true
 }
 
-func (g *PostgresSchemaDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
+func (g *PostgresDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
 	return fmt.Sprintf("CREATE INDEX %s ON %s USING GIST (%s)",
 		name, "%s", strings.Join(columns, ", "))
 }
 
-func (g *PostgresSchemaDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
+func (g *PostgresDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
 	return fmt.Sprintf("CREATE INDEX %s ON %s USING GIN (to_tsvector('english', %s))",
 		name, "%s", strings.Join(columns, " || ' ' || "))
 }

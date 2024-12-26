@@ -12,13 +12,13 @@ import (
 )
 
 type DBLayer struct {
-	db            *sqlx.DB
-	cache         CacheDriver
-	mu            sync.RWMutex
-	driverName    string
-	schemaDialect SchemaDialect
-	queryDialect  QueryDialect
-	errorHandler  ErrorHandler
+	db           *sqlx.DB
+	cache        CacheDriver
+	mu           sync.RWMutex
+	driverName   string
+	dialect      BaseDialect
+	queryDialect QueryDialect
+	errorHandler ErrorHandler
 }
 
 type ErrorHandler interface {
@@ -26,24 +26,14 @@ type ErrorHandler interface {
 	WrapError(err error, msg string) error
 }
 
-func (d *DBLayer) SetQueryDialect() {
+func (d *DBLayer) SetDialect() {
 	switch d.driverName {
 	case "mysql":
-		d.queryDialect = &MysqlQueryDialect{}
+		d.dialect = &MysqlDialect{}
 	case "postgres":
-		d.queryDialect = &PostgresQueryDialect{}
+		d.dialect = &MysqlDialect{}
 	case "sqlite":
-		d.queryDialect = &SqliteQueryDialect{}
-	}
-}
-func (d *DBLayer) SetSchemaDialect() {
-	switch d.driverName {
-	case "mysql":
-		d.schemaDialect = &MysqlSchemaDialect{}
-	case "postgres":
-		d.schemaDialect = &PostgresSchemaDialect{}
-	case "sqlite":
-		d.schemaDialect = &SqliteSchemaDialect{}
+		d.dialect = &SqliteDialect{}
 	}
 }
 
@@ -56,8 +46,6 @@ func New(driverName string, db *sql.DB) *DBLayer {
 		db:         x,
 		driverName: driverName,
 	}
-	d.SetQueryDialect()
-	d.SetSchemaDialect()
 
 	return d
 }
@@ -69,8 +57,6 @@ func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 		db:         dbx,
 		driverName: driverName,
 	}
-	d.SetQueryDialect()
-	d.SetSchemaDialect()
 	return d
 }
 

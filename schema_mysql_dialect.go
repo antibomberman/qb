@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func (g *MysqlSchemaDialect) BuildCreateTable(s *Schema) string {
+func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -68,7 +68,7 @@ func (g *MysqlSchemaDialect) BuildCreateTable(s *Schema) string {
 	return sql.String()
 }
 
-func (g *MysqlSchemaDialect) BuildAlterTable(s *Schema) string {
+func (g *MysqlDialect) BuildAlterTable(s *Schema) string {
 	var commands []string
 	for _, cmd := range s.definition.commands {
 		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
@@ -81,7 +81,7 @@ func (g *MysqlSchemaDialect) BuildAlterTable(s *Schema) string {
 	)
 }
 
-func (g *MysqlSchemaDialect) BuildDropTable(dt *DropTable) string {
+func (g *MysqlDialect) BuildDropTable(dt *DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -107,7 +107,7 @@ func (g *MysqlSchemaDialect) BuildDropTable(dt *DropTable) string {
 	return sql.String()
 }
 
-func (g *MysqlSchemaDialect) BuildColumnDefinition(col Column) string {
+func (g *MysqlDialect) BuildColumnDefinition(col Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -137,7 +137,7 @@ func (g *MysqlSchemaDialect) BuildColumnDefinition(col Column) string {
 	return sql.String()
 }
 
-func (g *MysqlSchemaDialect) BuildTruncateTable(tt *TruncateTable) string {
+func (g *MysqlDialect) BuildTruncateTable(tt *TruncateTable) string {
 	var sql strings.Builder
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.tables, ", "))
@@ -149,7 +149,7 @@ func (g *MysqlSchemaDialect) BuildTruncateTable(tt *TruncateTable) string {
 	return sql.String()
 }
 
-func (g *MysqlSchemaDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
 	var sql strings.Builder
 
 	if unique {
@@ -170,7 +170,7 @@ func (g *MysqlSchemaDialect) BuildIndexDefinition(name string, columns []string,
 	return sql.String()
 }
 
-func (g *MysqlSchemaDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
+func (g *MysqlDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
@@ -192,125 +192,125 @@ func (g *MysqlSchemaDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
 	return sql.String()
 }
 
-func (g *MysqlSchemaDialect) SupportsDropConcurrently() bool {
+func (g *MysqlDialect) SupportsDropConcurrently() bool {
 	return false
 }
 
-func (g *MysqlSchemaDialect) SupportsRestartIdentity() bool {
+func (g *MysqlDialect) SupportsRestartIdentity() bool {
 	return false
 }
 
-func (g *MysqlSchemaDialect) SupportsCascade() bool {
+func (g *MysqlDialect) SupportsCascade() bool {
 	return false
 }
 
-func (g *MysqlSchemaDialect) SupportsForce() bool {
+func (g *MysqlDialect) SupportsForce() bool {
 	return true
 }
 
-func (g *MysqlSchemaDialect) GetAutoIncrementType() string {
+func (g *MysqlDialect) GetAutoIncrementType() string {
 	return "AUTO_INCREMENT"
 }
 
-func (g *MysqlSchemaDialect) GetUUIDType() string {
+func (g *MysqlDialect) GetUUIDType() string {
 	return "CHAR(36)"
 }
 
 // Типы данных
-func (g *MysqlSchemaDialect) GetBooleanType() string {
+func (g *MysqlDialect) GetBooleanType() string {
 	return "TINYINT(1)"
 }
 
-func (g *MysqlSchemaDialect) GetIntegerType() string {
+func (g *MysqlDialect) GetIntegerType() string {
 	return "INT"
 }
 
-func (g *MysqlSchemaDialect) GetBigIntegerType() string {
+func (g *MysqlDialect) GetBigIntegerType() string {
 	return "BIGINT"
 }
 
-func (g *MysqlSchemaDialect) GetFloatType() string {
+func (g *MysqlDialect) GetFloatType() string {
 	return "FLOAT"
 }
 
-func (g *MysqlSchemaDialect) GetDoubleType() string {
+func (g *MysqlDialect) GetDoubleType() string {
 	return "DOUBLE"
 }
 
-func (g *MysqlSchemaDialect) GetDecimalType(precision, scale int) string {
+func (g *MysqlDialect) GetDecimalType(precision, scale int) string {
 	return fmt.Sprintf("DECIMAL(%d,%d)", precision, scale)
 }
 
-func (g *MysqlSchemaDialect) GetStringType(length int) string {
+func (g *MysqlDialect) GetStringType(length int) string {
 	return fmt.Sprintf("VARCHAR(%d)", length)
 }
 
-func (g *MysqlSchemaDialect) GetTextType() string {
+func (g *MysqlDialect) GetTextType() string {
 	return "TEXT"
 }
 
-func (g *MysqlSchemaDialect) GetBinaryType(length int) string {
+func (g *MysqlDialect) GetBinaryType(length int) string {
 	return fmt.Sprintf("BINARY(%d)", length)
 }
 
-func (g *MysqlSchemaDialect) GetJsonType() string {
+func (g *MysqlDialect) GetJsonType() string {
 	return "JSON"
 }
 
-func (g *MysqlSchemaDialect) GetTimestampType() string {
+func (g *MysqlDialect) GetTimestampType() string {
 	return "TIMESTAMP"
 }
 
-func (g *MysqlSchemaDialect) GetDateType() string {
+func (g *MysqlDialect) GetDateType() string {
 	return "DATE"
 }
 
-func (g *MysqlSchemaDialect) GetTimeType() string {
+func (g *MysqlDialect) GetTimeType() string {
 	return "TIME"
 }
 
-func (g *MysqlSchemaDialect) GetCurrentTimestampExpression() string {
+func (g *MysqlDialect) GetCurrentTimestampExpression() string {
 	return "CURRENT_TIMESTAMP"
 }
 
-func (g *MysqlSchemaDialect) QuoteIdentifier(name string) string {
+func (g *MysqlDialect) QuoteIdentifier(name string) string {
 	return "`" + strings.Replace(name, "`", "``", -1) + "`"
 }
 
-func (g *MysqlSchemaDialect) QuoteString(value string) string {
+func (g *MysqlDialect) QuoteString(value string) string {
 	return "'" + strings.Replace(value, "'", "''", -1) + "'"
 }
 
-func (g *MysqlSchemaDialect) SupportsColumnPositioning() bool {
+func (g *MysqlDialect) SupportsColumnPositioning() bool {
 	return true
 }
 
-func (g *MysqlSchemaDialect) SupportsEnum() bool {
+func (g *MysqlDialect) SupportsEnum() bool {
 	return true
 }
 
-func (g *MysqlSchemaDialect) GetEnumType(values []string) string {
+func (g *MysqlDialect) GetEnumType(values []string) string {
 	return fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))
 }
 
-func (g *MysqlSchemaDialect) SupportsColumnComments() bool {
+func (g *MysqlDialect) SupportsColumnComments() bool {
 	return true
 }
 
 // MySQL поддерживает оба типа индексов
-func (g *MysqlSchemaDialect) SupportsSpatialIndex() bool {
+func (g *MysqlDialect) SupportsSpatialIndex() bool {
 	return true
 }
 
-func (g *MysqlSchemaDialect) SupportsFullTextIndex() bool {
+func (g *MysqlDialect) SupportsFullTextIndex() bool {
 	return true
 }
 
 // Добавляем методы для создания специальных индексов
-func (g *MysqlSchemaDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
+func (g *MysqlDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
 	return fmt.Sprintf("SPATIAL INDEX %s (%s)", name, strings.Join(columns, ", "))
 }
 
-func (g *MysqlSchemaDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
+func (g *MysqlDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
 	return fmt.Sprintf("FULLTEXT INDEX %s (%s)", name, strings.Join(columns, ", "))
 }

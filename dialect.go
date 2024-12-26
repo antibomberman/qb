@@ -2,17 +2,12 @@ package dblayer
 
 import "strings"
 
-// Реализации для разных БД
-type MysqlQueryDialect struct{}
-type PostgresQueryDialect struct{}
-type SqliteQueryDialect struct{}
-
 type QueryDialect interface {
 }
 
-type MysqlSchemaDialect struct{}
-type PostgresSchemaDialect struct{}
-type SqliteSchemaDialect struct{}
+type MysqlDialect struct{}
+type PostgresDialect struct{}
+type SqliteDialect struct{}
 
 // BaseDialect объединяет общую функциональность
 type BaseDialect interface {
