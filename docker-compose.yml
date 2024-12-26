@@ -3,7 +3,7 @@ version: '3.9'
 services:
   mysql:
     image: mysql:8.0.31
-    container_name: test_db
+    container_name: test_mysql_db
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: test_db
@@ -15,7 +15,7 @@ services:
       - ./tmp/mysql:/var/lib/mysql
   postgres:
     image: postgres:14.8-alpine3.18
-    container_name: test_db
+    container_name: test_postgres_db
     environment:
       POSTGRES_DB:  test_db
       POSTGRES_USER: test_user
@@ -26,7 +26,7 @@ services:
       - "5433:5432"
   redis:
     image: redis:latest
-    container_name: test_cache
+    container_name: test_redis_cache
     ports:
       - "6380:6379"
     volumes:
