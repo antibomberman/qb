@@ -46,6 +46,7 @@ func New(driverName string, db *sql.DB) *DBLayer {
 		db:         x,
 		driverName: driverName,
 	}
+	d.SetDialect()
 
 	return d
 }
@@ -57,6 +58,8 @@ func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 		db:         dbx,
 		driverName: driverName,
 	}
+	d.SetDialect()
+
 	return d
 }
 
@@ -136,13 +139,20 @@ func (d *DBLayer) Drop(tables ...string) *DropTable {
 	}
 }
 
-// Create создает новую таблицу
+// Добавьте конструктор для Schema или измените CreateTable
 func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
 		definition: SchemaDefinition{
 			name: name,
 			mode: "create",
+			// Инициализируем все maps в constraints
+			constraints: Constraints{
+				primaryKey:  make([]string, 0),
+				uniqueKeys:  make(map[string][]string),
+				indexes:     make(map[string][]string),    // Было nil
+				foreignKeys: make(map[string]*ForeignKey), // Было nil
+			},
 		},
 	}
 

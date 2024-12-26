@@ -67,7 +67,7 @@ func (dt *DropTable) Build() string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent && dt.dbl.schemaDialect.SupportsDropConcurrently() {
+	if dt.options.Concurrent && dt.dbl.dialect.SupportsDropConcurrently() {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -77,15 +77,15 @@ func (dt *DropTable) Build() string {
 
 	sql.WriteString(strings.Join(dt.tables, ", "))
 
-	if dt.options.Cascade && dt.dbl.schemaDialect.SupportsCascade() {
+	if dt.options.Cascade && dt.dbl.dialect.SupportsCascade() {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict && dt.dbl.schemaDialect.SupportsCascade() {
+	if dt.options.Restrict && dt.dbl.dialect.SupportsCascade() {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.options.Force && dt.dbl.schemaDialect.SupportsForce() {
+	if dt.options.Force && dt.dbl.dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 

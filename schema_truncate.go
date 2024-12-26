@@ -55,7 +55,7 @@ func (tt *TruncateTable) Build() string {
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.tables, ", "))
 
-	if tt.dbl.schemaDialect.SupportsRestartIdentity() {
+	if tt.dbl.dialect.SupportsRestartIdentity() {
 		if tt.options.Restart {
 			sql.WriteString(" RESTART IDENTITY")
 		} else if tt.options.ContinueIdentity {
@@ -69,7 +69,7 @@ func (tt *TruncateTable) Build() string {
 		}
 	}
 
-	if tt.options.Force && tt.dbl.schemaDialect.SupportsForce() {
+	if tt.options.Force && tt.dbl.dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 

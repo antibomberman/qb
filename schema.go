@@ -58,10 +58,10 @@ type Command struct {
 }
 
 func (s *Schema) BuildCreate() string {
-	return s.dbl.schemaDialect.BuildCreateTable(s)
+	return s.dbl.dialect.BuildCreateTable(s)
 }
 func (s *Schema) BuildAlter() string {
-	return s.dbl.schemaDialect.BuildAlterTable(s)
+	return s.dbl.dialect.BuildAlterTable(s)
 }
 
 // Добавляем методы для обновления
@@ -196,7 +196,7 @@ func (s *Schema) DropIndex(name string) *Schema {
 	return s
 }
 
-// RenameTable переимен��вывает таблицу
+// RenameTable переименует таблицу
 func (s *Schema) RenameTable(newName string) *Schema {
 	s.builder.AddConstraint(Constraint{
 		Type:    "RENAME TO",
@@ -220,7 +220,7 @@ func (s *Schema) ChangeCharset(charset, collate string) *Schema {
 
 // Изменяем метод buildColumn
 func (s *Schema) buildColumn(col Column) string {
-	return s.dbl.schemaDialect.BuildColumnDefinition(col)
+	return s.dbl.dialect.BuildColumnDefinition(col)
 }
 
 // Изменяем метод Uuid
@@ -228,14 +228,14 @@ func (s *Schema) Uuid(name string) *ColumnBuilder {
 	return s.addColumn(Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.schemaDialect.GetUUIDType(),
+			Type: s.dbl.dialect.GetUUIDType(),
 		},
 	})
 }
 
 // Добавляем новые методы для индексов
 func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
-	if s.dbl.schemaDialect.SupportsSpatialIndex() {
+	if s.dbl.dialect.SupportsSpatialIndex() {
 		if s.definition.mode == "create" {
 			s.builder.AddConstraint(Constraint{
 				Type:    "ADD SPATIAL INDEX",
@@ -254,7 +254,7 @@ func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 }
 
 func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
-	if s.dbl.schemaDialect.SupportsFullTextIndex() {
+	if s.dbl.dialect.SupportsFullTextIndex() {
 		if s.definition.mode == "create" {
 			s.builder.AddConstraint(Constraint{
 				Type:    "ADD FULLTEXT INDEX",

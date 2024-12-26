@@ -39,12 +39,7 @@ func UpdateTable() {
 		// Специфичные для обновления операции
 		table.RenameColumn("name", "full_name")
 		table.DropColumn("old_field")
-		table.ModifyColumn(dblayer.Column{
-			Name:   "email",
-			Type:   "VARCHAR",
-			Length: 255,
-			Unique: true,
-		})
+
 	})
 }
 

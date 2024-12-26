@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/antibomberman/dblayer"
-	_ "github.com/go-sql-driver/mysql"
 	"log"
+	_ "modernc.org/sqlite"
 	"time"
 )
 

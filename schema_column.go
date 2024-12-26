@@ -80,7 +80,7 @@ func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 		Name: column.Name,
 		Cmd: fmt.Sprintf(
 			"%s%s",
-			s.dbl.schemaDialect.BuildColumnDefinition(column),
+			s.dbl.dialect.BuildColumnDefinition(column),
 			position,
 		),
 	})
@@ -90,7 +90,7 @@ func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 func (s *Schema) ID() *ColumnBuilder {
 	return s.addColumn(Column{
 		Name:       "id",
-		Definition: ColumnDefinition{Type: s.dbl.schemaDialect.GetAutoIncrementType()},
+		Definition: ColumnDefinition{Type: s.dbl.dialect.GetAutoIncrementType()},
 		Constraints: ColumnConstraints{
 			Primary: true,
 		},
@@ -101,7 +101,7 @@ func (s *Schema) ID() *ColumnBuilder {
 func (s *Schema) BigIncrements(name string) *ColumnBuilder {
 	return s.addColumn(Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: s.dbl.schemaDialect.GetAutoIncrementType()},
+		Definition: ColumnDefinition{Type: s.dbl.dialect.GetAutoIncrementType()},
 		Constraints: ColumnConstraints{
 			Primary: true,
 		},
