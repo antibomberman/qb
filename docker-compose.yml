@@ -1,0 +1,34 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0.31
+    container_name: test_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: test_db
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./tmp/mysql:/var/lib/mysql
+  postgres:
+    image: postgres:14.8-alpine3.18
+    container_name: test_db
+    environment:
+      POSTGRES_DB:  test_db
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    volumes:
+      - ./tmp/postgres:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+  redis:
+    image: redis:latest
+    container_name: test_cache
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./tmp/redis:/data
+    command: redis-server --appendonly yes
