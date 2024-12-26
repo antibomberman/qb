@@ -41,7 +41,7 @@ func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 			name, strings.Join(cols, ", ")))
 	}
 
-	// ��нешние ключи
+	// Внешние ключи
 	for col, fk := range s.definition.constraints.foreignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
@@ -58,14 +58,24 @@ func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 	sql.WriteString("\n)")
 
 	// Опции таблицы
-	sql.WriteString(fmt.Sprintf(" ENGINE=%s", s.definition.options.engine))
-	sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s", s.definition.options.charset))
-	sql.WriteString(fmt.Sprintf(" COLLATE=%s", s.definition.options.collate))
+	sql.WriteString(fmt.Sprintf(" ENGINE=%s",
+		defaultIfEmpty(s.definition.options.engine, "InnoDB")))
+	sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s",
+		defaultIfEmpty(s.definition.options.charset, "utf8mb4")))
+	sql.WriteString(fmt.Sprintf(" COLLATE=%s",
+		defaultIfEmpty(s.definition.options.collate, "utf8mb4_unicode_ci")))
 	if s.definition.options.comment != "" {
 		sql.WriteString(fmt.Sprintf(" COMMENT='%s'", s.definition.options.comment))
 	}
 
 	return sql.String()
+}
+
+func defaultIfEmpty(value, defaultValue string) string {
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }
 
 func (g *MysqlDialect) BuildAlterTable(s *Schema) string {

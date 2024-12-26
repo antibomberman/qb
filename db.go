@@ -31,7 +31,7 @@ func (d *DBLayer) SetDialect() {
 	case "mysql":
 		d.dialect = &MysqlDialect{}
 	case "postgres":
-		d.dialect = &MysqlDialect{}
+		d.dialect = &PostgresDialect{}
 	case "sqlite":
 		d.dialect = &SqliteDialect{}
 	}
@@ -146,6 +146,9 @@ func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 		definition: SchemaDefinition{
 			name: name,
 			mode: "create",
+			options: TableOptions{
+				ifNotExists: false,
+			},
 			// Инициализируем все maps в constraints
 			constraints: Constraints{
 				primaryKey:  make([]string, 0),
@@ -157,7 +160,32 @@ func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 	}
 
 	fn(schema)
+	fmt.Println(schema.BuildCreate())
+	return dbl.Raw(schema.BuildCreate()).Exec()
+}
 
+// Добавьте конструктор для Schema или измените CreateTable
+func (dbl *DBLayer) CreateTableIfNotExists(name string, fn func(*Schema)) error {
+	schema := &Schema{
+		dbl: dbl,
+		definition: SchemaDefinition{
+			name: name,
+			options: TableOptions{
+				ifNotExists: true,
+			},
+			mode: "create",
+			// Инициализируем все maps в constraints
+			constraints: Constraints{
+				primaryKey:  make([]string, 0),
+				uniqueKeys:  make(map[string][]string),
+				indexes:     make(map[string][]string),    // Было nil
+				foreignKeys: make(map[string]*ForeignKey), // Было nil
+			},
+		},
+	}
+
+	fn(schema)
+	fmt.Println(schema.BuildCreate())
 	return dbl.Raw(schema.BuildCreate()).Exec()
 }
 

@@ -341,6 +341,14 @@ func (s *Schema) MediumInteger(name string) *ColumnBuilder {
 	})
 }
 
+// BigInteger добавляет большое целое
+func (s *Schema) BigInteger(name string) *ColumnBuilder {
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBigIntegerType()},
+	})
+}
+
 // Year добавляет поле года
 func (s *Schema) Year(name string) *ColumnBuilder {
 	return s.addColumn(Column{

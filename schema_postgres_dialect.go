@@ -20,7 +20,7 @@ func (g *PostgresDialect) BuildCreateTable(s *Schema) string {
 	// Колонки
 	var columns []string
 	for _, col := range s.definition.columns {
-		columns = append(columns, s.buildColumn(col))
+		columns = append(columns, g.BuildColumnDefinition(col))
 	}
 
 	// Первичный ключ
