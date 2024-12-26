@@ -15,9 +15,10 @@ type Column struct {
 }
 
 type ColumnDefinition struct {
-	Type    string
-	Length  int
-	Default interface{}
+	Type     string
+	Length   int
+	Default  interface{}
+	OnUpdate string
 }
 
 type ColumnConstraints struct {
@@ -451,5 +452,17 @@ func (cb *ColumnBuilder) After(column string) *ColumnBuilder {
 
 func (cb *ColumnBuilder) First() *ColumnBuilder {
 	cb.column.Position.First = true
+	return cb
+}
+
+// OnUpdate добавляет условие ON UPDATE
+func (cb *ColumnBuilder) OnUpdate(value string) *ColumnBuilder {
+	cb.column.Definition.OnUpdate = value
+	return cb
+}
+
+// NotNull устанавливает колонку как NOT NULL
+func (cb *ColumnBuilder) NotNull() *ColumnBuilder {
+	cb.column.Constraints.Nullable = false
 	return cb
 }
