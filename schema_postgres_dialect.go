@@ -11,38 +11,38 @@ func (g *PostgresSchemaDialect) BuildCreateTable(s *Schema) string {
 	sql.WriteString("CREATE ")
 
 	sql.WriteString("TABLE ")
-	if s.options.ifNotExists {
+	if s.definition.options.ifNotExists {
 		sql.WriteString("IF NOT EXISTS ")
 	}
-	sql.WriteString(s.name)
+	sql.WriteString(s.definition.name)
 	sql.WriteString(" (\n")
 
 	// Колонки
 	var columns []string
-	for _, col := range s.columns {
+	for _, col := range s.definition.columns {
 		columns = append(columns, s.buildColumn(col))
 	}
 
 	// Первичный ключ
-	if len(s.constraints.primaryKey) > 0 {
+	if len(s.definition.constraints.primaryKey) > 0 {
 		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.constraints.primaryKey, ", ")))
+			strings.Join(s.definition.constraints.primaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for name, cols := range s.constraints.uniqueKeys {
+	for name, cols := range s.definition.constraints.uniqueKeys {
 		columns = append(columns, fmt.Sprintf("UNIQUE KEY %s (%s)",
 			name, strings.Join(cols, ", ")))
 	}
 
 	// Индексы
-	for name, cols := range s.constraints.indexes {
+	for name, cols := range s.definition.constraints.indexes {
 		columns = append(columns, fmt.Sprintf("INDEX %s (%s)",
 			name, strings.Join(cols, ", ")))
 	}
 
 	// Внешние ключи
-	for col, fk := range s.constraints.foreignKeys {
+	for col, fk := range s.definition.constraints.foreignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
@@ -61,10 +61,15 @@ func (g *PostgresSchemaDialect) BuildCreateTable(s *Schema) string {
 }
 
 func (g *PostgresSchemaDialect) BuildAlterTable(s *Schema) string {
+	var commands []string
+	for _, cmd := range s.definition.commands {
+		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
+	}
+
 	return fmt.Sprintf(
 		"ALTER TABLE %s\n%s",
-		s.name,
-		strings.Join(s.commands, ",\n"),
+		s.definition.name,
+		strings.Join(commands, ",\n"),
 	)
 }
 
@@ -77,7 +82,7 @@ func (g *PostgresSchemaDialect) BuildDropTable(dt *DropTable) string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent && dt.dbl.db.DriverName() == "postgres" {
+	if dt.options.Concurrent {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -87,16 +92,12 @@ func (g *PostgresSchemaDialect) BuildDropTable(dt *DropTable) string {
 
 	sql.WriteString(strings.Join(dt.tables, ", "))
 
-	if dt.options.Cascade && dt.dbl.db.DriverName() == "postgres" {
+	if dt.options.Cascade {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict && dt.dbl.db.DriverName() == "postgres" {
+	if dt.options.Restrict {
 		sql.WriteString(" RESTRICT")
-	}
-
-	if dt.options.Force && dt.dbl.db.DriverName() == "mysql" {
-		sql.WriteString(" FORCE")
 	}
 
 	return sql.String()

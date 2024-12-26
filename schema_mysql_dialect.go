@@ -11,38 +11,38 @@ func (g *MysqlSchemaDialect) BuildCreateTable(s *Schema) string {
 	sql.WriteString("CREATE ")
 
 	sql.WriteString("TABLE ")
-	if s.options.ifNotExists {
+	if s.definition.options.ifNotExists {
 		sql.WriteString("IF NOT EXISTS ")
 	}
-	sql.WriteString(s.name)
+	sql.WriteString(s.definition.name)
 	sql.WriteString(" (\n")
 
 	// Колонки
 	var columns []string
-	for _, col := range s.columns {
-		columns = append(columns, s.buildColumn(col))
+	for _, col := range s.definition.columns {
+		columns = append(columns, g.BuildColumnDefinition(col))
 	}
 
 	// Первичный ключ
-	if len(s.constraints.primaryKey) > 0 {
+	if len(s.definition.constraints.primaryKey) > 0 {
 		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.constraints.primaryKey, ", ")))
+			strings.Join(s.definition.constraints.primaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for name, cols := range s.constraints.uniqueKeys {
+	for name, cols := range s.definition.constraints.uniqueKeys {
 		columns = append(columns, fmt.Sprintf("UNIQUE KEY %s (%s)",
 			name, strings.Join(cols, ", ")))
 	}
 
 	// Индексы
-	for name, cols := range s.constraints.indexes {
+	for name, cols := range s.definition.constraints.indexes {
 		columns = append(columns, fmt.Sprintf("INDEX %s (%s)",
 			name, strings.Join(cols, ", ")))
 	}
 
 	// Внешние ключи
-	for col, fk := range s.constraints.foreignKeys {
+	for col, fk := range s.definition.constraints.foreignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
@@ -58,21 +58,26 @@ func (g *MysqlSchemaDialect) BuildCreateTable(s *Schema) string {
 	sql.WriteString("\n)")
 
 	// Опции таблицы
-	sql.WriteString(fmt.Sprintf(" ENGINE=%s", s.options.engine))
-	sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s", s.options.charset))
-	sql.WriteString(fmt.Sprintf(" COLLATE=%s", s.options.collate))
-	if s.options.comment != "" {
-		sql.WriteString(fmt.Sprintf(" COMMENT='%s'", s.options.comment))
+	sql.WriteString(fmt.Sprintf(" ENGINE=%s", s.definition.options.engine))
+	sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s", s.definition.options.charset))
+	sql.WriteString(fmt.Sprintf(" COLLATE=%s", s.definition.options.collate))
+	if s.definition.options.comment != "" {
+		sql.WriteString(fmt.Sprintf(" COMMENT='%s'", s.definition.options.comment))
 	}
 
 	return sql.String()
 }
 
 func (g *MysqlSchemaDialect) BuildAlterTable(s *Schema) string {
+	var commands []string
+	for _, cmd := range s.definition.commands {
+		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
+	}
+
 	return fmt.Sprintf(
 		"ALTER TABLE %s\n%s",
-		s.name,
-		strings.Join(s.commands, ",\n"),
+		s.definition.name,
+		strings.Join(commands, ",\n"),
 	)
 }
 

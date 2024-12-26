@@ -29,7 +29,7 @@ func (fkb *ForeignKeyBuilder) OnUpdate(action string) *ForeignKeyBuilder {
 }
 
 func (fkb *ForeignKeyBuilder) Add() *Schema {
-	fkb.schema.constraints.foreignKeys[fkb.column] = fkb.fk
+	fkb.schema.definition.constraints.foreignKeys[fkb.column] = fkb.fk
 	return fkb.schema
 }
 
@@ -57,7 +57,11 @@ func (s *Schema) AddForeignKey(name string, column string, reference ForeignKey)
 	if reference.OnUpdate != "" {
 		cmd += " ON UPDATE " + reference.OnUpdate
 	}
-	s.commands = append(s.commands, cmd)
+	s.definition.commands = append(s.definition.commands, Command{
+		Type: "ADD CONSTRAINT",
+		Name: name,
+		Cmd:  cmd,
+	})
 	return s
 }
 
@@ -71,7 +75,11 @@ func (cb *ColumnBuilder) References(table, column string) *ColumnBuilder {
 
 // DropForeignKey удаляет внешний ключ
 func (s *Schema) DropForeignKey(name string) *Schema {
-	s.commands = append(s.commands, fmt.Sprintf("DROP FOREIGN KEY %s", name))
+	s.definition.commands = append(s.definition.commands, Command{
+		Type: "DROP CONSTRAINT",
+		Name: name,
+		Cmd:  fmt.Sprintf("DROP FOREIGN KEY %s", name),
+	})
 	return s
 }
 

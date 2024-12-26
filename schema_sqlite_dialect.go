@@ -11,32 +11,32 @@ func (g *SqliteSchemaDialect) BuildCreateTable(s *Schema) string {
 	sql.WriteString("CREATE ")
 
 	sql.WriteString("TABLE ")
-	if s.options.ifNotExists {
+	if s.definition.options.ifNotExists {
 		sql.WriteString("IF NOT EXISTS ")
 	}
-	sql.WriteString(s.name)
+	sql.WriteString(s.definition.name)
 	sql.WriteString(" (\n")
 
 	// Колонки
 	var columns []string
-	for _, col := range s.columns {
+	for _, col := range s.definition.columns {
 		columns = append(columns, g.BuildColumnDefinition(col))
 	}
 
 	// Первичный ключ
-	if len(s.constraints.primaryKey) > 0 {
+	if len(s.definition.constraints.primaryKey) > 0 {
 		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.constraints.primaryKey, ", ")))
+			strings.Join(s.definition.constraints.primaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for _, cols := range s.constraints.uniqueKeys {
+	for _, cols := range s.definition.constraints.uniqueKeys {
 		columns = append(columns, fmt.Sprintf("UNIQUE (%s)",
 			strings.Join(cols, ", ")))
 	}
 
 	// Внешние ключи
-	for col, fk := range s.constraints.foreignKeys {
+	for col, fk := range s.definition.constraints.foreignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
@@ -55,10 +55,15 @@ func (g *SqliteSchemaDialect) BuildCreateTable(s *Schema) string {
 }
 
 func (g *SqliteSchemaDialect) BuildAlterTable(s *Schema) string {
+	var commands []string
+	for _, cmd := range s.definition.commands {
+		commands = append(commands, cmd.Type+" "+cmd.Name)
+	}
+
 	return fmt.Sprintf(
 		"ALTER TABLE %s\n%s",
-		s.name,
-		strings.Join(s.commands, ";\nALTER TABLE "+s.name+" "),
+		s.definition.name,
+		strings.Join(commands, ";\nALTER TABLE "+s.definition.name+" "),
 	)
 }
 

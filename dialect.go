@@ -1,5 +1,7 @@
 package dblayer
 
+import "strings"
+
 // Реализации для разных БД
 type MysqlQueryDialect struct{}
 type PostgresQueryDialect struct{}
@@ -12,28 +14,47 @@ type MysqlSchemaDialect struct{}
 type PostgresSchemaDialect struct{}
 type SqliteSchemaDialect struct{}
 
-// SchemaDialect интерфейс с базовыми методами
-type SchemaDialect interface {
-	BaseSchemaDialect
-	TypesDialect
-	IndexDialect
-	QuotingDialect
+// BaseDialect объединяет общую функциональность
+type BaseDialect interface {
+	SchemaDialect
+	QueryDialect
 }
 
-type BaseSchemaDialect interface {
+// SchemaDialect разделить на более специализированные интерфейсы
+type SchemaDialect interface {
+	TableDialect
+	ColumnDialect
+	ConstraintDialect
+	TypeDialect
+	QuotingDialect
+	IndexDialect
+}
+
+type TableDialect interface {
 	BuildCreateTable(s *Schema) string
 	BuildAlterTable(s *Schema) string
 	BuildDropTable(dt *DropTable) string
 	BuildTruncateTable(tt *TruncateTable) string
-	BuildColumnDefinition(col Column) string
-	BuildForeignKeyDefinition(fk *ForeignKey) string
 	SupportsDropConcurrently() bool
 	SupportsRestartIdentity() bool
 	SupportsCascade() bool
 	SupportsForce() bool
 }
 
-type TypesDialect interface {
+type ColumnDialect interface {
+	BuildColumnDefinition(col Column) string
+	SupportsColumnPositioning() bool
+	SupportsColumnComments() bool
+}
+
+type ConstraintDialect interface {
+	BuildIndexDefinition(name string, columns []string, unique bool) string
+	BuildForeignKeyDefinition(fk *ForeignKey) string
+	BuildSpatialIndexDefinition(name string, columns []string) string
+	BuildFullTextIndexDefinition(name string, columns []string) string
+}
+
+type TypeDialect interface {
 	GetAutoIncrementType() string
 	GetUUIDType() string
 	GetBooleanType() string
@@ -65,4 +86,17 @@ type IndexDialect interface {
 type QuotingDialect interface {
 	QuoteIdentifier(name string) string
 	QuoteString(value string) string
+}
+
+type BaseDialectImpl struct {
+	driverName string
+}
+
+// Общие методы для всех диалектов
+func (d *BaseDialectImpl) QuoteIdentifier(name string) string {
+	return `"` + strings.Replace(name, `"`, `""`, -1) + `"`
+}
+
+func (d *BaseDialectImpl) QuoteString(value string) string {
+	return "'" + strings.Replace(value, "'", "''", -1) + "'"
 }

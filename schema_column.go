@@ -53,8 +53,8 @@ func (s *Schema) Column(name string) *ColumnBuilder {
 }
 
 func (s *Schema) addColumn(col Column) *ColumnBuilder {
-	if s.mode == "create" {
-		s.columns = append(s.columns, col)
+	if s.definition.mode == "create" {
+		s.definition.columns = append(s.definition.columns, col)
 	} else {
 		s.AddColumn(col)
 	}
@@ -75,11 +75,15 @@ func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 		position = " FIRST"
 	}
 
-	s.commands = append(s.commands, fmt.Sprintf(
-		"ADD COLUMN %s%s",
-		s.dbl.schemaDialect.BuildColumnDefinition(column),
-		position,
-	))
+	s.definition.commands = append(s.definition.commands, Command{
+		Type: "ADD COLUMN",
+		Name: column.Name,
+		Cmd: fmt.Sprintf(
+			"%s%s",
+			s.dbl.schemaDialect.BuildColumnDefinition(column),
+			position,
+		),
+	})
 	return &ColumnBuilder{schema: s, column: column}
 }
 
@@ -130,7 +134,7 @@ func (s *Schema) Timestamp(name string) *ColumnBuilder {
 
 // Index добавляет индекс
 func (s *Schema) Index(name string, columns ...string) *Schema {
-	s.constraints.indexes[name] = columns
+	s.definition.constraints.indexes[name] = columns
 	return s
 }
 

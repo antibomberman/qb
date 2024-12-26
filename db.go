@@ -18,6 +18,12 @@ type DBLayer struct {
 	driverName    string
 	schemaDialect SchemaDialect
 	queryDialect  QueryDialect
+	errorHandler  ErrorHandler
+}
+
+type ErrorHandler interface {
+	HandleError(err error) error
+	WrapError(err error, msg string) error
 }
 
 func (d *DBLayer) SetQueryDialect() {
@@ -147,9 +153,11 @@ func (d *DBLayer) Drop(tables ...string) *DropTable {
 // Create создает новую таблицу
 func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
-		dbl:  dbl,
-		name: name,
-		mode: "create",
+		dbl: dbl,
+		definition: SchemaDefinition{
+			name: name,
+			mode: "create",
+		},
 	}
 
 	fn(schema)
@@ -160,9 +168,11 @@ func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 // Update обновляет существующую таблицу
 func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
-		dbl:  dbl,
-		name: name,
-		mode: "update",
+		dbl: dbl,
+		definition: SchemaDefinition{
+			name: name,
+			mode: "update",
+		},
 	}
 
 	fn(schema)
