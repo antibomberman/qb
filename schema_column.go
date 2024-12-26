@@ -5,57 +5,43 @@ import (
 	"strings"
 )
 
-// Column представляет колонку таблицы
+// Column с группировкой связанных полей
 type Column struct {
-	Name          string
-	Type          string
-	Length        int
+	Name        string
+	Definition  ColumnDefinition
+	Constraints ColumnConstraints
+	Position    ColumnPosition
+	Meta        ColumnMeta
+}
+
+type ColumnDefinition struct {
+	Type    string
+	Length  int
+	Default interface{}
+}
+
+type ColumnConstraints struct {
 	Nullable      bool
-	Default       interface{}
 	AutoIncrement bool
 	Primary       bool
 	Unique        bool
 	Index         bool
-	Comment       string
-	After         string
-	First         bool
 	References    *ForeignKey
+}
+
+type ColumnPosition struct {
+	After string
+	First bool
+}
+
+type ColumnMeta struct {
+	Comment string
 }
 
 // ColumnBuilder построитель колонок
 type ColumnBuilder struct {
 	schema *Schema
 	column Column
-}
-
-func (s *Schema) buildColumn(col Column) string {
-	sql := col.Name + " " + col.Type
-
-	if col.Length > 0 {
-		sql += fmt.Sprintf("(%d)", col.Length)
-	}
-
-	if !col.Nullable {
-		sql += " NOT NULL"
-	}
-
-	if col.Default != nil {
-		sql += fmt.Sprintf(" DEFAULT %v", col.Default)
-	}
-
-	if col.AutoIncrement {
-		if s.dbl.db.DriverName() == "mysql" {
-			sql += " AUTO_INCREMENT"
-		} else if s.dbl.db.DriverName() == "postgres" {
-			sql = col.Name + " SERIAL"
-		}
-	}
-
-	if col.Comment != "" && s.dbl.db.DriverName() == "mysql" {
-		sql += fmt.Sprintf(" COMMENT '%s'", col.Comment)
-	}
-
-	return sql
 }
 
 // Column добавляет колонку
@@ -72,7 +58,7 @@ func (s *Schema) addColumn(col Column) *ColumnBuilder {
 	} else {
 		s.AddColumn(col)
 	}
-	return &ColumnBuilder{column: col}
+	return &ColumnBuilder{schema: s, column: col}
 }
 
 func (cb *ColumnBuilder) Add() *Schema {
@@ -83,125 +69,149 @@ func (cb *ColumnBuilder) Add() *Schema {
 // AddColumn добавляет колонку
 func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 	position := ""
-	if column.After != "" {
-		position = fmt.Sprintf(" AFTER %s", column.After)
-	} else if column.First {
+	if column.Position.After != "" {
+		position = fmt.Sprintf(" AFTER %s", column.Position.After)
+	} else if column.Position.First {
 		position = " FIRST"
 	}
 
 	s.commands = append(s.commands, fmt.Sprintf(
 		"ADD COLUMN %s%s",
-		buildColumnDefinition(column),
+		s.dbl.schemaDialect.BuildColumnDefinition(column),
 		position,
 	))
-	return &ColumnBuilder{column: column}
-}
-
-// buildColumnDefinition генерирует SQL определение колонки
-func buildColumnDefinition(col Column) string {
-	sql := col.Name + " " + col.Type
-
-	if col.Length > 0 {
-		sql += fmt.Sprintf("(%d)", col.Length)
-	}
-
-	if !col.Nullable {
-		sql += " NOT NULL"
-	}
-
-	if col.Default != nil {
-		sql += fmt.Sprintf(" DEFAULT %v", col.Default)
-	}
-
-	if col.AutoIncrement {
-		sql += " AUTO_INCREMENT"
-	}
-
-	if col.Comment != "" {
-		sql += fmt.Sprintf(" COMMENT '%s'", col.Comment)
-	}
-
-	return sql
+	return &ColumnBuilder{schema: s, column: column}
 }
 
 func (s *Schema) ID() *ColumnBuilder {
-	return s.addColumn(Column{Name: "id", Type: "BIGINT", AutoIncrement: true, Primary: true})
+	return s.addColumn(Column{
+		Name:       "id",
+		Definition: ColumnDefinition{Type: s.dbl.schemaDialect.GetAutoIncrementType()},
+		Constraints: ColumnConstraints{
+			Primary: true,
+		},
+	})
 }
 
 // BigIncrements добавляет автоинкрементное большое целое
 func (s *Schema) BigIncrements(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BIGINT", AutoIncrement: true, Primary: true})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: s.dbl.schemaDialect.GetAutoIncrementType()},
+		Constraints: ColumnConstraints{
+			Primary: true,
+		},
+	})
 }
 
 // String добавляет строковое поле
 func (s *Schema) String(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "VARCHAR", Length: length})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "VARCHAR", Length: length},
+	})
 }
 
 // Enum добавляет поле с перечислением
 func (s *Schema) Enum(name string, values []string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))},
+	})
 }
 
 // Timestamp добавляет поле метки времени
 func (s *Schema) Timestamp(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TIMESTAMP"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "TIMESTAMP"},
+	})
 }
 
 // Index добавляет индекс
 func (s *Schema) Index(name string, columns ...string) *Schema {
-	s.indexes[name] = columns
+	s.constraints.indexes[name] = columns
 	return s
 }
 
 // Integer добавляет целочисленное поле
 func (s *Schema) Integer(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "INT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "INT"},
+	})
 }
 
 // TinyInteger добавляет малое целое
 func (s *Schema) TinyInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TINYINT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "TINYINT"},
+	})
 }
 
 // Boolean добавляет логическое поле
 func (s *Schema) Boolean(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BOOLEAN"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "BOOLEAN"},
+	})
 }
 
 // Text добавляет текстовое поле
 func (s *Schema) Text(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TEXT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "TEXT"},
+	})
 }
 
 // Date добавляет поле даты
 func (s *Schema) Date(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "DATE"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "DATE"},
+	})
 }
 
 // DateTime добавляет поле даты и времени
 func (s *Schema) DateTime(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "DATETIME"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "DATETIME"},
+	})
 }
 
 // Decimal добавляет десятичное поле
 func (s *Schema) Decimal(name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("DECIMAL(%d,%d)", precision, scale)})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: fmt.Sprintf("DECIMAL(%d,%d)", precision, scale)},
+	})
 }
 
 // Json добавляет JSON поле
 func (s *Schema) Json(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "JSON"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "JSON"},
+	})
 }
 
 // Binary добавляет бинарное поле
 func (s *Schema) Binary(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "BINARY", Length: length})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "BINARY", Length: length},
+	})
 }
 
 // Float добавляет поле с плавающей точкой
 func (s *Schema) Float(name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("FLOAT(%d,%d)", precision, scale)})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: fmt.Sprintf("FLOAT(%d,%d)", precision, scale)},
+	})
 }
 
 // ForeignKey добавляет внешний ключ
@@ -209,18 +219,13 @@ func (s *Schema) Float(name string, precision, scale int) *ColumnBuilder {
 //	return s.addColumn(Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: column}})
 //}
 
-// Uuid добавляет поле UUID
-func (s *Schema) Uuid(name string) *ColumnBuilder {
-	if s.dbl.db.DriverName() == "postgres" {
-		return s.addColumn(Column{Name: name, Type: "UUID"})
-	}
-	return s.addColumn(Column{Name: name, Type: "CHAR", Length: 36})
-}
-
 // Computed добавляет вычисляемую колонку (для MySQL 5.7+)
 func (s *Schema) Computed(name string, expression string) *ColumnBuilder {
 	if s.dbl.db.DriverName() == "mysql" {
-		return s.addColumn(Column{Name: name, Type: fmt.Sprintf("AS (%s) STORED", expression)})
+		return s.addColumn(Column{
+			Name:       name,
+			Definition: ColumnDefinition{Type: fmt.Sprintf("AS (%s) STORED", expression)},
+		})
 	}
 	return nil
 }
@@ -282,67 +287,109 @@ func (s *Schema) Timezone() *ColumnBuilder {
 
 // SoftDeletes добавляет поле deleted_at для мягкого удаления
 func (s *Schema) SoftDeletes() *ColumnBuilder {
-	return s.addColumn(Column{Name: "deleted_at", Type: "TIMESTAMP", Nullable: true})
+	return s.addColumn(Column{
+		Name:       "deleted_at",
+		Definition: ColumnDefinition{Type: "TIMESTAMP"},
+		Constraints: ColumnConstraints{
+			Nullable: true,
+		},
+	})
 }
 
 // MediumText добавляет поле MEDIUMTEXT
 func (s *Schema) MediumText(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "MEDIUMTEXT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "MEDIUMTEXT"},
+	})
 }
 
 // LongText добавляет поле LONGTEXT
 func (s *Schema) LongText(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "LONGTEXT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "LONGTEXT"},
+	})
 }
 
 // Char добавляет поле фиксированной длины
 func (s *Schema) Char(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "CHAR", Length: length})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "CHAR", Length: length},
+	})
 }
 
 // SmallInteger добавляет малое целое
 func (s *Schema) SmallInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "SMALLINT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "SMALLINT"},
+	})
 }
 
 // MediumInteger добавляет среднее целое
 func (s *Schema) MediumInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "MEDIUMINT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "MEDIUMINT"},
+	})
 }
 
 // Year добавляет поле года
 func (s *Schema) Year(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "YEAR"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "YEAR"},
+	})
 }
 
 // Time добавляет поле времени
 func (s *Schema) Time(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "TIME"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "TIME"},
+	})
 }
 
 // Ip добавляет поле для IP-адреса
 func (s *Schema) Ip(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "VARCHAR", Length: 45})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "VARCHAR", Length: 45},
+	})
 }
 
 // MacAddress добавляет поле для MAC-адреса
 func (s *Schema) MacAddress(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "VARCHAR", Length: 17})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "VARCHAR", Length: 17},
+	})
 }
 
 // Point добавляет геометрическое поле точки
 func (s *Schema) Point(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "POINT"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "POINT"},
+	})
 }
 
 // Polygon добавляет геометрическое поле полигона
 func (s *Schema) Polygon(name string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: "POLYGON"})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: "POLYGON"},
+	})
 }
 
 // Set добавляет поле SET
 func (s *Schema) Set(name string, values []string) *ColumnBuilder {
-	return s.addColumn(Column{Name: name, Type: fmt.Sprintf("SET('%s')", strings.Join(values, "','"))})
+	return s.addColumn(Column{
+		Name:       name,
+		Definition: ColumnDefinition{Type: fmt.Sprintf("SET('%s')", strings.Join(values, "','"))},
+	})
 }
 
 // RememberToken добавляет поле для токена remember_token
@@ -351,54 +398,54 @@ func (s *Schema) RememberToken() *ColumnBuilder {
 }
 
 func (cb *ColumnBuilder) Type(typ string, length ...int) *ColumnBuilder {
-	cb.column.Type = typ
+	cb.column.Definition.Type = typ
 	if len(length) > 0 {
-		cb.column.Length = length[0]
+		cb.column.Definition.Length = length[0]
 	}
 	return cb
 }
 
 func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
-	cb.column.Nullable = true
+	cb.column.Constraints.Nullable = true
 	return cb
 }
 
 func (cb *ColumnBuilder) Default(value interface{}) *ColumnBuilder {
-	cb.column.Default = value
+	cb.column.Definition.Default = value
 	return cb
 }
 
 func (cb *ColumnBuilder) AutoIncrement() *ColumnBuilder {
-	cb.column.AutoIncrement = true
+	cb.column.Constraints.AutoIncrement = true
 	return cb
 }
 
 func (cb *ColumnBuilder) Primary() *ColumnBuilder {
-	cb.column.Primary = true
+	cb.column.Constraints.Primary = true
 	return cb
 }
 
 func (cb *ColumnBuilder) Unique() *ColumnBuilder {
-	cb.column.Unique = true
+	cb.column.Constraints.Unique = true
 	return cb
 }
 
 func (cb *ColumnBuilder) Index() *ColumnBuilder {
-	cb.column.Index = true
+	cb.column.Constraints.Index = true
 	return cb
 }
 
 func (cb *ColumnBuilder) Comment(comment string) *ColumnBuilder {
-	cb.column.Comment = comment
+	cb.column.Meta.Comment = comment
 	return cb
 }
 
 func (cb *ColumnBuilder) After(column string) *ColumnBuilder {
-	cb.column.After = column
+	cb.column.Position.After = column
 	return cb
 }
 
 func (cb *ColumnBuilder) First() *ColumnBuilder {
-	cb.column.First = true
+	cb.column.Position.First = true
 	return cb
 }

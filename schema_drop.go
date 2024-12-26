@@ -67,7 +67,7 @@ func (dt *DropTable) Build() string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent && dt.dbl.db.DriverName() == "postgres" {
+	if dt.options.Concurrent && dt.dbl.schemaDialect.SupportsDropConcurrently() {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -77,15 +77,15 @@ func (dt *DropTable) Build() string {
 
 	sql.WriteString(strings.Join(dt.tables, ", "))
 
-	if dt.options.Cascade && dt.dbl.db.DriverName() == "postgres" {
+	if dt.options.Cascade && dt.dbl.schemaDialect.SupportsCascade() {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict && dt.dbl.db.DriverName() == "postgres" {
+	if dt.options.Restrict && dt.dbl.schemaDialect.SupportsCascade() {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.options.Force && dt.dbl.db.DriverName() == "mysql" {
+	if dt.options.Force && dt.dbl.schemaDialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 

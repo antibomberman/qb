@@ -55,7 +55,7 @@ func (tt *TruncateTable) Build() string {
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.tables, ", "))
 
-	if tt.dbl.db.DriverName() == "postgres" {
+	if tt.dbl.schemaDialect.SupportsRestartIdentity() {
 		if tt.options.Restart {
 			sql.WriteString(" RESTART IDENTITY")
 		} else if tt.options.ContinueIdentity {
@@ -69,7 +69,7 @@ func (tt *TruncateTable) Build() string {
 		}
 	}
 
-	if tt.options.Force && tt.dbl.db.DriverName() == "mysql" {
+	if tt.options.Force && tt.dbl.schemaDialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 

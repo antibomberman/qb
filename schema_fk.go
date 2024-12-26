@@ -29,7 +29,7 @@ func (fkb *ForeignKeyBuilder) OnUpdate(action string) *ForeignKeyBuilder {
 }
 
 func (fkb *ForeignKeyBuilder) Add() *Schema {
-	fkb.schema.foreignKeys[fkb.column] = fkb.fk
+	fkb.schema.constraints.foreignKeys[fkb.column] = fkb.fk
 	return fkb.schema
 }
 
@@ -62,7 +62,7 @@ func (s *Schema) AddForeignKey(name string, column string, reference ForeignKey)
 }
 
 func (cb *ColumnBuilder) References(table, column string) *ColumnBuilder {
-	cb.column.References = &ForeignKey{
+	cb.column.Constraints.References = &ForeignKey{
 		Table:  table,
 		Column: column,
 	}
@@ -74,3 +74,11 @@ func (s *Schema) DropForeignKey(name string) *Schema {
 	s.commands = append(s.commands, fmt.Sprintf("DROP FOREIGN KEY %s", name))
 	return s
 }
+
+const (
+	CASCADE     = "CASCADE"
+	RESTRICT    = "RESTRICT"
+	SET_NULL    = "SET NULL"
+	NO_ACTION   = "NO ACTION"
+	SET_DEFAULT = "SET DEFAULT"
+)

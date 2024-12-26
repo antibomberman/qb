@@ -5,24 +5,31 @@ import (
 	"strings"
 )
 
-// Schema представляет построитель схемы таблицы
+// Schema с более четкой структурой
 type Schema struct {
-	dbl         *DBLayer
-	name        string
+	dbl  *DBLayer
+	name string
+	mode string // "create" или "update"
+
 	columns     []Column
+	commands    []string
+	constraints Constraints
+	options     TableOptions
+}
+
+type Constraints struct {
 	primaryKey  []string
 	uniqueKeys  map[string][]string
 	indexes     map[string][]string
 	foreignKeys map[string]*ForeignKey
+}
+
+type TableOptions struct {
 	engine      string
 	charset     string
 	collate     string
 	comment     string
 	ifNotExists bool
-	commands    []string
-
-	mode string // "create" или "update"
-
 }
 
 func (s *Schema) BuildCreate() string {
@@ -67,7 +74,7 @@ func (s *Schema) UniqueIndex(name string, columns ...string) *Schema {
 func (s *Schema) FullText(name string, columns ...string) *Schema {
 	// Реализация зависит от типа БД
 	if s.dbl.db.DriverName() == "mysql" {
-		s.indexes[name] = columns
+		s.constraints.indexes[name] = columns
 		return s
 	}
 	return s
@@ -85,43 +92,43 @@ func (s *Schema) Audit() *Schema {
 
 // PrimaryKey устанавливает первичный ключ
 func (s *Schema) PrimaryKey(columns ...string) *Schema {
-	s.primaryKey = columns
+	s.constraints.primaryKey = columns
 	return s
 }
 
 // UniqueKey добавляет уникальный ключ
 func (s *Schema) UniqueKey(name string, columns ...string) *Schema {
-	s.uniqueKeys[name] = columns
+	s.constraints.uniqueKeys[name] = columns
 	return s
 }
 
 // Engine устанавливает движок таблицы
 func (s *Schema) Engine(engine string) *Schema {
-	s.engine = engine
+	s.options.engine = engine
 	return s
 }
 
 // Charset устанавливает кодировку
 func (s *Schema) Charset(charset string) *Schema {
-	s.charset = charset
+	s.options.charset = charset
 	return s
 }
 
 // Collate устанавливает сравнение
 func (s *Schema) Collate(collate string) *Schema {
-	s.collate = collate
+	s.options.collate = collate
 	return s
 }
 
 // Comment добавляет комментарий
 func (s *Schema) Comment(comment string) *Schema {
-	s.comment = comment
+	s.options.comment = comment
 	return s
 }
 
 // IfNotExists добавляет проверку существования
 func (s *Schema) IfNotExists() *Schema {
-	s.ifNotExists = true
+	s.options.ifNotExists = true
 	return s
 }
 
@@ -135,7 +142,7 @@ func (s *Schema) DropColumn(name string) *Schema {
 func (s *Schema) ModifyColumn(column Column) *Schema {
 	s.commands = append(s.commands, fmt.Sprintf(
 		"MODIFY COLUMN %s",
-		buildColumnDefinition(column),
+		s.dbl.schemaDialect.BuildColumnDefinition(column),
 	))
 	return s
 }
@@ -173,10 +180,54 @@ func (s *Schema) ChangeEngine(engine string) *Schema {
 }
 
 // ChangeCharset меняет кодировку
-func (s *Schema) ChangeCharset(charset, collse string) *Schema {
-	s.commands = append(s.commands, fmt.Sprintf(
-		"CHARACTER SET = %s COLLsE = %s",
-		charset, collse,
-	))
+func (s *Schema) ChangeCharset(charset, collate string) *Schema {
+	s.options.charset = charset
+	s.options.collate = collate
+	return s
+}
+
+// Изменяем метод buildColumn
+func (s *Schema) buildColumn(col Column) string {
+	return s.dbl.schemaDialect.BuildColumnDefinition(col)
+}
+
+// Изменяем метод Uuid
+func (s *Schema) Uuid(name string) *ColumnBuilder {
+	return s.addColumn(Column{
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.schemaDialect.GetUUIDType(),
+		},
+	})
+}
+
+// Добавляем новые методы для индексов
+func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
+	if s.dbl.schemaDialect.SupportsSpatialIndex() {
+		if s.mode == "create" {
+			s.commands = append(s.commands,
+				s.dbl.schemaDialect.BuildSpatialIndexDefinition(name, columns))
+		} else {
+			s.commands = append(s.commands, fmt.Sprintf(
+				"ADD %s",
+				s.dbl.schemaDialect.BuildSpatialIndexDefinition(name, columns),
+			))
+		}
+	}
+	return s
+}
+
+func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
+	if s.dbl.schemaDialect.SupportsFullTextIndex() {
+		if s.mode == "create" {
+			s.commands = append(s.commands,
+				s.dbl.schemaDialect.BuildFullTextIndexDefinition(name, columns))
+		} else {
+			s.commands = append(s.commands, fmt.Sprintf(
+				"ADD %s",
+				s.dbl.schemaDialect.BuildFullTextIndexDefinition(name, columns),
+			))
+		}
+	}
 	return s
 }

@@ -147,15 +147,9 @@ func (d *DBLayer) Drop(tables ...string) *DropTable {
 // Create создает новую таблицу
 func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
-		dbl:         dbl,
-		name:        name,
-		uniqueKeys:  make(map[string][]string),
-		indexes:     make(map[string][]string),
-		foreignKeys: make(map[string]*ForeignKey),
-		engine:      "InnoDB",
-		charset:     "utf8mb4",
-		collate:     "utf8mb4_unicode_ci",
-		mode:        "create",
+		dbl:  dbl,
+		name: name,
+		mode: "create",
 	}
 
 	fn(schema)
