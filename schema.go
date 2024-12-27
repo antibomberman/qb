@@ -266,14 +266,6 @@ func (s *Schema) NullableMorphs(name string) *Schema {
 	return s
 }
 
-// Audit добавляет поля аудита
-func (s *Schema) Audit() *Schema {
-	s.BigInteger("created_by").Nullable()
-	s.BigInteger("updated_by").Nullable()
-	s.BigInteger("deleted_by").Nullable()
-	return s
-}
-
 // Version добавляет поле для версионирования
 func (s *Schema) Version() *Schema {
 	s.Integer("version").Default(1)

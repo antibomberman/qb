@@ -323,6 +323,14 @@ func (s *Schema) BigInteger(name string) *ColumnBuilder {
 	})
 }
 
+//func (s *Schema) ID(name string) *ColumnBuilder {
+//	schema.BigInteger("id").Unsigned().AutoIncrement().Primary()
+//	return s.addColumn(&Column{
+//		Name:       name,
+//		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBigIntegerType()},
+//	})
+//}
+
 // Year добавляет поле года
 func (s *Schema) Year(name string) *ColumnBuilder {
 	return s.addColumn(&Column{

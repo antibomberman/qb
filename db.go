@@ -214,3 +214,22 @@ func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 //postgresql
 // show table `SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users' )`
 //check table `SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name = 'users'``
+
+// Create Aydit table
+func (d *DBLayer) AuditTable() error {
+	err := d.CreateTableIfNotExists("audits", func(schema *Schema) {
+		schema.BigInteger("id").Unsigned().AutoIncrement().Primary()
+		schema.String("table_name", 20)
+		schema.BigInteger("record_id").Unsigned()
+		schema.String("action", 10)
+		schema.Json("old_data").Nullable()
+		schema.Json("new_data").Nullable()
+		schema.BigInteger("user_id").Unsigned()
+		schema.Timestamps()
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

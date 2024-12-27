@@ -9,13 +9,11 @@ type MysqlDialect struct{}
 type PostgresDialect struct{}
 type SqliteDialect struct{}
 
-// BaseDialect объединяет общую функциональность
 type BaseDialect interface {
 	SchemaDialect
 	QueryDialect
 }
 
-// SchemaDialect разделить на более специализированные интерфейсы
 type SchemaDialect interface {
 	TableDialect
 	ColumnDialect
@@ -101,7 +99,6 @@ type BaseDialectImpl struct {
 	driverName string
 }
 
-// Общие методы для всех диалектов
 func (d *BaseDialectImpl) QuoteIdentifier(name string) string {
 	return `"` + strings.Replace(name, `"`, `""`, -1) + `"`
 }
