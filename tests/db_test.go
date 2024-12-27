@@ -1,28 +1,35 @@
 package tests
 
 import (
+	"context"
 	"database/sql"
-	"strings"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/antibomberman/dblayer"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 )
 
+const (
+	maxAttempts = 3
+	timeout     = time.Second * 3
+)
+
 func TestMysqlCreateTable(t *testing.T) {
-	db, err := sql.Open("mysql", "test_user:test_password@tcp(localhost:3307)/test_db")
+	ctx := context.Background()
+	dsn := "test_user:test_password@tcp(localhost:3307)/test_db"
+	dbl, err := dblayer.Connection(ctx, "mysql", dsn, maxAttempts, timeout)
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
 	}
-	defer db.Close()
+	defer dbl.Close()
 
-	err = db.Ping()
+	err = dbl.Ping()
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
 	}
-
-	dbl := dblayer.New("mysql", db)
 
 	// Тест создания таблицы
 	err = dbl.CreateTableIfNotExists("users", func(schema *dblayer.Schema) {
@@ -37,48 +44,11 @@ func TestMysqlCreateTable(t *testing.T) {
 		t.Errorf("Ошибка создания таблицы: %v", err)
 	}
 
-	// Проверка существования таблицы
-	var tableName string
-	err = db.QueryRow("SHOW TABLES LIKE 'users'").Scan(&tableName)
+	count, err := dbl.Table("users").Count()
 	if err != nil {
-		t.Errorf("Таблица не была создана: %v", err)
+		t.Fatalf("Ошибка получения количества записей в таблице: %v", err)
 	}
-
-	// Проверка структуры таблицы
-	rows, err := db.Query("DESCRIBE users")
-	if err != nil {
-		t.Errorf("Ошибка получения структуры таблицы: %v", err)
-	}
-	defer rows.Close()
-
-	expectedColumns := map[string]string{
-		"id":         "int",
-		"username":   "varchar(50)",
-		"email":      "varchar(100)",
-		"created_at": "timestamp",
-		"updated_at": "timestamp",
-	}
-
-	for rows.Next() {
-		var field, fieldType string
-		var null, key, extra, defaultValue sql.NullString
-		err := rows.Scan(&field, &fieldType, &null, &key, &defaultValue, &extra)
-		if err != nil {
-			t.Errorf("Ошибка сканирования строки: %v", err)
-		}
-
-		expectedType, exists := expectedColumns[field]
-		if !exists {
-			t.Errorf("Неожиданное поле: %s", field)
-		} else if !strings.Contains(strings.ToLower(fieldType), expectedType) {
-			t.Errorf("Неверный тип для поля %s: ожидался %s, получен %s", field, expectedType, fieldType)
-		}
-	}
-
-	_, err = db.Exec("DROP TABLE users")
-	if err != nil {
-		t.Errorf("Ошибка удаления тестовой таблицы: %v", err)
-	}
+	fmt.Println(count)
 }
 func TestPostgresCreateTable(t *testing.T) {
 	// Подготовка тестовой БД

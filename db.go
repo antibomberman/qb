@@ -100,6 +100,9 @@ func Connection(ctx context.Context, driverName string, dataSourceName string, m
 func (d *DBLayer) Close() error {
 	return d.db.Close()
 }
+func (d *DBLayer) Ping() error {
+	return d.db.Ping()
+}
 func (d *DBLayer) SeRedisCacheDriver(addr string, password string, db int) {
 	d.cache = NewRedisCache(addr, password, db)
 }
@@ -203,3 +206,13 @@ func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 
 	return dbl.Raw(schema.BuildAlter()).Exec()
 }
+
+//TODO  SHOW TABLES
+//Mysql
+//show table `SHOW TABLES LIKE 'users'`
+//check table `DESCRIBE`
+//
+
+//postgresql
+// show table `SELECT EXISTS ( SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users' )`
+//check table `SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name = 'users'``
