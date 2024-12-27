@@ -142,7 +142,6 @@ func (d *DBLayer) Drop(tables ...string) *DropTable {
 	}
 }
 
-// Добавьте конструктор для Schema или измените CreateTable
 func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
@@ -177,12 +176,11 @@ func (dbl *DBLayer) CreateTableIfNotExists(name string, fn func(*Schema)) error 
 				ifNotExists: true,
 			},
 			mode: "create",
-			// Инициализируем все maps в constraints
 			constraints: Constraints{
 				primaryKey:  make([]string, 0),
 				uniqueKeys:  make(map[string][]string),
-				indexes:     make(map[string][]string),    // Было nil
-				foreignKeys: make(map[string]*ForeignKey), // Было nil
+				indexes:     make(map[string][]string),
+				foreignKeys: make(map[string]*ForeignKey),
 			},
 		},
 	}
