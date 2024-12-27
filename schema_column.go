@@ -19,6 +19,7 @@ type ColumnDefinition struct {
 	Length   int
 	Default  interface{}
 	OnUpdate string
+	Collate  string
 }
 
 type ColumnConstraints struct {

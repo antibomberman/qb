@@ -41,7 +41,7 @@ func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 			name, strings.Join(cols, ", ")))
 	}
 
-	// Внешние ключи
+	// ��нешние ключи
 	for col, fk := range s.definition.constraints.foreignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
@@ -201,7 +201,11 @@ type IndexOptions struct {
 	Options map[string]string // Дополнительные опции
 }
 
-func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string {
+func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+	return g.BuildIndexDefinitionWithOptions(name, columns, unique, nil)
+}
+
+func (g *MysqlDialect) BuildIndexDefinitionWithOptions(name string, columns []string, unique bool, opts *IndexOptions) string {
 	var sql strings.Builder
 
 	if unique {
