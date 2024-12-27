@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -54,6 +55,15 @@ func (qb *QueryBuilder) On(event EventType, handler EventHandler) {
 		qb.events = make(map[EventType][]EventHandler)
 	}
 	qb.events[event] = append(qb.events[event], handler)
+}
+func (qb *QueryBuilder) Trigger(event EventType, data interface{}) {
+	if handlers, ok := qb.events[event]; ok {
+		for _, handler := range handlers {
+			if err := handler(data); err != nil {
+				log.Fatalln(err)
+			}
+		}
+	}
 }
 
 // getExecutor возвращает исполнитель запросов

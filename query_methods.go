@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"math"
 	"reflect"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // DateFunctions содержит SQL функции для разных СУБД
@@ -228,6 +229,10 @@ func (qb *QueryBuilder) FirstContext(ctx context.Context, dest interface{}) (boo
 
 // Delete удаляет записи
 func (qb *QueryBuilder) Delete() error {
+	go qb.Trigger(BeforeDelete, qb.conditions)
+	defer func() {
+		go qb.Trigger(AfterDelete, qb.conditions)
+	}()
 	if len(qb.conditions) == 0 {
 		return errors.New("delete without conditions is not allowed")
 	}
@@ -323,7 +328,7 @@ func (qb *QueryBuilder) WhereNotNull(column string) *QueryBuilder {
 	return qb
 }
 
-// WhereBetween добавляет услов��е BETWEEN
+// WhereBetween добавляет условие BETWEEN
 func (qb *QueryBuilder) WhereBetween(column string, start, end interface{}) *QueryBuilder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
@@ -600,10 +605,16 @@ func (qb *QueryBuilder) Restore() error {
 // Create add new record to database and return id
 // Create создает новую запись из структуры и возвращает её id
 func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error) {
+
+	go qb.Trigger(BeforeCreate, data)
+	defer func() {
+		go qb.Trigger(AfterCreate, data)
+	}()
+
 	var insertFields, placeholders []string
 
 	if len(fields) > 0 {
-		// Используем только указанные поля
+		// Используем только указан��ые поля
 		insertFields = fields
 		placeholders = make([]string, len(fields))
 		for i, field := range fields {
@@ -635,6 +646,10 @@ func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error
 
 // CreateContext создает новую запись из структуры и возвращает её id
 func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
+	go qb.Trigger(BeforeCreate, data)
+	defer func() {
+		go qb.Trigger(AfterCreate, data)
+	}()
 	var insertFields, placeholders []string
 
 	if len(fields) > 0 {
@@ -670,6 +685,10 @@ func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fie
 
 // CreateMap создает новую запись из map и возвращает её id
 func (qb *QueryBuilder) CreateMap(data map[string]interface{}) (int64, error) {
+	go qb.Trigger(BeforeCreate, data)
+	defer func() {
+		go qb.Trigger(AfterCreate, data)
+	}()
 	columns := make([]string, 0)
 	placeholders := make([]string, 0)
 	values := make([]interface{}, 0)
@@ -696,11 +715,13 @@ func (qb *QueryBuilder) CreateMap(data map[string]interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return result.LastInsertId()
 }
 
 // CreateMapContext создает новую запись из map с контекстом и возвращает её id
 func (qb *QueryBuilder) CreateMapContext(ctx context.Context, data map[string]interface{}) (int64, error) {
+	go qb.Trigger(BeforeCreate, data)
 	columns := make([]string, 0, len(data))
 	placeholders := make([]string, 0, len(data))
 	values := make([]interface{}, 0, len(data))
@@ -727,6 +748,7 @@ func (qb *QueryBuilder) CreateMapContext(ctx context.Context, data map[string]in
 	if err != nil {
 		return 0, err
 	}
+	go qb.Trigger(AfterCreate, data)
 	return result.LastInsertId()
 }
 
@@ -938,6 +960,10 @@ func (qb *QueryBuilder) BulkInsertContext(ctx context.Context, records []map[str
 
 // Update обновляет записи используя структуру
 func (qb *QueryBuilder) Update(data interface{}, fields ...string) error {
+	go qb.Trigger(BeforeUpdate, data)
+	defer func() {
+		go qb.Trigger(AfterUpdate, data)
+	}()
 	var sets []string
 	if len(fields) > 0 {
 		// Обновляем только указанные поля
@@ -959,11 +985,16 @@ func (qb *QueryBuilder) Update(data interface{}, fields ...string) error {
 		whereSQL)
 
 	_, err := qb.getExecutor().NamedExec(query, data)
+
 	return err
 }
 
 // UpdateContext обновляет записи с контекстом
 func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
+	go qb.Trigger(BeforeUpdate, data)
+	defer func() {
+		go qb.Trigger(AfterUpdate, data)
+	}()
 	var sets []string
 	if len(fields) > 0 {
 		// Обновляем только указанные поля
@@ -985,11 +1016,18 @@ func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fie
 		whereSQL)
 
 	_, err := qb.getExecutor().NamedExecContext(ctx, query, data)
-	return err
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // UpdateMap обновляет записи используя map
 func (qb *QueryBuilder) UpdateMap(data map[string]interface{}) error {
+	go qb.Trigger(BeforeUpdate, data)
+	defer func() {
+		go qb.Trigger(AfterUpdate, data)
+	}()
 	sets := make([]string, 0, len(data))
 	values := make([]interface{}, 0, len(data))
 
@@ -1005,10 +1043,18 @@ func (qb *QueryBuilder) UpdateMap(data map[string]interface{}) error {
 		strings.Join(sets, ", "),
 		whereSQL)
 
-	return qb.execExec(query, values...)
+	err := qb.execExec(query, values...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
+	go qb.Trigger(BeforeUpdate, data)
+	defer func() {
+		go qb.Trigger(AfterUpdate, data)
+	}()
 	sets := make([]string, 0, len(data))
 	values := make([]interface{}, 0, len(data))
 
@@ -1024,7 +1070,11 @@ func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]in
 		strings.Join(sets, ", "),
 		whereSQL)
 
-	return qb.execExecContext(ctx, query, values...)
+	err := qb.execExecContext(ctx, query, values...)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // BulkUpdate выполняет массовое обновление записей
@@ -1033,7 +1083,7 @@ func (qb *QueryBuilder) BulkUpdate(records []map[string]interface{}, keyColumn s
 		return nil
 	}
 
-	// Получаем все колонки из первой записи
+	// Получаем все коло��ки из первой записи
 	columns := make([]string, 0)
 	for column := range records[0] {
 		if column != keyColumn {
@@ -1818,14 +1868,33 @@ type AuditLog struct {
 // WithAudit включает аудит для запроса
 func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 	qb.On(BeforeUpdate, func(data interface{}) error {
-		oldData, err := json.Marshal(data)
+		var oldData []byte
+		var recordID int64
+		var err error
+
+		// Получаем ID из условий WHERE
+		for _, cond := range qb.conditions {
+			if cond.clause == "id = ?" {
+				recordID = cond.args[0].(int64)
+				break
+			}
+		}
+
+		switch v := data.(type) {
+		case map[string]interface{}:
+			oldData, err = json.Marshal(v)
+		default:
+			oldData, err = json.Marshal(data)
+		}
+
 		if err != nil {
 			return err
 		}
 
-		_, err = qb.Create(&AuditLog{
+		// Создаем запись в таблице audits
+		_, err = qb.dbl.Table("audits").Create(&AuditLog{
 			TableName: qb.table,
-			RecordID:  reflect.ValueOf(data).Elem().FieldByName("ID").Int(),
+			RecordID:  recordID,
 			Action:    "update",
 			OldData:   oldData,
 			UserID:    userID,
@@ -1835,18 +1904,75 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 	})
 
 	qb.On(AfterUpdate, func(data interface{}) error {
-		newData, err := json.Marshal(data)
+		var newData []byte
+		var recordID int64
+		var err error
+
+		// Получаем ID из условий WHERE
+		for _, cond := range qb.conditions {
+			if cond.clause == "id = ?" {
+				recordID = cond.args[0].(int64)
+				break
+			}
+		}
+
+		switch v := data.(type) {
+		case map[string]interface{}:
+			newData, err = json.Marshal(v)
+		default:
+			newData, err = json.Marshal(data)
+		}
+
 		if err != nil {
 			return err
 		}
 
-		return qb.Where("table_name = ? AND record_id = ?", qb.table,
-			reflect.ValueOf(data).Elem().FieldByName("ID").Int()).
+		// Обновляем запись в таблице audits
+		return qb.dbl.Table("audits").
+			Where("table_name = ? AND record_id = ?", qb.table, recordID).
 			OrderBy("id", "DESC").
 			Limit(1).
 			UpdateMap(map[string]interface{}{
 				"new_data": newData,
 			})
+	})
+
+	qb.On(AfterCreate, func(data interface{}) error {
+		var newData []byte
+		var recordID int64
+		var err error
+
+		switch v := data.(type) {
+		case map[string]interface{}:
+			newData, err = json.Marshal(v)
+			if id, ok := v["id"]; ok {
+				recordID = id.(int64)
+			}
+		default:
+			val := reflect.ValueOf(data)
+			if val.Kind() == reflect.Ptr {
+				val = val.Elem()
+			}
+			if val.Kind() == reflect.Struct {
+				recordID = val.FieldByName("ID").Int()
+			}
+			newData, err = json.Marshal(data)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		// Создаем запись в таблице audits
+		_, err = qb.dbl.Table("audits").Create(&AuditLog{
+			TableName: qb.table,
+			RecordID:  recordID,
+			Action:    "create",
+			NewData:   newData,
+			UserID:    userID,
+			CreatedAt: time.Now(),
+		})
+		return err
 	})
 
 	return qb

@@ -15,6 +15,8 @@ import (
 const (
 	maxAttempts = 3
 	timeout     = time.Second * 3
+	mysqlDSN    = "test_user:test_password@tcp(localhost:3307)/test_db"
+	postgresDSN = "user=test_user password=test_password host=localhost port=5433 dbname=test_db sslmode=disable"
 )
 
 type User struct {
@@ -29,8 +31,7 @@ type User struct {
 
 func TestMysqlCreateTable(t *testing.T) {
 	ctx := context.Background()
-	dsn := "test_user:test_password@tcp(localhost:3307)/test_db"
-	dbl, err := dblayer.Connection(ctx, "mysql", dsn, maxAttempts, timeout)
+	dbl, err := dblayer.Connection(ctx, "mysql", mysqlDSN, maxAttempts, timeout)
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
 	}
@@ -86,6 +87,41 @@ func TestMysqlCreateTable(t *testing.T) {
 	}
 
 	fmt.Println(count)
+}
+func TestAuditTable(t *testing.T) {
+	ctx := context.Background()
+	dbl, err := dblayer.Connection(ctx, "mysql", mysqlDSN, maxAttempts, timeout)
+	if err != nil {
+		t.Fatalf("Ошибка подключения к БД: %v", err)
+	}
+	defer dbl.Close()
+
+	err = dbl.Ping()
+	if err != nil {
+		t.Fatalf("Ошибка подключения к БД: %v", err)
+	}
+
+	err = dbl.AuditTableCreate()
+	if err != nil {
+		t.Fatalf("Ошибка создания таблицы аудита: %v", err)
+	}
+	user := User{
+		Username: "test",
+		Email:    "test3@example.com",
+		Phone:    "1234567890",
+		Password: "password",
+	}
+	_, err = dbl.Table("users").WithAudit(1).Create(user)
+	if err != nil {
+		t.Fatalf("Ошибка создания записи в таблице: %v", err)
+	}
+	err = dbl.Table("users").WithAudit(1).Where("id", 1).UpdateMap(map[string]interface{}{
+		"email": "test4@example.com",
+	})
+	if err != nil {
+		t.Fatalf("Ошибка обновления записи в таблице: %v", err)
+	}
+
 }
 func TestPostgresCreateTable(t *testing.T) {
 	// Подготовка тестовой БД

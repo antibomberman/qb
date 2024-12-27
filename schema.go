@@ -286,3 +286,8 @@ func (s *Schema) Version() *Schema {
 	s.Integer("version").Default(1)
 	return s
 }
+
+// ID добавляет поле ID с автоинкрементом и первичным ключом
+func (s *Schema) ID() *ColumnBuilder {
+	return s.BigInteger("id").Unsigned().AutoIncrement().Primary()
+}
