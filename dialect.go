@@ -37,7 +37,7 @@ type TableDialect interface {
 }
 
 type ColumnDialect interface {
-	BuildColumnDefinition(col Column) string
+	BuildColumnDefinition(col *Column) string
 	SupportsColumnPositioning() bool
 	SupportsColumnComments() bool
 }
@@ -81,6 +81,7 @@ type TypeDialect interface {
 	GetGeometryType() string
 	GetIpType() string
 	GetMacAddressType() string
+	GetUnsignedType() string
 }
 
 type IndexDialect interface {

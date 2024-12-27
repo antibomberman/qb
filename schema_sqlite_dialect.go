@@ -101,14 +101,13 @@ func (g *SqliteDialect) BuildDropTable(dt *DropTable) string {
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildColumnDefinition(col Column) string {
+func (g *SqliteDialect) BuildColumnDefinition(col *Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
 	sql.WriteString(" ")
 
-	// SQLite имеет упрощенную систему типов
-	if col.Constraints.AutoIncrement {
+	if col.Constraints.AutoIncrement && col.Constraints.Primary {
 		sql.WriteString("INTEGER PRIMARY KEY AUTOINCREMENT")
 		return sql.String()
 	}
@@ -129,7 +128,7 @@ func (g *SqliteDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(col.Definition.Type)
 	}
 
-	if !col.Constraints.Nullable {
+	if col.Constraints.NotNull {
 		sql.WriteString(" NOT NULL")
 	}
 
@@ -137,11 +136,12 @@ func (g *SqliteDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(fmt.Sprintf(" DEFAULT %v", col.Definition.Default))
 	}
 
-	// SQLite не поддерживает ON UPDATE напрямую
-	// Можно реализовать через триггеры
-	if col.Definition.OnUpdate != "" {
-		// ON UPDATE реализуется через триггеры в SQLite
-		// Здесь можно добавить генерацию триггера
+	if col.Constraints.Primary {
+		sql.WriteString(" PRIMARY KEY")
+	}
+
+	if col.Constraints.Unique {
+		sql.WriteString(" UNIQUE")
 	}
 
 	return sql.String()
@@ -372,4 +372,7 @@ func (g *SqliteDialect) GetIpType() string {
 
 func (g *SqliteDialect) GetMacAddressType() string {
 	return "TEXT"
+}
+func (g *SqliteDialect) GetUnsignedType() string {
+	return ""
 }

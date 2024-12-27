@@ -22,7 +22,8 @@ type ColumnDefinition struct {
 }
 
 type ColumnConstraints struct {
-	Nullable      bool
+	NotNull       bool
+	Unsigned      bool
 	AutoIncrement bool
 	Primary       bool
 	Unique        bool
@@ -42,18 +43,18 @@ type ColumnMeta struct {
 // ColumnBuilder построитель колонок
 type ColumnBuilder struct {
 	schema *Schema
-	column Column
+	column *Column
 }
 
 // Column добавляет колонку
 func (s *Schema) Column(name string) *ColumnBuilder {
 	return &ColumnBuilder{
 		schema: s,
-		column: Column{Name: name},
+		column: &Column{Name: name},
 	}
 }
 
-func (s *Schema) addColumn(col Column) *ColumnBuilder {
+func (s *Schema) addColumn(col *Column) *ColumnBuilder {
 	if s.definition.mode == "create" {
 		s.definition.columns = append(s.definition.columns, col)
 	} else {
@@ -68,7 +69,7 @@ func (cb *ColumnBuilder) Add() *Schema {
 }
 
 // AddColumn добавляет колонку
-func (s *Schema) AddColumn(column Column) *ColumnBuilder {
+func (s *Schema) AddColumn(column *Column) *ColumnBuilder {
 	position := ""
 	if column.Position.After != "" {
 		position = fmt.Sprintf(" AFTER %s", column.Position.After)
@@ -88,30 +89,9 @@ func (s *Schema) AddColumn(column Column) *ColumnBuilder {
 	return &ColumnBuilder{schema: s, column: column}
 }
 
-func (s *Schema) ID() *ColumnBuilder {
-	return s.addColumn(Column{
-		Name:       "id",
-		Definition: ColumnDefinition{Type: s.dbl.dialect.GetAutoIncrementType()},
-		Constraints: ColumnConstraints{
-			Primary: true,
-		},
-	})
-}
-
-// BigIncrements добавляет автоинкрементное большое целое
-func (s *Schema) BigIncrements(name string) *ColumnBuilder {
-	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: s.dbl.dialect.GetAutoIncrementType()},
-		Constraints: ColumnConstraints{
-			Primary: true,
-		},
-	})
-}
-
 // String добавляет строковое поле
 func (s *Schema) String(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "VARCHAR", Length: length},
 	})
@@ -119,7 +99,7 @@ func (s *Schema) String(name string, length int) *ColumnBuilder {
 
 // Enum добавляет поле с перечислением
 func (s *Schema) Enum(name string, values []string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))},
 	})
@@ -127,7 +107,7 @@ func (s *Schema) Enum(name string, values []string) *ColumnBuilder {
 
 // Timestamp добавляет поле метки времени
 func (s *Schema) Timestamp(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "TIMESTAMP"},
 	})
@@ -141,7 +121,7 @@ func (s *Schema) Index(name string, columns ...string) *Schema {
 
 // Integer добавляет целочисленное поле
 func (s *Schema) Integer(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "INT"},
 	})
@@ -149,7 +129,7 @@ func (s *Schema) Integer(name string) *ColumnBuilder {
 
 // TinyInteger добавляет малое целое
 func (s *Schema) TinyInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "TINYINT"},
 	})
@@ -157,7 +137,7 @@ func (s *Schema) TinyInteger(name string) *ColumnBuilder {
 
 // Boolean добавляет логическое поле
 func (s *Schema) Boolean(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBooleanType()},
 	})
@@ -165,7 +145,7 @@ func (s *Schema) Boolean(name string) *ColumnBuilder {
 
 // Text добавляет текстовое поле
 func (s *Schema) Text(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "TEXT"},
 	})
@@ -173,7 +153,7 @@ func (s *Schema) Text(name string) *ColumnBuilder {
 
 // Date добавляет поле даты
 func (s *Schema) Date(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "DATE"},
 	})
@@ -181,7 +161,7 @@ func (s *Schema) Date(name string) *ColumnBuilder {
 
 // DateTime добавляет поле даты и времени
 func (s *Schema) DateTime(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "DATETIME"},
 	})
@@ -189,7 +169,7 @@ func (s *Schema) DateTime(name string) *ColumnBuilder {
 
 // Decimal добавляет десятичное поле
 func (s *Schema) Decimal(name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: fmt.Sprintf("DECIMAL(%d,%d)", precision, scale)},
 	})
@@ -197,7 +177,7 @@ func (s *Schema) Decimal(name string, precision, scale int) *ColumnBuilder {
 
 // Json добавляет JSON поле
 func (s *Schema) Json(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "JSON"},
 	})
@@ -205,7 +185,7 @@ func (s *Schema) Json(name string) *ColumnBuilder {
 
 // Binary добавляет бинарное поле
 func (s *Schema) Binary(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "BINARY", Length: length},
 	})
@@ -213,7 +193,7 @@ func (s *Schema) Binary(name string, length int) *ColumnBuilder {
 
 // Float добавляет поле с плавающей точкой
 func (s *Schema) Float(name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: fmt.Sprintf("FLOAT(%d,%d)", precision, scale)},
 	})
@@ -221,13 +201,13 @@ func (s *Schema) Float(name string, precision, scale int) *ColumnBuilder {
 
 // ForeignKey добавляет внешний ключ
 //func (s *Schema) ForeignKey(name string, table string, column string) *ColumnBuilder {
-//	return s.addColumn(Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: column}})
+//	return s.addColumn(&Column{Name: name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: column}})
 //}
 
 // Computed добавляет вычисляемую колонку (для MySQL 5.7+)
 func (s *Schema) Computed(name string, expression string) *ColumnBuilder {
 	if s.dbl.db.DriverName() == "mysql" {
-		return s.addColumn(Column{
+		return s.addColumn(&Column{
 			Name:       name,
 			Definition: ColumnDefinition{Type: fmt.Sprintf("AS (%s) STORED", expression)},
 		})
@@ -292,7 +272,7 @@ func (s *Schema) Timezone() *ColumnBuilder {
 
 // MediumText добавляет поле MEDIUMTEXT
 func (s *Schema) MediumText(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetMediumTextType(),
@@ -302,7 +282,7 @@ func (s *Schema) MediumText(name string) *ColumnBuilder {
 
 // LongText добавляет поле LONGTEXT
 func (s *Schema) LongText(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetLongTextType(),
@@ -312,7 +292,7 @@ func (s *Schema) LongText(name string) *ColumnBuilder {
 
 // Char добавляет поле фиксированной длины
 func (s *Schema) Char(name string, length int) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "CHAR", Length: length},
 	})
@@ -320,7 +300,7 @@ func (s *Schema) Char(name string, length int) *ColumnBuilder {
 
 // SmallInteger добавляет малое целое
 func (s *Schema) SmallInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: s.dbl.dialect.GetSmallIntegerType()},
 	})
@@ -328,7 +308,7 @@ func (s *Schema) SmallInteger(name string) *ColumnBuilder {
 
 // MediumInteger добавляет среднее целое
 func (s *Schema) MediumInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: s.dbl.dialect.GetMediumIntegerType()},
 	})
@@ -336,7 +316,7 @@ func (s *Schema) MediumInteger(name string) *ColumnBuilder {
 
 // BigInteger добавляет большое целое
 func (s *Schema) BigInteger(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBigIntegerType()},
 	})
@@ -344,7 +324,7 @@ func (s *Schema) BigInteger(name string) *ColumnBuilder {
 
 // Year добавляет поле года
 func (s *Schema) Year(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetYearType(),
@@ -354,7 +334,7 @@ func (s *Schema) Year(name string) *ColumnBuilder {
 
 // Time добавляет поле времени
 func (s *Schema) Time(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name:       name,
 		Definition: ColumnDefinition{Type: "TIME"},
 	})
@@ -362,7 +342,7 @@ func (s *Schema) Time(name string) *ColumnBuilder {
 
 // Ip добавляет поле для IP-адреса
 func (s *Schema) Ip(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetIpType(),
@@ -372,7 +352,7 @@ func (s *Schema) Ip(name string) *ColumnBuilder {
 
 // MacAddress добавляет поле для MAC-адреса
 func (s *Schema) MacAddress(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetMacAddressType(),
@@ -382,7 +362,7 @@ func (s *Schema) MacAddress(name string) *ColumnBuilder {
 
 // Point добавляет геометрическое поле точки
 func (s *Schema) Point(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetPointType(),
@@ -392,7 +372,7 @@ func (s *Schema) Point(name string) *ColumnBuilder {
 
 // Polygon добавляет геометрическое поле полигона
 func (s *Schema) Polygon(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetPolygonType(),
@@ -402,7 +382,7 @@ func (s *Schema) Polygon(name string) *ColumnBuilder {
 
 // Set добавляет поле SET
 func (s *Schema) Set(name string, values []string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetSetType(values),
@@ -424,7 +404,7 @@ func (cb *ColumnBuilder) Type(typ string, length ...int) *ColumnBuilder {
 }
 
 func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
-	cb.column.Constraints.Nullable = true
+	cb.column.Constraints.NotNull = false
 	return cb
 }
 
@@ -435,6 +415,10 @@ func (cb *ColumnBuilder) Default(value interface{}) *ColumnBuilder {
 
 func (cb *ColumnBuilder) AutoIncrement() *ColumnBuilder {
 	cb.column.Constraints.AutoIncrement = true
+	return cb
+}
+func (cb *ColumnBuilder) Unsigned() *ColumnBuilder {
+	cb.column.Constraints.Unsigned = true
 	return cb
 }
 
@@ -476,13 +460,13 @@ func (cb *ColumnBuilder) OnUpdate(value string) *ColumnBuilder {
 
 // NotNull устанавливает колонку как NOT NULL
 func (cb *ColumnBuilder) NotNull() *ColumnBuilder {
-	cb.column.Constraints.Nullable = false
+	cb.column.Constraints.NotNull = true
 	return cb
 }
 
 // Geometry добавляет геометрическое поле
 func (s *Schema) Geometry(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetGeometryType(),
@@ -492,7 +476,7 @@ func (s *Schema) Geometry(name string) *ColumnBuilder {
 
 // UUID добавляет поле UUID
 func (s *Schema) UUID(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetUUIDType(),
@@ -502,7 +486,7 @@ func (s *Schema) UUID(name string) *ColumnBuilder {
 
 // Double добавляет поле с двойной точностью
 func (s *Schema) Double(name string) *ColumnBuilder {
-	return s.addColumn(Column{
+	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
 			Type: s.dbl.dialect.GetDoubleType(),

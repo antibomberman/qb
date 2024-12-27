@@ -10,7 +10,7 @@ type Schema struct {
 type SchemaDefinition struct {
 	name        string
 	mode        string // "create" или "update"
-	columns     []Column
+	columns     []*Column
 	commands    []Command
 	constraints Constraints
 	options     TableOptions
@@ -194,7 +194,7 @@ func (s *Schema) ChangeCharset(charset, collate string) *Schema {
 }
 
 // Изменяем метод buildColumn
-func (s *Schema) buildColumn(col Column) string {
+func (s *Schema) buildColumn(col *Column) string {
 	return s.dbl.dialect.BuildColumnDefinition(col)
 }
 

@@ -65,7 +65,8 @@ func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 	sql.WriteString(fmt.Sprintf(" COLLATE=%s",
 		defaultIfEmpty(s.definition.options.collate, "utf8mb4_unicode_ci")))
 	if s.definition.options.comment != "" {
-		sql.WriteString(fmt.Sprintf(" COMMENT='%s'", s.definition.options.comment))
+		sql.WriteString(fmt.Sprintf(" COMMENT='%s'",
+			strings.Replace(s.definition.options.comment, "'", "\\'", -1)))
 	}
 
 	return sql.String()
@@ -81,7 +82,21 @@ func defaultIfEmpty(value, defaultValue string) string {
 func (g *MysqlDialect) BuildAlterTable(s *Schema) string {
 	var commands []string
 	for _, cmd := range s.definition.commands {
-		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
+		if cmd.Cmd != "" {
+			commands = append(commands, cmd.Cmd)
+		} else {
+			// Добавляем дополнительные параметры если есть
+			cmdStr := fmt.Sprintf("%s %s", cmd.Type, cmd.Name)
+			if len(cmd.Columns) > 0 {
+				cmdStr += fmt.Sprintf(" (%s)", strings.Join(cmd.Columns, ", "))
+			}
+			if len(cmd.Options) > 0 {
+				for k, v := range cmd.Options {
+					cmdStr += fmt.Sprintf(" %s %v", k, v)
+				}
+			}
+			commands = append(commands, cmdStr)
+		}
 	}
 
 	return fmt.Sprintf(
@@ -117,7 +132,7 @@ func (g *MysqlDialect) BuildDropTable(dt *DropTable) string {
 	return sql.String()
 }
 
-func (g *MysqlDialect) BuildColumnDefinition(col Column) string {
+func (g *MysqlDialect) BuildColumnDefinition(col *Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -128,7 +143,11 @@ func (g *MysqlDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(fmt.Sprintf("(%d)", col.Definition.Length))
 	}
 
-	if !col.Constraints.Nullable {
+	if col.Constraints.Unsigned {
+		sql.WriteString(" UNSIGNED")
+	}
+
+	if col.Constraints.NotNull {
 		sql.WriteString(" NOT NULL")
 	}
 
@@ -144,8 +163,20 @@ func (g *MysqlDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(" AUTO_INCREMENT")
 	}
 
+	if col.Constraints.Primary {
+		sql.WriteString(" PRIMARY KEY")
+	}
+
+	if col.Constraints.Unique {
+		sql.WriteString(" UNIQUE")
+	}
+
 	if col.Meta.Comment != "" {
 		sql.WriteString(fmt.Sprintf(" COMMENT '%s'", strings.Replace(col.Meta.Comment, "'", "\\'", -1)))
+	}
+
+	if col.Definition.Collate != "" {
+		sql.WriteString(" COLLATE " + col.Definition.Collate)
 	}
 
 	return sql.String()
@@ -163,7 +194,14 @@ func (g *MysqlDialect) BuildTruncateTable(tt *TruncateTable) string {
 	return sql.String()
 }
 
-func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+type IndexOptions struct {
+	Using   string            // BTREE, HASH и т.д.
+	Comment string            // Комментарий к индексу
+	Visible bool              // Видимость индекса
+	Options map[string]string // Дополнительные опции
+}
+
+func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string {
 	var sql strings.Builder
 
 	if unique {
@@ -171,15 +209,37 @@ func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, uniqu
 	}
 	sql.WriteString("INDEX ")
 	sql.WriteString(g.QuoteIdentifier(name))
-	sql.WriteString(" (")
 
-	// Цитируем каждую колонку
+	if opts != nil && opts.Using != "" {
+		sql.WriteString(" USING " + opts.Using)
+	}
+
+	sql.WriteString(" (")
+	// Поддержка длины индекса для каждой колонки
 	quotedColumns := make([]string, len(columns))
 	for i, col := range columns {
-		quotedColumns[i] = g.QuoteIdentifier(col)
+		// Проверяем на наличие длины индекса (format: column(length))
+		if parts := strings.Split(col, "("); len(parts) > 1 {
+			quotedColumns[i] = g.QuoteIdentifier(parts[0]) + "(" + strings.TrimRight(parts[1], ")")
+		} else {
+			quotedColumns[i] = g.QuoteIdentifier(col)
+		}
 	}
 	sql.WriteString(strings.Join(quotedColumns, ", "))
 	sql.WriteString(")")
+
+	if opts != nil {
+		if opts.Comment != "" {
+			sql.WriteString(fmt.Sprintf(" COMMENT '%s'",
+				strings.Replace(opts.Comment, "'", "\\'", -1)))
+		}
+		if !opts.Visible {
+			sql.WriteString(" INVISIBLE")
+		}
+		for k, v := range opts.Options {
+			sql.WriteString(fmt.Sprintf(" %s %s", k, v))
+		}
+	}
 
 	return sql.String()
 }
@@ -282,6 +342,10 @@ func (g *MysqlDialect) GetCurrentTimestampExpression() string {
 }
 
 func (g *MysqlDialect) QuoteIdentifier(name string) string {
+	if len(name) > 64 {
+		// Можно либо обрезать, либо вызвать ошибку
+		name = name[:64]
+	}
 	return "`" + strings.Replace(name, "`", "``", -1) + "`"
 }
 
@@ -373,4 +437,7 @@ func (g *MysqlDialect) GetIpType() string {
 
 func (g *MysqlDialect) GetMacAddressType() string {
 	return "VARCHAR(17)"
+}
+func (g *MysqlDialect) GetUnsignedType() string {
+	return "UNSIGNED"
 }

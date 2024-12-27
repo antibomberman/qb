@@ -103,7 +103,7 @@ func (g *PostgresDialect) BuildDropTable(dt *DropTable) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildColumnDefinition(col Column) string {
+func (g *PostgresDialect) BuildColumnDefinition(col *Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -111,7 +111,11 @@ func (g *PostgresDialect) BuildColumnDefinition(col Column) string {
 
 	// Особая обработка для PostgreSQL
 	if col.Constraints.AutoIncrement {
-		sql.WriteString("SERIAL")
+		if col.Constraints.Primary {
+			sql.WriteString("SERIAL PRIMARY KEY")
+		} else {
+			sql.WriteString("SERIAL")
+		}
 		return sql.String()
 	}
 
@@ -121,7 +125,7 @@ func (g *PostgresDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(fmt.Sprintf("(%d)", col.Definition.Length))
 	}
 
-	if !col.Constraints.Nullable {
+	if col.Constraints.NotNull {
 		sql.WriteString(" NOT NULL")
 	}
 
@@ -129,10 +133,12 @@ func (g *PostgresDialect) BuildColumnDefinition(col Column) string {
 		sql.WriteString(fmt.Sprintf(" DEFAULT %v", col.Definition.Default))
 	}
 
-	// PostgreSQL использует триггеры для ON UPDATE
-	if col.Definition.OnUpdate != "" {
-		// ON UPDATE реализуется через триггеры в PostgreSQL
-		// Здесь можно добавить генерацию триггера
+	if col.Constraints.Primary {
+		sql.WriteString(" PRIMARY KEY")
+	}
+
+	if col.Constraints.Unique {
+		sql.WriteString(" UNIQUE")
 	}
 
 	return sql.String()
@@ -373,4 +379,7 @@ func (g *PostgresDialect) GetIpType() string {
 
 func (g *PostgresDialect) GetMacAddressType() string {
 	return "MACADDR"
+}
+func (g *PostgresDialect) GetUnsignedType() string {
+	return ""
 }

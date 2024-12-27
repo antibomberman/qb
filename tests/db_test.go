@@ -11,7 +11,6 @@ import (
 )
 
 func TestMysqlCreateTable(t *testing.T) {
-	// Подготовка тестовой БД
 	db, err := sql.Open("mysql", "test_user:test_password@tcp(localhost:3307)/test_db")
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
@@ -27,8 +26,8 @@ func TestMysqlCreateTable(t *testing.T) {
 
 	// Тест создания таблицы
 	err = dbl.CreateTableIfNotExists("users", func(schema *dblayer.Schema) {
-		schema.MediumInteger("id").Primary().AutoIncrement()
-		schema.String("username", 50).NotNull()
+		schema.BigInteger("id").Unsigned().Primary().AutoIncrement()
+		schema.String("username", 50)
 		schema.String("email", 100).NotNull().Unique()
 		schema.Timestamp("created_at").Default("CURRENT_TIMESTAMP")
 		schema.Timestamp("updated_at").Default("CURRENT_TIMESTAMP").OnUpdate("CURRENT_TIMESTAMP")
@@ -76,7 +75,6 @@ func TestMysqlCreateTable(t *testing.T) {
 		}
 	}
 
-	// Очистка после теста
 	_, err = db.Exec("DROP TABLE users")
 	if err != nil {
 		t.Errorf("Ошибка удаления тестовой таблицы: %v", err)
