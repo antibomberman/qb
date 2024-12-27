@@ -1,5 +1,7 @@
 package dblayer
 
+import "fmt"
+
 // Schema с более четкой структурой и инкапсуляцией
 type Schema struct {
 	dbl        *DBLayer
@@ -133,11 +135,24 @@ func (s *Schema) IfNotExists() *Schema {
 }
 
 // DropColumn удаляет колонку
+//
+//	func (s *Schema) DropColumn(name string) *Schema {
+//		s.builder.AddConstraint(Constraint{
+//			Type:    "DROP COLUMN",
+//			Columns: []string{name},
+//		})
+//		return s
+//	}
+//
+// DropColumn удаляет колонку
 func (s *Schema) DropColumn(name string) *Schema {
-	s.builder.AddConstraint(Constraint{
-		Type:    "DROP COLUMN",
-		Columns: []string{name},
-	})
+	if s.definition.mode == "update" {
+		s.definition.commands = append(s.definition.commands, Command{
+			Type: "DROP COLUMN",
+			Name: name,
+			Cmd:  fmt.Sprintf("DROP COLUMN %s", name),
+		})
+	}
 	return s
 }
 

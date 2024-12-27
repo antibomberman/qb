@@ -144,7 +144,7 @@ func (g *PostgresDialect) BuildColumnDefinition(col *Column) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string {
 	var sql strings.Builder
 	if unique {
 		sql.WriteString("UNIQUE ")
@@ -154,7 +154,6 @@ func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, un
 	sql.WriteString(" ON ")
 
 	sql.WriteString(" USING btree (")
-
 	quotedColumns := make([]string, len(columns))
 	for i, col := range columns {
 		quotedColumns[i] = g.QuoteIdentifier(col)
@@ -382,4 +381,10 @@ func (g *PostgresDialect) GetMacAddressType() string {
 }
 func (g *PostgresDialect) GetUnsignedType() string {
 	return ""
+}
+
+func (g *PostgresDialect) CheckColumnExists(table, column string) string {
+	return `SELECT COUNT(*) > 0 FROM information_schema.columns 
+			WHERE table_schema = 'public' 
+			AND table_name = $1 AND column_name = $2`
 }

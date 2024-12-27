@@ -41,7 +41,7 @@ func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 			name, strings.Join(cols, ", ")))
 	}
 
-	// ��нешние ключи
+	// Внешние ключи
 	for col, fk := range s.definition.constraints.foreignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
@@ -201,11 +201,7 @@ type IndexOptions struct {
 	Options map[string]string // Дополнительные опции
 }
 
-func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
-	return g.BuildIndexDefinitionWithOptions(name, columns, unique, nil)
-}
-
-func (g *MysqlDialect) BuildIndexDefinitionWithOptions(name string, columns []string, unique bool, opts *IndexOptions) string {
+func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string {
 	var sql strings.Builder
 
 	if unique {
@@ -444,4 +440,10 @@ func (g *MysqlDialect) GetMacAddressType() string {
 }
 func (g *MysqlDialect) GetUnsignedType() string {
 	return "UNSIGNED"
+}
+
+func (g *MysqlDialect) CheckColumnExists(table, column string) string {
+	return `SELECT COUNT(*) > 0 FROM information_schema.columns 
+			WHERE table_schema = DATABASE() 
+			AND table_name = ? AND column_name = ?`
 }

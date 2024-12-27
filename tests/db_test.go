@@ -67,6 +67,18 @@ func TestMysqlCreateTable(t *testing.T) {
 	if err != nil {
 		t.Errorf("Ошибка создания записи в таблице: %v", err)
 	}
+	fmt.Println("--------------------------------------")
+	dbl.UpdateTable("users", func(schema *dblayer.Schema) {
+		// Если колонки нет - ADD COLUMN
+		schema.String("new_column", 255)
+
+		// Если колонка уже есть - MODIFY COLUMN
+		schema.String("username", 100)
+	})
+	dbl.UpdateTable("users", func(schema *dblayer.Schema) {
+		schema.DropColumn("new_column")
+
+	})
 
 	count, err := dbl.Table("users").Count()
 	if err != nil {

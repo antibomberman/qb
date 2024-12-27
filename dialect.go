@@ -38,10 +38,10 @@ type ColumnDialect interface {
 	BuildColumnDefinition(col *Column) string
 	SupportsColumnPositioning() bool
 	SupportsColumnComments() bool
+	CheckColumnExists(table, column string) string
 }
 
 type ConstraintDialect interface {
-	BuildIndexDefinition(name string, columns []string, unique bool) string
 	BuildForeignKeyDefinition(fk *ForeignKey) string
 	BuildSpatialIndexDefinition(name string, columns []string) string
 	BuildFullTextIndexDefinition(name string, columns []string) string
@@ -83,7 +83,7 @@ type TypeDialect interface {
 }
 
 type IndexDialect interface {
-	BuildIndexDefinition(name string, columns []string, unique bool) string
+	BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string
 	BuildSpatialIndexDefinition(name string, columns []string) string
 	BuildFullTextIndexDefinition(name string, columns []string) string
 	SupportsSpatialIndex() bool

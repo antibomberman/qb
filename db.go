@@ -201,6 +201,7 @@ func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 	}
 
 	fn(schema)
+	fmt.Println(schema.BuildAlter())
 
 	return dbl.Raw(schema.BuildAlter()).Exec()
 }

@@ -147,7 +147,7 @@ func (g *SqliteDialect) BuildColumnDefinition(col *Column) string {
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
+func (g *SqliteDialect) BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -157,10 +157,8 @@ func (g *SqliteDialect) BuildIndexDefinition(name string, columns []string, uniq
 	sql.WriteString("INDEX IF NOT EXISTS ")
 	sql.WriteString(g.QuoteIdentifier(name))
 	sql.WriteString(" ON ")
-	// Имя таблицы будет добавлено позже
 	sql.WriteString(" (")
 
-	// Цитируем каждую колонку
 	quotedColumns := make([]string, len(columns))
 	for i, col := range columns {
 		quotedColumns[i] = g.QuoteIdentifier(col)
@@ -375,4 +373,9 @@ func (g *SqliteDialect) GetMacAddressType() string {
 }
 func (g *SqliteDialect) GetUnsignedType() string {
 	return ""
+}
+
+func (g *SqliteDialect) CheckColumnExists(table, column string) string {
+	return `SELECT COUNT(*) > 0 FROM pragma_table_info(?) 
+			WHERE name = ?`
 }
