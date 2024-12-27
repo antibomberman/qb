@@ -1,5 +1,5 @@
 # DBLayer
-### DBLayer is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQL and PostgreSQL databases.
+### DBLayer is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQ, PostgreSQL and SQLite databases.
 
 ## Installation
 ### go get github.com/antibomberman/dblayer@v1.1.11
@@ -19,7 +19,7 @@
 - Soft delete records
 
 # DBLayer
-### DBLayer - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL и PostgreSQL.
+### DBLayer - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
 
 ## Установка
 ### go get github.com/antibomberman/dblayer@v1.1.11
