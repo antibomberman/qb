@@ -76,21 +76,6 @@ func (s *Schema) RenameColumn(from, to string) *Schema {
 	return s
 }
 
-// Timestamps добавляет поля created_at и updated_at
-func (s *Schema) Timestamps() *Schema {
-	s.Timestamp("created_at").Default("CURRENT_TIMESTAMP")
-	s.Timestamp("updated_at").Nullable()
-	return s
-}
-
-// Morphs добавляет поля для полиморфных отношений
-func (s *Schema) Morphs(name string) *Schema {
-	s.Integer(name + "_id")
-	s.String(name+"_type", 255)
-	s.Index("idx_"+name, name+"_id", name+"_type")
-	return s
-}
-
 // UniqueIndex добавляет уникальный индекс
 func (s *Schema) UniqueIndex(name string, columns ...string) *Schema {
 	return s.UniqueKey(name, columns...)
@@ -102,16 +87,6 @@ func (s *Schema) FullText(name string, columns ...string) *Schema {
 		s.definition.constraints.indexes[name] = columns
 		return s
 	}
-	return s
-}
-
-// Audit добавляет поля аудита
-func (s *Schema) Audit() *Schema {
-	s.ForeignKey("created_by", "users", "id")
-	s.ForeignKey("updated_by", "users", "id")
-	s.ForeignKey("deleted_by", "users", "id")
-	s.Timestamps()
-	s.SoftDeletes()
 	return s
 }
 
@@ -223,16 +198,6 @@ func (s *Schema) buildColumn(col Column) string {
 	return s.dbl.dialect.BuildColumnDefinition(col)
 }
 
-// Изменяем метод Uuid
-func (s *Schema) Uuid(name string) *ColumnBuilder {
-	return s.addColumn(Column{
-		Name: name,
-		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetUUIDType(),
-		},
-	})
-}
-
 // Добавляем новые методы для индексов
 func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 	if s.dbl.dialect.SupportsSpatialIndex() {
@@ -269,5 +234,48 @@ func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
 			})
 		}
 	}
+	return s
+}
+
+// Timestamps добавляет поля created_at и updated_at
+func (s *Schema) Timestamps() *Schema {
+	s.Timestamp("created_at").Default(s.dbl.dialect.GetCurrentTimestampExpression())
+	s.Timestamp("updated_at").Nullable()
+	return s
+}
+
+// SoftDeletes добавляет поле deleted_at для мягкого удаления
+func (s *Schema) SoftDeletes() *Schema {
+	s.Timestamp("deleted_at").Nullable()
+	return s
+}
+
+// Morphs добавляет поля для полиморфных отношений
+func (s *Schema) Morphs(name string) *Schema {
+	s.BigInteger(name + "_id")
+	s.String(name+"_type", 255)
+	s.Index(name+"_index", name+"_id", name+"_type")
+	return s
+}
+
+// NullableMorphs добавляет nullable поля для полиморфных отношений
+func (s *Schema) NullableMorphs(name string) *Schema {
+	s.BigInteger(name + "_id").Nullable()
+	s.String(name+"_type", 255).Nullable()
+	s.Index(name+"_index", name+"_id", name+"_type")
+	return s
+}
+
+// Audit добавляет поля аудита
+func (s *Schema) Audit() *Schema {
+	s.BigInteger("created_by").Nullable()
+	s.BigInteger("updated_by").Nullable()
+	s.BigInteger("deleted_by").Nullable()
+	return s
+}
+
+// Version добавляет поле для версионирования
+func (s *Schema) Version() *Schema {
+	s.Integer("version").Default(1)
 	return s
 }

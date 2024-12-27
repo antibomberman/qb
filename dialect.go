@@ -65,9 +65,22 @@ type TypeDialect interface {
 	GetTimestampType() string
 	GetDateType() string
 	GetTimeType() string
-
-	// Поддержка функций
 	GetCurrentTimestampExpression() string
+	GetSmallIntegerType() string
+	GetMediumIntegerType() string
+	GetTinyIntegerType() string
+	GetMoneyType() string
+	GetCharType(length int) string
+	GetMediumTextType() string
+	GetLongTextType() string
+	GetEnumType(values []string) string
+	GetSetType(values []string) string
+	GetYearType() string
+	GetPointType() string
+	GetPolygonType() string
+	GetGeometryType() string
+	GetIpType() string
+	GetMacAddressType() string
 }
 
 type IndexDialect interface {

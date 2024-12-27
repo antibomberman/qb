@@ -159,7 +159,7 @@ func (s *Schema) TinyInteger(name string) *ColumnBuilder {
 func (s *Schema) Boolean(name string) *ColumnBuilder {
 	return s.addColumn(Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: "BOOLEAN"},
+		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBooleanType()},
 	})
 }
 
@@ -290,30 +290,23 @@ func (s *Schema) Timezone() *ColumnBuilder {
 	return s.String("timezone", 64)
 }
 
-// SoftDeletes добавляет поле deleted_at для мягкого удаления
-func (s *Schema) SoftDeletes() *ColumnBuilder {
-	return s.addColumn(Column{
-		Name:       "deleted_at",
-		Definition: ColumnDefinition{Type: "TIMESTAMP"},
-		Constraints: ColumnConstraints{
-			Nullable: true,
-		},
-	})
-}
-
 // MediumText добавляет поле MEDIUMTEXT
 func (s *Schema) MediumText(name string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: "MEDIUMTEXT"},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetMediumTextType(),
+		},
 	})
 }
 
 // LongText добавляет поле LONGTEXT
 func (s *Schema) LongText(name string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: "LONGTEXT"},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetLongTextType(),
+		},
 	})
 }
 
@@ -329,7 +322,7 @@ func (s *Schema) Char(name string, length int) *ColumnBuilder {
 func (s *Schema) SmallInteger(name string) *ColumnBuilder {
 	return s.addColumn(Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: "SMALLINT"},
+		Definition: ColumnDefinition{Type: s.dbl.dialect.GetSmallIntegerType()},
 	})
 }
 
@@ -337,7 +330,7 @@ func (s *Schema) SmallInteger(name string) *ColumnBuilder {
 func (s *Schema) MediumInteger(name string) *ColumnBuilder {
 	return s.addColumn(Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: "MEDIUMINT"},
+		Definition: ColumnDefinition{Type: s.dbl.dialect.GetMediumIntegerType()},
 	})
 }
 
@@ -352,8 +345,10 @@ func (s *Schema) BigInteger(name string) *ColumnBuilder {
 // Year добавляет поле года
 func (s *Schema) Year(name string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: "YEAR"},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetYearType(),
+		},
 	})
 }
 
@@ -368,40 +363,50 @@ func (s *Schema) Time(name string) *ColumnBuilder {
 // Ip добавляет поле для IP-адреса
 func (s *Schema) Ip(name string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: "VARCHAR", Length: 45},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetIpType(),
+		},
 	})
 }
 
 // MacAddress добавляет поле для MAC-адреса
 func (s *Schema) MacAddress(name string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: "VARCHAR", Length: 17},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetMacAddressType(),
+		},
 	})
 }
 
 // Point добавляет геометрическое поле точки
 func (s *Schema) Point(name string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: "POINT"},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetPointType(),
+		},
 	})
 }
 
 // Polygon добавляет геометрическое поле полигона
 func (s *Schema) Polygon(name string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: "POLYGON"},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetPolygonType(),
+		},
 	})
 }
 
 // Set добавляет поле SET
 func (s *Schema) Set(name string, values []string) *ColumnBuilder {
 	return s.addColumn(Column{
-		Name:       name,
-		Definition: ColumnDefinition{Type: fmt.Sprintf("SET('%s')", strings.Join(values, "','"))},
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetSetType(values),
+		},
 	})
 }
 
@@ -473,4 +478,49 @@ func (cb *ColumnBuilder) OnUpdate(value string) *ColumnBuilder {
 func (cb *ColumnBuilder) NotNull() *ColumnBuilder {
 	cb.column.Constraints.Nullable = false
 	return cb
+}
+
+// Geometry добавляет геометрическое поле
+func (s *Schema) Geometry(name string) *ColumnBuilder {
+	return s.addColumn(Column{
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetGeometryType(),
+		},
+	})
+}
+
+// UUID добавляет поле UUID
+func (s *Schema) UUID(name string) *ColumnBuilder {
+	return s.addColumn(Column{
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetUUIDType(),
+		},
+	})
+}
+
+// Double добавляет поле с двойной точностью
+func (s *Schema) Double(name string) *ColumnBuilder {
+	return s.addColumn(Column{
+		Name: name,
+		Definition: ColumnDefinition{
+			Type: s.dbl.dialect.GetDoubleType(),
+		},
+	})
+}
+
+// Password добавляет поле для хранения хэша пароля
+func (s *Schema) Password(name string) *ColumnBuilder {
+	return s.String(name, 60) // Достаточно для bcrypt
+}
+
+// Email добавляет поле email
+func (s *Schema) Email(name string) *ColumnBuilder {
+	return s.String(name, 255)
+}
+
+// Url добавляет поле URL
+func (s *Schema) Url(name string) *ColumnBuilder {
+	return s.String(name, 2083) // Максимальная длина URL в IE
 }

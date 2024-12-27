@@ -230,7 +230,6 @@ func (g *MysqlDialect) GetUUIDType() string {
 	return "CHAR(36)"
 }
 
-// Типы данных
 func (g *MysqlDialect) GetBooleanType() string {
 	return "TINYINT(1)"
 }
@@ -246,7 +245,6 @@ func (g *MysqlDialect) GetBigIntegerType() string {
 func (g *MysqlDialect) GetFloatType() string {
 	return "FLOAT"
 }
-
 func (g *MysqlDialect) GetDoubleType() string {
 	return "DOUBLE"
 }
@@ -262,7 +260,6 @@ func (g *MysqlDialect) GetStringType(length int) string {
 func (g *MysqlDialect) GetTextType() string {
 	return "TEXT"
 }
-
 func (g *MysqlDialect) GetBinaryType(length int) string {
 	return fmt.Sprintf("BINARY(%d)", length)
 }
@@ -274,15 +271,12 @@ func (g *MysqlDialect) GetJsonType() string {
 func (g *MysqlDialect) GetTimestampType() string {
 	return "TIMESTAMP"
 }
-
 func (g *MysqlDialect) GetDateType() string {
 	return "DATE"
 }
-
 func (g *MysqlDialect) GetTimeType() string {
 	return "TIME"
 }
-
 func (g *MysqlDialect) GetCurrentTimestampExpression() string {
 	return "CURRENT_TIMESTAMP"
 }
@@ -302,16 +296,13 @@ func (g *MysqlDialect) SupportsColumnPositioning() bool {
 func (g *MysqlDialect) SupportsEnum() bool {
 	return true
 }
-
 func (g *MysqlDialect) GetEnumType(values []string) string {
 	return fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))
 }
-
 func (g *MysqlDialect) SupportsColumnComments() bool {
 	return true
 }
 
-// MySQL поддерживает оба типа индексов
 func (g *MysqlDialect) SupportsSpatialIndex() bool {
 	return true
 }
@@ -320,11 +311,66 @@ func (g *MysqlDialect) SupportsFullTextIndex() bool {
 	return true
 }
 
-// Добавляем методы для создания специальных индексов
 func (g *MysqlDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
 	return fmt.Sprintf("SPATIAL INDEX %s (%s)", name, strings.Join(columns, ", "))
 }
 
 func (g *MysqlDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
 	return fmt.Sprintf("FULLTEXT INDEX %s (%s)", name, strings.Join(columns, ", "))
+}
+
+func (g *MysqlDialect) GetSmallIntegerType() string {
+	return "SMALLINT"
+}
+
+func (g *MysqlDialect) GetMediumIntegerType() string {
+	return "MEDIUMINT"
+}
+
+func (g *MysqlDialect) GetTinyIntegerType() string {
+	return "TINYINT"
+}
+
+func (g *MysqlDialect) GetMoneyType() string {
+	return "DECIMAL(19,4)"
+}
+
+func (g *MysqlDialect) GetCharType(length int) string {
+	return fmt.Sprintf("CHAR(%d)", length)
+}
+
+func (g *MysqlDialect) GetMediumTextType() string {
+	return "MEDIUMTEXT"
+}
+
+func (g *MysqlDialect) GetLongTextType() string {
+	return "LONGTEXT"
+}
+
+func (g *MysqlDialect) GetSetType(values []string) string {
+	return fmt.Sprintf("SET('%s')", strings.Join(values, "','"))
+}
+
+func (g *MysqlDialect) GetYearType() string {
+	return "YEAR"
+}
+
+func (g *MysqlDialect) GetPointType() string {
+	return "POINT"
+}
+
+func (g *MysqlDialect) GetPolygonType() string {
+	return "POLYGON"
+}
+
+func (g *MysqlDialect) GetGeometryType() string {
+	return "GEOMETRY"
+}
+
+func (g *MysqlDialect) GetIpType() string {
+	return "VARCHAR(45)"
+}
+
+func (g *MysqlDialect) GetMacAddressType() string {
+	return "VARCHAR(17)"
 }

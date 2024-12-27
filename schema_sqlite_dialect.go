@@ -317,3 +317,59 @@ func (g *SqliteDialect) BuildSpatialIndexDefinition(name string, columns []strin
 func (g *SqliteDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
 	return ""
 }
+
+func (g *SqliteDialect) GetSmallIntegerType() string {
+	return "INTEGER"
+}
+
+func (g *SqliteDialect) GetMediumIntegerType() string {
+	return "INTEGER"
+}
+
+func (g *SqliteDialect) GetTinyIntegerType() string {
+	return "INTEGER"
+}
+
+func (g *SqliteDialect) GetMoneyType() string {
+	return "REAL"
+}
+
+func (g *SqliteDialect) GetCharType(length int) string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetMediumTextType() string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetLongTextType() string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetSetType(values []string) string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetYearType() string {
+	return "INTEGER"
+}
+
+func (g *SqliteDialect) GetPointType() string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetPolygonType() string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetGeometryType() string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetIpType() string {
+	return "TEXT"
+}
+
+func (g *SqliteDialect) GetMacAddressType() string {
+	return "TEXT"
+}

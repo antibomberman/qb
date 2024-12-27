@@ -140,17 +140,15 @@ func (g *PostgresDialect) BuildColumnDefinition(col Column) string {
 
 func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, unique bool) string {
 	var sql strings.Builder
-
 	if unique {
 		sql.WriteString("UNIQUE ")
 	}
 	sql.WriteString("INDEX ")
 	sql.WriteString(g.QuoteIdentifier(name))
 	sql.WriteString(" ON ")
-	// Имя таблицы будет добавлено позже
+
 	sql.WriteString(" USING btree (")
 
-	// Цитируем каждую колонку
 	quotedColumns := make([]string, len(columns))
 	for i, col := range columns {
 		quotedColumns[i] = g.QuoteIdentifier(col)
@@ -319,4 +317,60 @@ func (g *PostgresDialect) BuildSpatialIndexDefinition(name string, columns []str
 func (g *PostgresDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
 	return fmt.Sprintf("CREATE INDEX %s ON %s USING GIN (to_tsvector('english', %s))",
 		name, "%s", strings.Join(columns, " || ' ' || "))
+}
+
+func (g *PostgresDialect) GetSmallIntegerType() string {
+	return "SMALLINT"
+}
+
+func (g *PostgresDialect) GetMediumIntegerType() string {
+	return "INTEGER"
+}
+
+func (g *PostgresDialect) GetTinyIntegerType() string {
+	return "SMALLINT"
+}
+
+func (g *PostgresDialect) GetMoneyType() string {
+	return "MONEY"
+}
+
+func (g *PostgresDialect) GetCharType(length int) string {
+	return fmt.Sprintf("CHAR(%d)", length)
+}
+
+func (g *PostgresDialect) GetMediumTextType() string {
+	return "TEXT"
+}
+
+func (g *PostgresDialect) GetLongTextType() string {
+	return "TEXT"
+}
+
+func (g *PostgresDialect) GetSetType(values []string) string {
+	return "TEXT[]"
+}
+
+func (g *PostgresDialect) GetYearType() string {
+	return "SMALLINT"
+}
+
+func (g *PostgresDialect) GetPointType() string {
+	return "POINT"
+}
+
+func (g *PostgresDialect) GetPolygonType() string {
+	return "POLYGON"
+}
+
+func (g *PostgresDialect) GetGeometryType() string {
+	return "GEOMETRY"
+}
+
+func (g *PostgresDialect) GetIpType() string {
+	return "INET"
+}
+
+func (g *PostgresDialect) GetMacAddressType() string {
+	return "MACADDR"
 }
