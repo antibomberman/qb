@@ -17,6 +17,16 @@ const (
 	timeout     = time.Second * 3
 )
 
+type User struct {
+	ID        int64      `db:"id"`
+	Username  string     `db:"username"`
+	Email     string     `db:"email"`
+	Phone     string     `db:"phone"`
+	Password  string     `db:"password"`
+	CreatedAt *time.Time `db:"created_at"`
+	UpdatedAt *time.Time `db:"updated_at"`
+}
+
 func TestMysqlCreateTable(t *testing.T) {
 	ctx := context.Background()
 	dsn := "test_user:test_password@tcp(localhost:3307)/test_db"
@@ -30,24 +40,39 @@ func TestMysqlCreateTable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
 	}
-
+	dbl.Raw("DROP TABLE users").Exec()
 	// Тест создания таблицы
 	err = dbl.CreateTableIfNotExists("users", func(schema *dblayer.Schema) {
 		schema.BigInteger("id").Unsigned().Primary().AutoIncrement()
 		schema.String("username", 50)
 		schema.String("email", 100).NotNull().Unique()
-		schema.Timestamp("created_at").Default("CURRENT_TIMESTAMP")
-		schema.Timestamp("updated_at").Default("CURRENT_TIMESTAMP").OnUpdate("CURRENT_TIMESTAMP")
-	})
+		schema.Phone("phone")
+		schema.Password("password")
+		schema.Timestamps()
 
+	})
 	if err != nil {
 		t.Errorf("Ошибка создания таблицы: %v", err)
+	}
+	now := time.Now()
+	user := User{
+		Username:  "test",
+		Email:     "test@example.com",
+		Phone:     "1234567890",
+		Password:  "password",
+		CreatedAt: &now,
+	}
+
+	_, err = dbl.Table("users").Create(user)
+	if err != nil {
+		t.Errorf("Ошибка создания записи в таблице: %v", err)
 	}
 
 	count, err := dbl.Table("users").Count()
 	if err != nil {
 		t.Fatalf("Ошибка получения количества записей в таблице: %v", err)
 	}
+
 	fmt.Println(count)
 }
 func TestPostgresCreateTable(t *testing.T) {
