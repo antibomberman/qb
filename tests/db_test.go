@@ -54,10 +54,13 @@ func TestAuditTable(t *testing.T) {
 	// if err != nil {
 	// 	t.Fatalf("Ошибка создания записи в таблице: %v", err)
 	// }
-	//err = dbl.Table("users").WhereId(1).UpdateMap(map[string]interface{}{
-	//	"email": "test4@example.com",
-	//})
-	err = dbl.Table("users").WithAudit(1).WhereId(7).Update(user)
+	err = dbl.Table("users").OrderBy("id", "desc").Limit(1).Where("id > ?", 1).UpdateMap(map[string]interface{}{
+		"username": "new name",
+	})
+	if err != nil {
+		t.Fatalf("Ошибка %v", err)
+	}
+	err = dbl.Table("users").OrderBy("id", "desc").Limit(1).Update(user)
 	if err != nil {
 		t.Fatalf("Ошибка обновления записи в таблице: %v", err)
 	}

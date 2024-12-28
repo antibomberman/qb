@@ -211,21 +211,126 @@ func (qb *QueryBuilder) buildSelectQuery() (string, []interface{}) {
 }
 
 // buildUpdateQuery собирает SQL запрос для UPDATE
-func (qb *QueryBuilder) buildUpdateQuery(sets []string, data interface{}) (string, []interface{}) {
+func (qb *QueryBuilder) buildUpdateQuery(data interface{}, fields []string) (string, []interface{}) {
 
+	var sets []string
 	var args []interface{}
 
+	if len(fields) > 0 {
+		for _, field := range fields {
+			sets = append(sets, fmt.Sprintf("%s = ?", field))
+			val := reflect.ValueOf(data)
+			if val.Kind() == reflect.Ptr {
+				val = val.Elem()
+			}
+			field_val := val.FieldByName(field)
+			if field_val.IsValid() {
+				args = append(args, field_val.Interface())
+			}
+		}
+	} else {
+		fields, _, values := qb.getStructInfo(data)
+		for _, field := range fields {
+			sets = append(sets, fmt.Sprintf("%s = ?", field))
+			args = append(args, values[field])
+		}
+	}
+
 	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
+
+	tableName := qb.table
+	if qb.alias != "" {
+		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
+	}
+	for _, join := range qb.joins {
+		if join.Type == CrossJoin {
+			query += fmt.Sprintf(" %s %s", join.Type, join.Table)
+		} else {
+			query += fmt.Sprintf(" %s %s ON %s", join.Type, join.Table, join.Condition)
+		}
+	}
 
 	if len(qb.conditions) > 0 {
 		whereSQL := buildConditions(qb.conditions)
 		query += " WHERE " + whereSQL
-
 		for _, cond := range qb.conditions {
 			args = append(args, cond.args...)
 		}
 	}
 
+	if len(qb.groupBy) > 0 {
+		query += " GROUP BY " + strings.Join(qb.groupBy, ", ")
+	}
+
+	if qb.having != "" {
+		query += " HAVING " + qb.having
+	}
+
+	if len(qb.orderBy) > 0 {
+		query += " ORDER BY " + strings.Join(qb.orderBy, ", ")
+	}
+
+	if qb.limit > 0 {
+		query += fmt.Sprintf(" LIMIT %d", qb.limit)
+	}
+
+	if qb.offset > 0 {
+		query += fmt.Sprintf(" OFFSET %d", qb.offset)
+	}
+	return query, args
+
+}
+func (qb *QueryBuilder) buildUpdateMapQuery(data map[string]interface{}) (string, []interface{}) {
+
+	var sets []string
+	var args []interface{}
+
+	for col, val := range data {
+		sets = append(sets, col+" = ?")
+		args = append(args, val)
+	}
+
+	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
+
+	tableName := qb.table
+	if qb.alias != "" {
+		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
+	}
+	for _, join := range qb.joins {
+		if join.Type == CrossJoin {
+			query += fmt.Sprintf(" %s %s", join.Type, join.Table)
+		} else {
+			query += fmt.Sprintf(" %s %s ON %s", join.Type, join.Table, join.Condition)
+		}
+	}
+
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
+		for _, cond := range qb.conditions {
+			args = append(args, cond.args...)
+		}
+	}
+
+	if len(qb.groupBy) > 0 {
+		query += " GROUP BY " + strings.Join(qb.groupBy, ", ")
+	}
+
+	if qb.having != "" {
+		query += " HAVING " + qb.having
+	}
+
+	if len(qb.orderBy) > 0 {
+		query += " ORDER BY " + strings.Join(qb.orderBy, ", ")
+	}
+
+	if qb.limit > 0 {
+		query += fmt.Sprintf(" LIMIT %d", qb.limit)
+	}
+
+	if qb.offset > 0 {
+		query += fmt.Sprintf(" OFFSET %d", qb.offset)
+	}
 	return query, args
 
 }

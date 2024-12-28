@@ -964,75 +964,18 @@ func (qb *QueryBuilder) Update(data interface{}, fields ...string) error {
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
-	var sets []string
-	var args []interface{}
 
-	if len(fields) > 0 {
-		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = ?", field))
-			val := reflect.ValueOf(data)
-			if val.Kind() == reflect.Ptr {
-				val = val.Elem()
-			}
-			field_val := val.FieldByName(field)
-			if field_val.IsValid() {
-				args = append(args, field_val.Interface())
-			}
-		}
-	} else {
-		fields, _, values := qb.getStructInfo(data)
-		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = ?", field))
-			args = append(args, values[field])
-		}
-	}
-	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
-
+	query, args := qb.buildUpdateQuery(data, fields)
 	return qb.execExec(query, args...)
 }
 
 // UpdateContext обновляет записи с контекстом
 func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
-	var sets []string
-	var args []interface{}
-
-	if len(fields) > 0 {
-		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = ?", field))
-			val := reflect.ValueOf(data)
-			if val.Kind() == reflect.Ptr {
-				val = val.Elem()
-			}
-			field_val := val.FieldByName(field)
-			if field_val.IsValid() {
-				args = append(args, field_val.Interface())
-			}
-		}
-	} else {
-		fields, _, values := qb.getStructInfo(data)
-		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = ?", field))
-			args = append(args, values[field])
-		}
-	}
-	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
-
+	go qb.Trigger(BeforeUpdate, data)
+	defer func() {
+		go qb.Trigger(AfterUpdate, data)
+	}()
+	query, args := qb.buildUpdateQuery(data, fields)
 	return qb.execExecContext(ctx, query, args...)
 }
 
@@ -1042,26 +985,8 @@ func (qb *QueryBuilder) UpdateMap(data map[string]interface{}) error {
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
-	var sets []string
-	var args []interface{}
-
-	for col, val := range data {
-		sets = append(sets, col+" = ?")
-		args = append(args, val)
-	}
-
-	query := fmt.Sprintf("UPDATE %s SET %s",
-		qb.table,
-		strings.Join(sets, ", "))
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
-
+	query, args := qb.buildUpdateMapQuery(data)
+	fmt.Println(query)
 	return qb.execExec(query, args...)
 }
 
@@ -1070,26 +995,8 @@ func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]in
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
-	var sets []string
-	var args []interface{}
-
-	for col, val := range data {
-		sets = append(sets, col+" = ?")
-		args = append(args, val)
-	}
-
-	query := fmt.Sprintf("UPDATE %s SET %s",
-		qb.table,
-		strings.Join(sets, ", "))
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
-
+	query, args := qb.buildUpdateMapQuery(data)
+	fmt.Println(query)
 	return qb.execExecContext(ctx, query, args...)
 }
 
@@ -1884,13 +1791,10 @@ type AuditLog struct {
 // WithAudit включает аудит для запроса
 func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 	qb.On(BeforeUpdate, func(data interface{}) error {
-		fmt.Println("WithAudit: ", data)
-		fmt.Println(qb.conditions)
 		var oldData []byte
 		var recordID int64
 		var err error
 
-		// Получаем ID из условий WHERE
 		for _, cond := range qb.conditions {
 			if cond.clause == "id = ?" {
 				recordID = int64(cond.args[0].(int))
