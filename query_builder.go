@@ -107,23 +107,6 @@ func buildConditions(conditions []Condition) string {
 	return strings.Join(parts, " ")
 }
 
-// getStructInfo получает информацию о полях структуры
-//
-//	func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeholders []string) {
-//		v := reflect.ValueOf(data)
-//		if v.Kind() == reflect.Ptr {
-//			v = v.Elem()
-//		}
-//		t := v.Type()
-//
-//		for i := 0; i < t.NumField(); i++ {
-//			if tag := t.Field(i).Tag.Get("db"); tag != "" && tag != "-" && tag != "id" {
-//				fields = append(fields, tag)
-//				placeholders = append(placeholders, ":"+tag)
-//			}
-//		}
-//		return
-//	}
 func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeholders []string, values map[string]interface{}) {
 	values = make(map[string]interface{})
 	v := reflect.ValueOf(data)
@@ -154,60 +137,64 @@ func (qb *QueryBuilder) getDriverName() string {
 	// return ""
 }
 
-// buildQuery собирает полный SQL запрос
-func (qb *QueryBuilder) buildSelectQuery() (string, []interface{}) {
+func (qb *QueryBuilder) buildQuery(head string) (string, []interface{}) {
 	var args []interface{}
-
-	selectClause := "*"
-	if len(qb.columns) > 0 {
-		selectClause = strings.Join(qb.columns, ", ")
-	}
-
-	tableName := qb.table
-	if qb.alias != "" {
-		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
-	}
-
-	sql := fmt.Sprintf("SELECT %s FROM %s", selectClause, tableName)
+	var sql strings.Builder
 
 	for _, join := range qb.joins {
 		if join.Type == CrossJoin {
-			sql += fmt.Sprintf(" %s %s", join.Type, join.Table)
+			sql.WriteString(fmt.Sprintf(" %s %s", join.Type, join.Table))
 		} else {
-			sql += fmt.Sprintf(" %s %s ON %s", join.Type, join.Table, join.Condition)
+			sql.WriteString(fmt.Sprintf(" %s %s ON %s", join.Type, join.Table, join.Condition))
 		}
 	}
 
 	if len(qb.conditions) > 0 {
 		whereSQL := buildConditions(qb.conditions)
-		sql += " WHERE " + whereSQL
+		sql.WriteString(" WHERE " + whereSQL)
 
-		// Собираем все аргументы из условий
 		for _, cond := range qb.conditions {
 			args = append(args, cond.args...)
 		}
 	}
 
 	if len(qb.groupBy) > 0 {
-		sql += " GROUP BY " + strings.Join(qb.groupBy, ", ")
+		sql.WriteString(" GROUP BY " + strings.Join(qb.groupBy, ", "))
 	}
 
 	if qb.having != "" {
-		sql += " HAVING " + qb.having
+		sql.WriteString(" HAVING " + qb.having)
 	}
 
 	if len(qb.orderBy) > 0 {
-		sql += " ORDER BY " + strings.Join(qb.orderBy, ", ")
+		sql.WriteString(" ORDER BY " + strings.Join(qb.orderBy, ", "))
 	}
 
 	if qb.limit > 0 {
-		sql += fmt.Sprintf(" LIMIT %d", qb.limit)
+		sql.WriteString(fmt.Sprintf(" LIMIT %d", qb.limit))
 	}
 
 	if qb.offset > 0 {
-		sql += fmt.Sprintf(" OFFSET %d", qb.offset)
+		sql.WriteString(fmt.Sprintf(" OFFSET %d", qb.offset))
 	}
-	return sql, args
+
+	return sql.String(), args
+}
+
+// buildQuery собирает полный SQL запрос
+func (qb *QueryBuilder) buildSelectQuery() (string, []interface{}) {
+	selectClause := "*"
+	if len(qb.columns) > 0 {
+		selectClause = strings.Join(qb.columns, ", ")
+	}
+	tableName := qb.table
+	if qb.alias != "" {
+		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
+	}
+
+	head := fmt.Sprintf("SELECT %s FROM %s", selectClause, tableName)
+	body, args := qb.buildQuery(head)
+	return head + body, args
 }
 
 // buildUpdateQuery собирает SQL запрос для UPDATE
@@ -235,49 +222,16 @@ func (qb *QueryBuilder) buildUpdateQuery(data interface{}, fields []string) (str
 			args = append(args, values[field])
 		}
 	}
-
-	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
-
 	tableName := qb.table
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
-	for _, join := range qb.joins {
-		if join.Type == CrossJoin {
-			query += fmt.Sprintf(" %s %s", join.Type, join.Table)
-		} else {
-			query += fmt.Sprintf(" %s %s ON %s", join.Type, join.Table, join.Condition)
-		}
-	}
 
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
 
-	if len(qb.groupBy) > 0 {
-		query += " GROUP BY " + strings.Join(qb.groupBy, ", ")
-	}
-
-	if qb.having != "" {
-		query += " HAVING " + qb.having
-	}
-
-	if len(qb.orderBy) > 0 {
-		query += " ORDER BY " + strings.Join(qb.orderBy, ", ")
-	}
-
-	if qb.limit > 0 {
-		query += fmt.Sprintf(" LIMIT %d", qb.limit)
-	}
-
-	if qb.offset > 0 {
-		query += fmt.Sprintf(" OFFSET %d", qb.offset)
-	}
-	return query, args
+	body, bodyArgs := qb.buildQuery(head)
+	args = append(args, bodyArgs...)
+	return head + body, args
 
 }
 func (qb *QueryBuilder) buildUpdateMapQuery(data map[string]interface{}) (string, []interface{}) {
@@ -290,47 +244,14 @@ func (qb *QueryBuilder) buildUpdateMapQuery(data map[string]interface{}) (string
 		args = append(args, val)
 	}
 
-	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
-
 	tableName := qb.table
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
-	for _, join := range qb.joins {
-		if join.Type == CrossJoin {
-			query += fmt.Sprintf(" %s %s", join.Type, join.Table)
-		} else {
-			query += fmt.Sprintf(" %s %s ON %s", join.Type, join.Table, join.Condition)
-		}
-	}
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
 
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
-
-	if len(qb.groupBy) > 0 {
-		query += " GROUP BY " + strings.Join(qb.groupBy, ", ")
-	}
-
-	if qb.having != "" {
-		query += " HAVING " + qb.having
-	}
-
-	if len(qb.orderBy) > 0 {
-		query += " ORDER BY " + strings.Join(qb.orderBy, ", ")
-	}
-
-	if qb.limit > 0 {
-		query += fmt.Sprintf(" LIMIT %d", qb.limit)
-	}
-
-	if qb.offset > 0 {
-		query += fmt.Sprintf(" OFFSET %d", qb.offset)
-	}
-	return query, args
+	body, bodyArgs := qb.buildQuery(head)
+	args = append(args, bodyArgs...)
+	return head + body, args
 
 }
