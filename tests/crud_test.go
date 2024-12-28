@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func CrudTest(t *testing.T) {
+func TestCrud(t *testing.T) {
 	ctx := context.Background()
 	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
 	if err != nil {

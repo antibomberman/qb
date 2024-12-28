@@ -9,7 +9,7 @@ import (
 	"github.com/antibomberman/dblayer"
 )
 
-func CreateTableTest(t *testing.T) {
+func TestCreateTable(t *testing.T) {
 	ctx := context.Background()
 	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
 	if err != nil {
