@@ -97,7 +97,7 @@ func (qb *QueryBuilder) OrWhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
 
 // WhereExists добавляет условие EXISTS
 func (qb *QueryBuilder) WhereExists(subQuery *QueryBuilder) *QueryBuilder {
-	sql, args := subQuery.buildQuery()
+	sql, args := subQuery.buildSelectQuery()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXISTS (%s)", sql),
@@ -108,7 +108,7 @@ func (qb *QueryBuilder) WhereExists(subQuery *QueryBuilder) *QueryBuilder {
 
 // WhereNotExists добавляет условие NOT EXISTS
 func (qb *QueryBuilder) WhereNotExists(subQuery *QueryBuilder) *QueryBuilder {
-	sql, args := subQuery.buildQuery()
+	sql, args := subQuery.buildSelectQuery()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("NOT EXISTS (%s)", sql),
@@ -203,27 +203,27 @@ func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
 
 // Get получает все записи
 func (qb *QueryBuilder) Get(dest interface{}) (bool, error) {
-	query, args := qb.buildQuery()
+	query, args := qb.buildSelectQuery()
 	return qb.execSelect(dest, query, args...)
 }
 
 // GetContext получает все записи с контекстом
 func (qb *QueryBuilder) GetContext(ctx context.Context, dest interface{}) (bool, error) {
-	query, args := qb.buildQuery()
+	query, args := qb.buildSelectQuery()
 	return qb.execSelectContext(ctx, dest, query, args...)
 }
 
 // First получает первую запись
 func (qb *QueryBuilder) First(dest interface{}) (bool, error) {
 	qb.Limit(1)
-	query, args := qb.buildQuery()
+	query, args := qb.buildSelectQuery()
 	return qb.execGet(dest, query, args...)
 }
 
 // FirstContext получает первую запись с контекстом
 func (qb *QueryBuilder) FirstContext(ctx context.Context, dest interface{}) (bool, error) {
 	qb.Limit(1)
-	query, args := qb.buildQuery()
+	query, args := qb.buildSelectQuery()
 	return qb.execGetContext(ctx, dest, query, args...)
 }
 
@@ -261,7 +261,7 @@ func (qb *QueryBuilder) DeleteContext(ctx context.Context) error {
 
 // SubQuery создает подзапрос
 func (qb *QueryBuilder) SubQuery(alias string) *QueryBuilder {
-	sql, args := qb.buildQuery()
+	sql, args := qb.buildSelectQuery()
 	return &QueryBuilder{
 		columns: []string{fmt.Sprintf("(%s) AS %s", sql, alias)},
 		db:      qb.db,
@@ -271,9 +271,9 @@ func (qb *QueryBuilder) SubQuery(alias string) *QueryBuilder {
 	}
 }
 
-// WhereSubQuery добавляет условие с подзапросом
+// WhereSubQuery добавляет условие подзапросом
 func (qb *QueryBuilder) WhereSubQuery(column string, operator string, subQuery *QueryBuilder) *QueryBuilder {
-	sql, args := subQuery.buildQuery()
+	sql, args := subQuery.buildSelectQuery()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s %s (%s)", column, operator, sql),
@@ -284,8 +284,8 @@ func (qb *QueryBuilder) WhereSubQuery(column string, operator string, subQuery *
 
 // Union объединяет запросы через UNION
 func (qb *QueryBuilder) Union(other *QueryBuilder) *QueryBuilder {
-	sql1, args1 := qb.buildQuery()
-	sql2, args2 := other.buildQuery()
+	sql1, args1 := qb.buildSelectQuery()
+	sql2, args2 := other.buildSelectQuery()
 
 	return &QueryBuilder{
 		db:      qb.db,
@@ -298,8 +298,8 @@ func (qb *QueryBuilder) Union(other *QueryBuilder) *QueryBuilder {
 
 // UnionAll объединяет запросы через UNION ALL
 func (qb *QueryBuilder) UnionAll(other *QueryBuilder) *QueryBuilder {
-	sql1, args1 := qb.buildQuery()
-	sql2, args2 := other.buildQuery()
+	sql1, args1 := qb.buildSelectQuery()
+	sql2, args2 := other.buildSelectQuery()
 
 	return &QueryBuilder{
 		db:      qb.db,
@@ -461,7 +461,7 @@ func (qb *QueryBuilder) Chunk(size int, fn func(items interface{}) error) error 
 	for {
 		dest := make([]map[string]interface{}, 0, size)
 
-		query, args := qb.buildQuery()
+		query, args := qb.buildSelectQuery()
 		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
 
 		found, err := qb.execSelect(&dest, query, args...)
@@ -492,7 +492,7 @@ func (qb *QueryBuilder) ChunkContext(ctx context.Context, size int, fn func(cont
 
 		dest := make([]map[string]interface{}, 0, size)
 
-		query, args := qb.buildQuery()
+		query, args := qb.buildSelectQuery()
 		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
 
 		found, err := qb.execSelectContext(ctx, &dest, query, args...)
@@ -614,7 +614,7 @@ func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error
 	var insertFields, placeholders []string
 
 	if len(fields) > 0 {
-		// Используем только указан��ые поля
+		// Используем только указанные поля
 		insertFields = fields
 		placeholders = make([]string, len(fields))
 		for i, field := range fields {
@@ -622,7 +622,7 @@ func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error
 		}
 	} else {
 		// Используем все поля из структуры
-		insertFields, placeholders = qb.getStructInfo(data)
+		insertFields, placeholders, _ = qb.getStructInfo(data)
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
@@ -661,7 +661,7 @@ func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fie
 		}
 	} else {
 		// Используем все поля из структуры
-		insertFields, placeholders = qb.getStructInfo(data)
+		insertFields, placeholders, _ = qb.getStructInfo(data)
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
@@ -965,61 +965,75 @@ func (qb *QueryBuilder) Update(data interface{}, fields ...string) error {
 		go qb.Trigger(AfterUpdate, data)
 	}()
 	var sets []string
+	var args []interface{}
+
 	if len(fields) > 0 {
-		// Обновляем только указанные поля
 		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = :%s", field, field))
+			sets = append(sets, fmt.Sprintf("%s = ?", field))
+			val := reflect.ValueOf(data)
+			if val.Kind() == reflect.Ptr {
+				val = val.Elem()
+			}
+			field_val := val.FieldByName(field)
+			if field_val.IsValid() {
+				args = append(args, field_val.Interface())
+			}
 		}
 	} else {
-		// Обновляем все поля
-		fields, _ := qb.getStructInfo(data)
+		fields, _, values := qb.getStructInfo(data)
 		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = :%s", field, field))
+			sets = append(sets, fmt.Sprintf("%s = ?", field))
+			args = append(args, values[field])
+		}
+	}
+	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
+
+		for _, cond := range qb.conditions {
+			args = append(args, cond.args...)
 		}
 	}
 
-	whereSQL := buildConditions(qb.conditions)
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s",
-		qb.table,
-		strings.Join(sets, ", "),
-		whereSQL)
-
-	_, err := qb.getExecutor().NamedExec(query, data)
-
-	return err
+	return qb.execExec(query, args...)
 }
 
 // UpdateContext обновляет записи с контекстом
 func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
-	go qb.Trigger(BeforeUpdate, data)
-	defer func() {
-		go qb.Trigger(AfterUpdate, data)
-	}()
 	var sets []string
+	var args []interface{}
+
 	if len(fields) > 0 {
-		// Обновляем только указанные поля
 		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = :%s", field, field))
+			sets = append(sets, fmt.Sprintf("%s = ?", field))
+			val := reflect.ValueOf(data)
+			if val.Kind() == reflect.Ptr {
+				val = val.Elem()
+			}
+			field_val := val.FieldByName(field)
+			if field_val.IsValid() {
+				args = append(args, field_val.Interface())
+			}
 		}
 	} else {
-		// Обновляем все поля
-		fields, _ := qb.getStructInfo(data)
+		fields, _, values := qb.getStructInfo(data)
 		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = :%s", field, field))
+			sets = append(sets, fmt.Sprintf("%s = ?", field))
+			args = append(args, values[field])
+		}
+	}
+	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
+
+		for _, cond := range qb.conditions {
+			args = append(args, cond.args...)
 		}
 	}
 
-	whereSQL := buildConditions(qb.conditions)
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s",
-		qb.table,
-		strings.Join(sets, ", "),
-		whereSQL)
-
-	_, err := qb.getExecutor().NamedExecContext(ctx, query, data)
-	if err != nil {
-		return err
-	}
-	return nil
+	return qb.execExecContext(ctx, query, args...)
 }
 
 // UpdateMap обновляет записи используя map
@@ -1028,26 +1042,27 @@ func (qb *QueryBuilder) UpdateMap(data map[string]interface{}) error {
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
-	sets := make([]string, 0, len(data))
-	values := make([]interface{}, 0, len(data))
+	var sets []string
+	var args []interface{}
 
 	for col, val := range data {
 		sets = append(sets, col+" = ?")
-		values = append(values, val)
+		args = append(args, val)
 	}
 
-	whereSQL := buildConditions(qb.conditions)
-
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s",
+	query := fmt.Sprintf("UPDATE %s SET %s",
 		qb.table,
-		strings.Join(sets, ", "),
-		whereSQL)
+		strings.Join(sets, ", "))
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
 
-	err := qb.execExec(query, values...)
-	if err != nil {
-		return err
+		for _, cond := range qb.conditions {
+			args = append(args, cond.args...)
+		}
 	}
-	return nil
+
+	return qb.execExec(query, args...)
 }
 
 func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
@@ -1055,26 +1070,27 @@ func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]in
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
-	sets := make([]string, 0, len(data))
-	values := make([]interface{}, 0, len(data))
+	var sets []string
+	var args []interface{}
 
 	for col, val := range data {
 		sets = append(sets, col+" = ?")
-		values = append(values, val)
+		args = append(args, val)
 	}
 
-	whereSQL := buildConditions(qb.conditions)
-
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s",
+	query := fmt.Sprintf("UPDATE %s SET %s",
 		qb.table,
-		strings.Join(sets, ", "),
-		whereSQL)
+		strings.Join(sets, ", "))
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
 
-	err := qb.execExecContext(ctx, query, values...)
-	if err != nil {
-		return err
+		for _, cond := range qb.conditions {
+			args = append(args, cond.args...)
+		}
 	}
-	return nil
+
+	return qb.execExecContext(ctx, query, args...)
 }
 
 // BulkUpdate выполняет массовое обновление записей
@@ -1083,7 +1099,7 @@ func (qb *QueryBuilder) BulkUpdate(records []map[string]interface{}, keyColumn s
 		return nil
 	}
 
-	// Получаем все коло��ки из первой записи
+	// Получаем все колонки из первой записи
 	columns := make([]string, 0)
 	for column := range records[0] {
 		if column != keyColumn {
@@ -1868,6 +1884,8 @@ type AuditLog struct {
 // WithAudit включает аудит для запроса
 func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 	qb.On(BeforeUpdate, func(data interface{}) error {
+		fmt.Println("WithAudit: ", data)
+		fmt.Println(qb.conditions)
 		var oldData []byte
 		var recordID int64
 		var err error
@@ -1875,7 +1893,7 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 		// Получаем ID из условий WHERE
 		for _, cond := range qb.conditions {
 			if cond.clause == "id = ?" {
-				recordID = cond.args[0].(int64)
+				recordID = int64(cond.args[0].(int))
 				break
 			}
 		}
@@ -1911,7 +1929,7 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 		// Получаем ID из условий WHERE
 		for _, cond := range qb.conditions {
 			if cond.clause == "id = ?" {
-				recordID = cond.args[0].(int64)
+				recordID = int64(cond.args[0].(int))
 				break
 			}
 		}
@@ -1927,9 +1945,9 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 			return err
 		}
 
-		// Обновляем запись в таблице audits
 		return qb.dbl.Table("audits").
-			Where("table_name = ? AND record_id = ?", qb.table, recordID).
+			Where("table_name = ?", qb.table).
+			Where("record_id = ?", recordID).
 			OrderBy("id", "DESC").
 			Limit(1).
 			UpdateMap(map[string]interface{}{
@@ -1946,7 +1964,7 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 		case map[string]interface{}:
 			newData, err = json.Marshal(v)
 			if id, ok := v["id"]; ok {
-				recordID = id.(int64)
+				recordID = int64(id.(int))
 			}
 		default:
 			val := reflect.ValueOf(data)

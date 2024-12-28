@@ -108,7 +108,24 @@ func buildConditions(conditions []Condition) string {
 }
 
 // getStructInfo получает информацию о полях структуры
-func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeholders []string) {
+//
+//	func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeholders []string) {
+//		v := reflect.ValueOf(data)
+//		if v.Kind() == reflect.Ptr {
+//			v = v.Elem()
+//		}
+//		t := v.Type()
+//
+//		for i := 0; i < t.NumField(); i++ {
+//			if tag := t.Field(i).Tag.Get("db"); tag != "" && tag != "-" && tag != "id" {
+//				fields = append(fields, tag)
+//				placeholders = append(placeholders, ":"+tag)
+//			}
+//		}
+//		return
+//	}
+func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeholders []string, values map[string]interface{}) {
+	values = make(map[string]interface{})
 	v := reflect.ValueOf(data)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -119,6 +136,7 @@ func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeh
 		if tag := t.Field(i).Tag.Get("db"); tag != "" && tag != "-" && tag != "id" {
 			fields = append(fields, tag)
 			placeholders = append(placeholders, ":"+tag)
+			values[tag] = v.Field(i).Interface()
 		}
 	}
 	return
@@ -137,7 +155,7 @@ func (qb *QueryBuilder) getDriverName() string {
 }
 
 // buildQuery собирает полный SQL запрос
-func (qb *QueryBuilder) buildQuery() (string, []interface{}) {
+func (qb *QueryBuilder) buildSelectQuery() (string, []interface{}) {
 	var args []interface{}
 
 	selectClause := "*"
@@ -190,4 +208,24 @@ func (qb *QueryBuilder) buildQuery() (string, []interface{}) {
 		sql += fmt.Sprintf(" OFFSET %d", qb.offset)
 	}
 	return sql, args
+}
+
+// buildUpdateQuery собирает SQL запрос для UPDATE
+func (qb *QueryBuilder) buildUpdateQuery(sets []string, data interface{}) (string, []interface{}) {
+
+	var args []interface{}
+
+	query := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
+
+	if len(qb.conditions) > 0 {
+		whereSQL := buildConditions(qb.conditions)
+		query += " WHERE " + whereSQL
+
+		for _, cond := range qb.conditions {
+			args = append(args, cond.args...)
+		}
+	}
+
+	return query, args
+
 }

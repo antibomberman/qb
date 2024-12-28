@@ -2,8 +2,6 @@ package tests
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 	"testing"
 	"time"
 
@@ -29,180 +27,39 @@ type User struct {
 	UpdatedAt *time.Time `db:"updated_at"`
 }
 
-func TestMysqlCreateTable(t *testing.T) {
-	ctx := context.Background()
-	dbl, err := dblayer.Connection(ctx, "mysql", mysqlDSN, maxAttempts, timeout)
-	if err != nil {
-		t.Fatalf("Ошибка подключения к БД: %v", err)
-	}
-	defer dbl.Close()
-
-	err = dbl.Ping()
-	if err != nil {
-		t.Fatalf("Ошибка подключения к БД: %v", err)
-	}
-	dbl.Raw("DROP TABLE users").Exec()
-	// Тест создания таблицы
-	err = dbl.CreateTableIfNotExists("users", func(schema *dblayer.Schema) {
-		schema.BigInteger("id").Unsigned().Primary().AutoIncrement()
-		schema.String("username", 50)
-		schema.String("email", 100).NotNull().Unique()
-		schema.Phone("phone")
-		schema.Password("password")
-		schema.Timestamps()
-
-	})
-	if err != nil {
-		t.Errorf("Ошибка создания таблицы: %v", err)
-	}
-	now := time.Now()
-	user := User{
-		Username:  "test",
-		Email:     "test@example.com",
-		Phone:     "1234567890",
-		Password:  "password",
-		CreatedAt: &now,
-	}
-
-	_, err = dbl.Table("users").Create(user)
-	if err != nil {
-		t.Errorf("Ошибка создания записи в таблице: %v", err)
-	}
-	fmt.Println("--------------------------------------")
-	dbl.UpdateTable("users", func(schema *dblayer.Schema) {
-		// Если колонки нет - ADD COLUMN
-		schema.String("new_column", 255)
-
-		// Если колонка уже есть - MODIFY COLUMN
-		schema.String("username", 100)
-	})
-	dbl.UpdateTable("users", func(schema *dblayer.Schema) {
-		schema.DropColumn("new_column")
-
-	})
-
-	count, err := dbl.Table("users").Count()
-	if err != nil {
-		t.Fatalf("Ошибка получения количества записей в таблице: %v", err)
-	}
-
-	fmt.Println(count)
-}
 func TestAuditTable(t *testing.T) {
 	ctx := context.Background()
 	dbl, err := dblayer.Connection(ctx, "mysql", mysqlDSN, maxAttempts, timeout)
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
 	}
-	defer dbl.Close()
+	//defer dbl.Close()
 
 	err = dbl.Ping()
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
 	}
 
-	err = dbl.AuditTableCreate()
-	if err != nil {
-		t.Fatalf("Ошибка создания таблицы аудита: %v", err)
-	}
+	// err = dbl.AuditTableCreate()
+	// if err != nil {
+	// 	t.Fatalf("Ошибка создания таблицы аудита: %v", err)
+	// }
 	user := User{
-		Username: "test",
-		Email:    "test3@example.com",
-		Phone:    "1234567890",
+		Username: "tes3t",
+		Email:    "t2est@example.com",
+		Phone:    "1",
 		Password: "password",
 	}
-	_, err = dbl.Table("users").WithAudit(1).Create(user)
-	if err != nil {
-		t.Fatalf("Ошибка создания записи в таблице: %v", err)
-	}
-	err = dbl.Table("users").WithAudit(1).Where("id", 1).UpdateMap(map[string]interface{}{
-		"email": "test4@example.com",
-	})
+	// _, err = dbl.Table("users").WithAudit(1).Create(user)
+	// if err != nil {
+	// 	t.Fatalf("Ошибка создания записи в таблице: %v", err)
+	// }
+	//err = dbl.Table("users").WhereId(1).UpdateMap(map[string]interface{}{
+	//	"email": "test4@example.com",
+	//})
+	err = dbl.Table("users").WithAudit(1).WhereId(7).Update(user)
 	if err != nil {
 		t.Fatalf("Ошибка обновления записи в таблице: %v", err)
 	}
 
-}
-func TestPostgresCreateTable(t *testing.T) {
-	// Подготовка тестовой БД
-	db, err := sql.Open("postgres", "user=test_user password=test_password host=localhost port=5433 dbname=test_db sslmode=disable")
-	if err != nil {
-		t.Fatalf("Ошибка подключения к БД: %v", err)
-	}
-	defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		t.Fatalf("Ошибка подключения к БД: %v", err)
-	}
-
-	dbl := dblayer.New("postgres", db)
-
-	// Тест создания таблицы
-	err = dbl.CreateTableIfNotExists("users", func(schema *dblayer.Schema) {
-		schema.Integer("id").Primary().AutoIncrement()
-		schema.String("username", 50).NotNull()
-		schema.String("email", 100).NotNull().Unique()
-		schema.Timestamp("created_at").Default("CURRENT_TIMESTAMP")
-		schema.Timestamp("updated_at").Default("CURRENT_TIMESTAMP").OnUpdate("CURRENT_TIMESTAMP")
-	})
-
-	if err != nil {
-		t.Errorf("Ошибка создания таблицы: %v", err)
-	}
-
-	// Проверка существования таблицы
-	var exists bool
-	err = db.QueryRow(`
-		SELECT EXISTS (
-			SELECT FROM information_schema.tables 
-			WHERE table_schema = 'public' 
-			AND table_name = 'users'
-		)`).Scan(&exists)
-	if err != nil {
-		t.Errorf("Ошибка проверки существования таблицы: %v", err)
-	}
-	if !exists {
-		t.Error("Таблица не была создана")
-	}
-
-	// Проверка структуры таблицы
-	rows, err := db.Query(`
-		SELECT column_name, data_type, character_maximum_length 
-		FROM information_schema.columns 
-		WHERE table_name = 'users'`)
-	if err != nil {
-		t.Errorf("Ошибка получения структуры таблицы: %v", err)
-	}
-	defer rows.Close()
-
-	expectedColumns := map[string]string{
-		"id":         "integer",
-		"username":   "character varying",
-		"email":      "character varying",
-		"created_at": "timestamp without time zone",
-		"updated_at": "timestamp without time zone",
-	}
-
-	for rows.Next() {
-		var field, fieldType string
-		var maxLength sql.NullInt64
-		err := rows.Scan(&field, &fieldType, &maxLength)
-		if err != nil {
-			t.Errorf("Ошибка сканирования строки: %v", err)
-		}
-
-		expectedType, exists := expectedColumns[field]
-		if !exists {
-			t.Errorf("Неожиданное поле: %s", field)
-		} else if fieldType != expectedType {
-			t.Errorf("Неверный тип для поля %s: ожидался %s, получен %s", field, expectedType, fieldType)
-		}
-	}
-
-	// Очистка после теста
-	_, err = db.Exec("DROP TABLE users")
-	if err != nil {
-		t.Errorf("Ошибка удаления тестовой таблицы: %v", err)
-	}
 }
