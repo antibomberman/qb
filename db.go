@@ -16,8 +16,7 @@ type DBLayer struct {
 	cache        CacheDriver
 	mu           sync.RWMutex
 	driverName   string
-	dialect      BaseDialect
-	queryDialect QueryDialect
+	dialect      Dialect
 	errorHandler ErrorHandler
 }
 

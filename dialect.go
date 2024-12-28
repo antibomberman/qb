@@ -2,19 +2,11 @@ package dblayer
 
 import "strings"
 
-type QueryDialect interface {
-}
-
 type MysqlDialect struct{}
 type PostgresDialect struct{}
 type SqliteDialect struct{}
 
-type BaseDialect interface {
-	SchemaDialect
-	QueryDialect
-}
-
-type SchemaDialect interface {
+type Dialect interface {
 	TableDialect
 	ColumnDialect
 	ConstraintDialect
