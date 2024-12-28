@@ -2,38 +2,19 @@ package tests
 
 import (
 	"context"
-	"testing"
-	"time"
-
 	"github.com/antibomberman/dblayer"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	"testing"
 )
 
-const (
-	maxAttempts = 3
-	timeout     = time.Second * 3
-	mysqlDSN    = "test_user:test_password@tcp(localhost:3307)/test_db"
-	postgresDSN = "user=test_user password=test_password host=localhost port=5433 dbname=test_db sslmode=disable"
-)
-
-type User struct {
-	ID        int64      `db:"id"`
-	Username  string     `db:"username"`
-	Email     string     `db:"email"`
-	Phone     string     `db:"phone"`
-	Password  string     `db:"password"`
-	CreatedAt *time.Time `db:"created_at"`
-	UpdatedAt *time.Time `db:"updated_at"`
-}
-
-func TestAuditTable(t *testing.T) {
+func AuditTest(t *testing.T) {
 	ctx := context.Background()
-	dbl, err := dblayer.Connection(ctx, "mysql", mysqlDSN, maxAttempts, timeout)
+	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
 	if err != nil {
 		t.Fatalf("Ошибка подключения к БД: %v", err)
 	}
-	//defer dbl.Close()
+	defer dbl.Close()
 
 	err = dbl.Ping()
 	if err != nil {
