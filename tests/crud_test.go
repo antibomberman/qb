@@ -2,8 +2,9 @@ package tests
 
 import (
 	"context"
-	"github.com/antibomberman/dblayer"
 	"testing"
+
+	"github.com/antibomberman/dblayer"
 )
 
 func TestCrud(t *testing.T) {
@@ -24,35 +25,67 @@ func TestCrud(t *testing.T) {
 		Phone:    "123",
 		Password: "password123",
 	}
+
+	newUser := User{
+		Username: "new user",
+		Email:    "new.user@example.com",
+		Phone:    "456",
+		Password: "new_password",
+	}
 	// Create
-	dbl.Table("users").Create(user)
-	dbl.Table("users").CreateContext(ctx, user)
-	dbl.Table("users").CreateMap(map[string]interface{}{
+	_, err = dbl.Table("users").Create(user)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = dbl.Table("users").CreateContext(ctx, user)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = dbl.Table("users").CreateMap(map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
 		"password": "secret",
 	})
-	dbl.Table("users").CreateMapContext(ctx, map[string]interface{}{
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = dbl.Table("users").CreateMapContext(ctx, map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
 		"password": "secret",
 	})
+	if err != nil {
+		t.Error(err)
+	}
 	//update
-	dbl.Table("users").WhereId(1).Create(user)
-	dbl.Table("users").Where("email = ?", "john.doe@example.com").CreateContext(ctx, user)
-	dbl.Table("users").WhereId(3).CreateMap(map[string]interface{}{
-		"username": "Jane Doe",
-		"email":    "jane.doe@example.com",
+	err = dbl.Table("users").WhereId(1).Update(newUser)
+	if err != nil {
+		t.Error(err)
+	}
+	err = dbl.Table("users").Where("email = ?", "john.doe@example.com").UpdateContext(ctx, newUser)
+	if err != nil {
+		t.Error(err)
+	}
+	err = dbl.Table("users").WhereId(3).UpdateMap(map[string]interface{}{
+		"username": "new user map",
+		"email":    "new.user.map@example.com",
 		"phone":    "456",
 		"password": "secret",
 	})
-	dbl.Table("users").WhereId(3).CreateMapContext(ctx, map[string]interface{}{
+	if err != nil {
+		t.Error(err)
+	}
+	err = dbl.Table("users").WhereId(3).UpdateMapContext(ctx, map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
 		"password": "secret",
 	})
 
+	if err != nil {
+		t.Error(err)
+	}
 }
