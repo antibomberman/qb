@@ -156,16 +156,6 @@ func (s *Schema) DropColumn(name string) *Schema {
 	return s
 }
 
-// ModifyColumn изменяет колонку
-func (s *Schema) ModifyColumn(column Column) *Schema {
-	s.builder.AddConstraint(Constraint{
-		Type:          "MODIFY COLUMN",
-		Columns:       []string{column.Name},
-		NewDefinition: column.Definition,
-	})
-	return s
-}
-
 // AddIndex добавляет индекс
 func (s *Schema) AddIndex(name string, columns []string, unique bool) *Schema {
 	s.builder.AddConstraint(Constraint{
