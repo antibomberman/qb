@@ -216,8 +216,8 @@ func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 //check table `SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name = 'users'``
 
 // Create Aydit table
-func (d *DBLayer) AuditTableCreate() error {
-	err := d.CreateTableIfNotExists("audits", func(schema *Schema) {
+func (dbl *DBLayer) AuditTableCreate() error {
+	err := dbl.CreateTableIfNotExists("audits", func(schema *Schema) {
 		schema.ID()
 		schema.String("table_name", 20)
 		schema.BigInteger("record_id").Unsigned()
