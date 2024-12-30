@@ -1702,56 +1702,37 @@ func (qb *QueryBuilder) Paginate(page int, perPage int, dest interface{}) (*Pagi
 // Avg вычисляет среднее значение колонки
 func (qb *QueryBuilder) Avg(column string) (float64, error) {
 	var result float64
-	query := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		_, err := qb.execGet(&result, query)
-		return result, err
-	}
-	_, err := qb.execGet(&result, query)
+	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.table)
+
+	body, args := qb.buildBodyQuery()
+	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 
 // Sum вычисляет сумму значений колонки
 func (qb *QueryBuilder) Sum(column string) (float64, error) {
 	var result float64
-	query := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		_, err := qb.execGet(&result, query)
-		return result, err
-	}
-	_, err := qb.execGet(&result, query)
+	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.table)
+	body, args := qb.buildBodyQuery()
+	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 
 // Min находит минимальное значение колонки
 func (qb *QueryBuilder) Min(column string) (float64, error) {
 	var result float64
-	query := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		_, err := qb.execGet(&result, query)
-		return result, err
-	}
-	_, err := qb.execGet(&result, query)
+	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.table)
+	body, args := qb.buildBodyQuery()
+	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 
 // Max находит максимальное значение колонки
 func (qb *QueryBuilder) Max(column string) (float64, error) {
 	var result float64
-	query := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		_, err := qb.execGet(&result, query)
-		return result, err
-	}
-	_, err := qb.execGet(&result, query)
+	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.table)
+	body, args := qb.buildBodyQuery()
+	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 

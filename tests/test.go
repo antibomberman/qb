@@ -31,7 +31,6 @@ func ConnectDB() (*dblayer.DBLayer, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer dbl.Close()
 	err = dbl.Ping()
 	if err != nil {
 		return nil, err

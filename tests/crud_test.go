@@ -104,3 +104,36 @@ func TestPaginate(t *testing.T) {
 	fmt.Println(result)
 
 }
+func TestAgr(t *testing.T) {
+	dbl, err := ConnectDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	count, err := dbl.Table("users").Where("id >?", 1).Count()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Total users:", count)
+	avg, err := dbl.Table("users").Where("id >?", 1).Avg("id")
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Average id:", avg)
+	sum, err := dbl.Table("users").Where("id >?", 1).Sum("id")
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Sum id:", sum)
+	maxId, err := dbl.Table("users").Where("id >?", 1).Max("id")
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Max id:", maxId)
+
+	minId, err := dbl.Table("users").Where("id >?", 1).Min("id")
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Min id:", minId)
+
+}
