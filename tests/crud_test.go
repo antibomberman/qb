@@ -136,4 +136,9 @@ func TestAgr(t *testing.T) {
 	}
 	fmt.Println("Min id:", minId)
 
+	exists, err := dbl.Table("users").WhereId("id").Exists()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("User with id 1 exists:", exists)
 }

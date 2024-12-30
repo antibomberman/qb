@@ -1742,9 +1742,6 @@ func (qb *QueryBuilder) Count() (int64, error) {
 	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.table)
 
 	body, args := qb.buildBodyQuery()
-
-	fmt.Println(head + body)
-	fmt.Println(args)
 	_, err := qb.execGet(&count, head+body, args...)
 	return count, err
 }
