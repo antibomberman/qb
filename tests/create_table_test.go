@@ -3,10 +3,8 @@ package tests
 import (
 	"context"
 	"fmt"
-	"testing"
-	"time"
-
 	"github.com/antibomberman/dblayer"
+	"testing"
 )
 
 func TestCreateTable(t *testing.T) {
@@ -30,18 +28,15 @@ func TestCreateTable(t *testing.T) {
 		schema.Phone("phone")
 		schema.Password("password")
 		schema.Timestamps()
-
 	})
 	if err != nil {
 		t.Errorf("Ошибка создания таблицы: %v", err)
 	}
-	now := time.Now()
 	user := User{
-		Username:  "test",
-		Email:     "test@example.com",
-		Phone:     "1234567890",
-		Password:  "password",
-		CreatedAt: &now,
+		Username: "test",
+		Email:    "test@example.com",
+		Phone:    "1234567890",
+		Password: "password",
 	}
 
 	_, err = dbl.Table("users").Create(user)

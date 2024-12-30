@@ -204,6 +204,7 @@ func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
 // Get получает все записи
 func (qb *QueryBuilder) Get(dest interface{}) (bool, error) {
 	query, args := qb.buildSelectQuery()
+	fmt.Println(query)
 	return qb.execSelect(dest, query, args...)
 }
 
@@ -1678,6 +1679,7 @@ func (qb *QueryBuilder) Paginate(page int, perPage int, dest interface{}) (*Pagi
 		return nil, err
 	}
 
+	fmt.Println("Total", total)
 	lastPage := int(math.Ceil(float64(total) / float64(perPage)))
 
 	qb.Limit(perPage)
@@ -1756,14 +1758,13 @@ func (qb *QueryBuilder) Max(column string) (float64, error) {
 // Count возвращает количество записей
 func (qb *QueryBuilder) Count() (int64, error) {
 	var count int64
-	query := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		_, err := qb.execGet(&count, query)
-		return count, err
-	}
-	_, err := qb.execGet(&count, query)
+	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.table)
+
+	body, args := qb.buildBodyQuery()
+
+	fmt.Println(head + body)
+	fmt.Println(args)
+	_, err := qb.execGet(&count, head+body, args...)
 	return count, err
 }
 

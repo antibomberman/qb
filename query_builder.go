@@ -207,7 +207,7 @@ func (qb *QueryBuilder) getDriverName() string {
 	// return ""
 }
 
-func (qb *QueryBuilder) buildBodyQuery(head string) (string, []interface{}) {
+func (qb *QueryBuilder) buildBodyQuery() (string, []interface{}) {
 	var args []interface{}
 	var sql strings.Builder
 
@@ -263,7 +263,7 @@ func (qb *QueryBuilder) buildSelectQuery() (string, []interface{}) {
 	}
 
 	head := fmt.Sprintf("SELECT %s FROM %s", selectClause, tableName)
-	body, args := qb.buildBodyQuery(head)
+	body, args := qb.buildBodyQuery()
 	return head + body, args
 }
 
@@ -299,7 +299,7 @@ func (qb *QueryBuilder) buildUpdateQuery(data interface{}, fields []string) (str
 
 	head := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
 
-	body, bodyArgs := qb.buildBodyQuery(head)
+	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
 	return head + body, args
 
@@ -320,7 +320,7 @@ func (qb *QueryBuilder) buildUpdateMapQuery(data map[string]interface{}) (string
 	}
 	head := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
 
-	body, bodyArgs := qb.buildBodyQuery(head)
+	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
 	return head + body, args
 

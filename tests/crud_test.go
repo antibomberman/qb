@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/antibomberman/dblayer"
@@ -88,4 +89,35 @@ func TestCrud(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	//delete
+	err = dbl.Table("users").WhereId(1).Delete()
+	if err != nil {
+		t.Error(err)
+	}
+}
+func TestPaginate(t *testing.T) {
+	ctx := context.Background()
+	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
+
+	if err != nil {
+		t.Fatalf("Ошибка подключения к БД: %v", err)
+	}
+
+	defer dbl.Close()
+
+	err = dbl.Ping()
+	if err != nil {
+		t.Fatalf("Ошибка подключения к БД: %v", err)
+	}
+
+	var users []User
+	result, err := dbl.Table("users").Where("id > ?", 1).
+		Where("id > ?", 2).
+		Paginate(1, 10, &users)
+
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(result)
+
 }
