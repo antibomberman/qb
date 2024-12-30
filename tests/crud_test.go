@@ -3,9 +3,10 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/antibomberman/dblayer"
 	"testing"
 	"time"
+
+	"github.com/antibomberman/dblayer"
 )
 
 func TestCrud(t *testing.T) {
@@ -167,6 +168,15 @@ func TestTransaction(t *testing.T) {
 	}
 
 	tx.Commit()
+
+	err = dbl.Transaction(func(tx *dblayer.Transaction) error {
+		_, err := tx.Table("users").Create(user)
+		return err
+	})
+	if err != nil {
+		t.Error(err)
+	}
+
 }
 
 func TestTrancate(t *testing.T) {

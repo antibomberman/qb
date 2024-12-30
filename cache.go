@@ -3,9 +3,10 @@ package dblayer
 import (
 	"context"
 	"encoding/json"
-	"github.com/redis/go-redis/v9"
 	"sync"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 //add  optional driver // redis | memcached | map
@@ -67,7 +68,7 @@ type MemoryCache struct {
 	mu   sync.RWMutex
 }
 
-func NewMemoryCache() *MemoryCache {
+func NewCacheMemory() *MemoryCache {
 	cache := &MemoryCache{
 		data: make(map[string]cacheItem),
 	}
@@ -136,7 +137,7 @@ type RedisCache struct {
 	ctx    context.Context
 }
 
-func NewRedisCache(addr string, password string, db int) *RedisCache {
+func NewCacheRedis(addr string, password string, db int) *RedisCache {
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,

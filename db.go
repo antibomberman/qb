@@ -101,11 +101,11 @@ func (d *DBLayer) Close() error {
 func (d *DBLayer) Ping() error {
 	return d.db.Ping()
 }
-func (d *DBLayer) SeRedisCacheDriver(addr string, password string, db int) {
-	d.cache = NewRedisCache(addr, password, db)
+func (d *DBLayer) CacheRedisDriver(addr string, password string, db int) {
+	d.cache = NewCacheRedis(addr, password, db)
 }
-func (d *DBLayer) SeMemoryCacheDriver() {
-	d.cache = NewMemoryCache()
+func (d *DBLayer) CacheMemoryDriver() {
+	d.cache = NewCacheMemory()
 }
 
 // Table теперь возвращает QueryBuilder с доступом к кешу
@@ -216,8 +216,8 @@ func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 //check table `SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name = 'users'``
 
 // Create Aydit table
-func (dbl *DBLayer) AuditTableCreate() error {
-	err := dbl.CreateTableIfNotExists("audits", func(schema *Schema) {
+func (d *DBLayer) AuditTableCreate() error {
+	err := d.CreateTableIfNotExists("audits", func(schema *Schema) {
 		schema.ID()
 		schema.String("table_name", 20)
 		schema.BigInteger("record_id").Unsigned()
