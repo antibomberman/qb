@@ -43,8 +43,7 @@ func (g *MysqlDialect) BuildCreateTable(s *Schema) string {
 
 	// Внешние ключи
 	for col, fk := range s.definition.constraints.foreignKeys {
-		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
-			col, fk.Table, fk.Column)
+		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)", col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
 			constraint += " ON DELETE " + fk.OnDelete
 		}
@@ -244,7 +243,7 @@ func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, uniqu
 	return sql.String()
 }
 
-func (g *MysqlDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
+func (g *MysqlDialect) BuildForeignKeyDefinition(fk *Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")

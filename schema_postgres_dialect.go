@@ -164,7 +164,7 @@ func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, un
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
+func (g *PostgresDialect) BuildForeignKeyDefinition(fk *Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")

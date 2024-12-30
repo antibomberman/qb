@@ -1,76 +1,128 @@
 package dblayer
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
-// ForeignKey представляет внешний ключ
-type ForeignKey struct {
+const (
+	CASCADE     = "CASCADE"
+	RESTRICT    = "RESTRICT"
+	SET_NULL    = "SET NULL"
+	NO_ACTION   = "NO ACTION"
+	SET_DEFAULT = "SET DEFAULT"
+)
+
+// Foreign представляет внешний ключ
+type Foreign struct {
 	Table    string
 	Column   string
 	OnDelete string
 	OnUpdate string
 }
 
-// ForeignKeyBuilder построитель внешних ключей
+// ForeignBuilder построитель внешних ключей
 
-type ForeignKeyBuilder struct {
+type ForeignBuilder struct {
 	schema *Schema
-	fk     *ForeignKey
+	fk     *Foreign
 	column string
 }
 
-func (fkb *ForeignKeyBuilder) OnDelete(action string) *ForeignKeyBuilder {
-	fkb.fk.OnDelete = action
-	return fkb
-}
-
-func (fkb *ForeignKeyBuilder) OnUpdate(action string) *ForeignKeyBuilder {
-	fkb.fk.OnUpdate = action
-	return fkb
-}
-
-func (fkb *ForeignKeyBuilder) Add() *Schema {
-	fkb.schema.definition.constraints.foreignKeys[fkb.column] = fkb.fk
-	return fkb.schema
-}
-
-// ForeignKey добавляет внешний ключ
-func (s *Schema) ForeignKey(column, refTable, refColumn string) *ForeignKeyBuilder {
-	return &ForeignKeyBuilder{
+func (s *Schema) foreign(column, refTable, refColumn string) *ForeignBuilder {
+	fk := &Foreign{
+		Table:  refTable,
+		Column: refColumn,
+	}
+	s.definition.constraints.foreignKeys[column] = fk
+	return &ForeignBuilder{
 		schema: s,
-		fk: &ForeignKey{
-			Table:  refTable,
-			Column: refColumn,
-		},
+		fk:     fk,
 		column: column,
 	}
 }
+func (s *Schema) Foreign(column string) *ForeignBuilder {
+	fk := &Foreign{}
+	s.definition.constraints.foreignKeys[column] = fk
+	return &ForeignBuilder{
+		schema: s,
+		fk:     fk,
+		column: column,
+	}
+}
+func (c *ColumnBuilder) Foreign(name string) *ForeignBuilder {
 
-// AddForeignKey добавляет внешний ключ
-func (s *Schema) AddForeignKey(name string, column string, reference ForeignKey) *Schema {
-	cmd := fmt.Sprintf(
-		"ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s)",
-		name, column, reference.Table, reference.Column,
-	)
-	if reference.OnDelete != "" {
-		cmd += " ON DELETE " + reference.OnDelete
+	refTable := strings.TrimSuffix(name, "_id")
+	if !strings.HasSuffix(refTable, "s") {
+		refTable += "s"
 	}
-	if reference.OnUpdate != "" {
-		cmd += " ON UPDATE " + reference.OnUpdate
-	}
-	s.definition.commands = append(s.definition.commands, Command{
-		Type: "ADD CONSTRAINT",
-		Name: name,
-		Cmd:  cmd,
-	})
-	return s
+
+	return c.schema.foreign(c.column.Name, refTable, "id")
+}
+func (c *ForeignBuilder) References(table string, column string) *ForeignBuilder {
+	c.fk.Table = table
+	c.fk.Column = column
+	return c
 }
 
-func (cb *ColumnBuilder) References(table, column string) *ColumnBuilder {
-	cb.column.Constraints.References = &ForeignKey{
-		Table:  table,
-		Column: column,
+func (s *Schema) ForeignId(name string) *ForeignBuilder {
+	s.BigInteger(name).Unsigned()
+
+	refTable := strings.TrimSuffix(name, "_id")
+	if !strings.HasSuffix(refTable, "s") {
+		refTable += "s"
 	}
-	return cb
+
+	return s.foreign(name, refTable, "id")
+}
+
+func (fkb *ForeignBuilder) CascadeOnDelete() *ForeignBuilder {
+	fkb.fk.OnDelete = CASCADE
+	return fkb
+}
+
+func (fkb *ForeignBuilder) CascadeOnUpdate() *ForeignBuilder {
+	fkb.fk.OnUpdate = CASCADE
+	return fkb
+}
+
+func (fkb *ForeignBuilder) RestrictOnDelete() *ForeignBuilder {
+	fkb.fk.OnDelete = RESTRICT
+	return fkb
+}
+
+func (fkb *ForeignBuilder) RestrictOnUpdate() *ForeignBuilder {
+	fkb.fk.OnUpdate = RESTRICT
+	return fkb
+}
+func (fkb *ForeignBuilder) NullOnDelete() *ForeignBuilder {
+	fkb.fk.OnDelete = SET_NULL
+	return fkb
+}
+
+func (fkb *ForeignBuilder) NullOnUpdate() *ForeignBuilder {
+	fkb.fk.OnUpdate = SET_NULL
+	return fkb
+}
+
+func (fkb *ForeignBuilder) NoActionOnDelete() *ForeignBuilder {
+	fkb.fk.OnDelete = NO_ACTION
+	return fkb
+}
+
+func (fkb *ForeignBuilder) NoActionOnUpdate() *ForeignBuilder {
+	fkb.fk.OnUpdate = NO_ACTION
+	return fkb
+}
+
+func (fkb *ForeignBuilder) SetDefaultOnDelete() *ForeignBuilder {
+	fkb.fk.OnDelete = SET_DEFAULT
+	return fkb
+}
+
+func (fkb *ForeignBuilder) SetDefaultOnUpdate() *ForeignBuilder {
+	fkb.fk.OnUpdate = SET_DEFAULT
+	return fkb
 }
 
 // DropForeignKey удаляет внешний ключ
@@ -82,11 +134,3 @@ func (s *Schema) DropForeignKey(name string) *Schema {
 	})
 	return s
 }
-
-const (
-	CASCADE     = "CASCADE"
-	RESTRICT    = "RESTRICT"
-	SET_NULL    = "SET NULL"
-	NO_ACTION   = "NO ACTION"
-	SET_DEFAULT = "SET DEFAULT"
-)

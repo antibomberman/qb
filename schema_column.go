@@ -29,7 +29,7 @@ type ColumnConstraints struct {
 	Primary       bool
 	Unique        bool
 	Index         bool
-	References    *ForeignKey
+	References    *Foreign
 }
 
 type ColumnPosition struct {

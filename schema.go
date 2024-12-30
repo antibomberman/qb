@@ -29,7 +29,7 @@ type Constraints struct {
 	primaryKey  []string
 	uniqueKeys  map[string][]string
 	indexes     map[string][]string
-	foreignKeys map[string]*ForeignKey
+	foreignKeys map[string]*Foreign
 }
 
 type TableOptions struct {

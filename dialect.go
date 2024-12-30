@@ -34,7 +34,7 @@ type ColumnDialect interface {
 }
 
 type ConstraintDialect interface {
-	BuildForeignKeyDefinition(fk *ForeignKey) string
+	BuildForeignKeyDefinition(fk *Foreign) string
 	BuildSpatialIndexDefinition(name string, columns []string) string
 	BuildFullTextIndexDefinition(name string, columns []string) string
 }

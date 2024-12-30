@@ -154,8 +154,8 @@ func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 			constraints: Constraints{
 				primaryKey:  make([]string, 0),
 				uniqueKeys:  make(map[string][]string),
-				indexes:     make(map[string][]string),    // Было nil
-				foreignKeys: make(map[string]*ForeignKey), // Было nil
+				indexes:     make(map[string][]string),
+				foreignKeys: make(map[string]*Foreign),
 			},
 		},
 	}
@@ -179,7 +179,7 @@ func (dbl *DBLayer) CreateTableIfNotExists(name string, fn func(*Schema)) error 
 				primaryKey:  make([]string, 0),
 				uniqueKeys:  make(map[string][]string),
 				indexes:     make(map[string][]string),
-				foreignKeys: make(map[string]*ForeignKey),
+				foreignKeys: make(map[string]*Foreign),
 			},
 		},
 	}

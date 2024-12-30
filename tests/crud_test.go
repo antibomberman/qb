@@ -165,5 +165,7 @@ func TestTransaction(t *testing.T) {
 	}
 
 	tx.Commit()
+}
+func TestTrancate(t *testing.T) {
 
 }

@@ -25,7 +25,7 @@ func main() {
 // CreateTable создает таблицу
 func CreateTable() {
 	DBLayer.CreateTable("users", func(table *dblayer.Schema) {
-		table.BigIncrements("id")
+		table.ID()
 		table.String("name", 255)
 		table.String("email", 255)
 		table.Timestamps()

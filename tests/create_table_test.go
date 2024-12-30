@@ -1,9 +1,9 @@
 package tests
 
 import (
-	"fmt"
-	"github.com/antibomberman/dblayer"
 	"testing"
+
+	"github.com/antibomberman/dblayer"
 )
 
 func TestCreateTable(t *testing.T) {
@@ -12,9 +12,11 @@ func TestCreateTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	dbl.Raw("DROP TABLE users").Exec()
+	dbl.Raw("DROP TABLE posts").Exec()
+
 	// Тест создания таблицы
 	err = dbl.CreateTableIfNotExists("users", func(schema *dblayer.Schema) {
-		schema.BigInteger("id").Unsigned().Primary().AutoIncrement()
+		schema.ID()
 		schema.String("username", 50)
 		schema.String("email", 100).NotNull().Unique()
 		schema.Phone("phone")
@@ -22,36 +24,24 @@ func TestCreateTable(t *testing.T) {
 		schema.Timestamps()
 	})
 	if err != nil {
-		t.Errorf("Ошибка создания таблицы: %v", err)
+		t.Fatal(err)
 	}
-	user := User{
-		Username: "test",
-		Email:    "test@example.com",
-		Phone:    "1234567890",
-		Password: "password",
-	}
+	// Тест создания таблицы
+	err = dbl.CreateTableIfNotExists("posts", func(schema *dblayer.Schema) {
+		schema.ID()
+		schema.BigInteger("user_id").Unsigned().Nullable().Foreign("users").References("users", "id").CascadeOnDelete()
 
-	_, err = dbl.Table("users").Create(user)
-	if err != nil {
-		t.Errorf("Ошибка создания записи в таблице: %v", err)
-	}
-	fmt.Println("--------------------------------------")
-	dbl.UpdateTable("users", func(schema *dblayer.Schema) {
-		// Если колонки нет - ADD COLUMN
-		schema.String("new_column", 255)
+		schema.BigInteger("_user_id").Unsigned()
 
-		// Если колонка уже есть - MODIFY COLUMN
-		schema.String("username", 100)
-	})
-	dbl.UpdateTable("users", func(schema *dblayer.Schema) {
-		schema.DropColumn("new_column")
+		schema.String("title", 255)
+		schema.Text("content")
+		schema.Timestamps()
+		schema.Foreign("_user_id").References("users", "id").CascadeOnDelete()
 
 	})
 
-	count, err := dbl.Table("users").Count()
 	if err != nil {
-		t.Fatalf("Ошибка получения количества записей в таблице: %v", err)
+		t.Fatal(err)
 	}
 
-	fmt.Println(count)
 }

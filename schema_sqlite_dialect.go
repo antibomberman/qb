@@ -169,7 +169,7 @@ func (g *SqliteDialect) BuildIndexDefinition(name string, columns []string, uniq
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildForeignKeyDefinition(fk *ForeignKey) string {
+func (g *SqliteDialect) BuildForeignKeyDefinition(fk *Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
