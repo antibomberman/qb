@@ -209,4 +209,5 @@ func TestWhereDates(t *testing.T) {
 		t.Error(err)
 	}
 	fmt.Println("Users: ", count)
+
 }
