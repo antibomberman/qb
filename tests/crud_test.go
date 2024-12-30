@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/antibomberman/dblayer"
 	"testing"
 )
 
@@ -166,6 +167,21 @@ func TestTransaction(t *testing.T) {
 
 	tx.Commit()
 }
+
 func TestTrancate(t *testing.T) {
+
+}
+func TestWhere(t *testing.T) {
+	dbl, err := ConnectDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var users []User
+	_, err = dbl.Table("users").Where("id > ?", 1).OrWhereGroup(func(builder *dblayer.QueryBuilder) {
+		builder.Where("id > ?", 1).OrWhere("id < ?", 100)
+	}).Get(&users)
+	if err != nil {
+		t.Error(err)
+	}
 
 }

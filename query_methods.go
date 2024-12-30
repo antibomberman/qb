@@ -77,9 +77,16 @@ func (qb *QueryBuilder) WhereIn(column string, values ...interface{}) *QueryBuil
 func (qb *QueryBuilder) WhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
 	group := &QueryBuilder{}
 	fn(group)
+
+	var args []interface{}
+	for _, cond := range group.conditions {
+		args = append(args, cond.args...)
+	}
+
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		nested:   group.conditions,
+		args:     args, // Добавляем собранные аргументы
 	})
 	return qb
 }
@@ -88,9 +95,14 @@ func (qb *QueryBuilder) WhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
 func (qb *QueryBuilder) OrWhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
 	group := &QueryBuilder{}
 	fn(group)
+	var args []interface{}
+	for _, cond := range group.conditions {
+		args = append(args, cond.args...)
+	}
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "OR",
 		nested:   group.conditions,
+		args:     args,
 	})
 	return qb
 }
@@ -204,7 +216,7 @@ func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
 // Get получает все записи
 func (qb *QueryBuilder) Get(dest interface{}) (bool, error) {
 	query, args := qb.buildSelectQuery()
-	fmt.Println(query)
+	fmt.Println(query, args)
 	return qb.execSelect(dest, query, args...)
 }
 
