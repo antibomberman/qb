@@ -18,7 +18,7 @@ func TestCreateTable(t *testing.T) {
 	err = dbl.CreateTableIfNotExists("users", func(schema *dblayer.Schema) {
 		schema.ID()
 		schema.String("username", 50)
-		schema.String("email", 100).NotNull().Unique()
+		schema.String("email", 100)
 		schema.Phone("phone")
 		schema.Password("password")
 		schema.Timestamps()

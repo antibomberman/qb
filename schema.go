@@ -244,8 +244,8 @@ func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
 
 // Timestamps добавляет поля created_at и updated_at
 func (s *Schema) Timestamps() *Schema {
-	s.Timestamp("created_at").Default(s.dbl.dialect.GetCurrentTimestampExpression())
-	s.Timestamp("updated_at").Default(s.dbl.dialect.GetCurrentTimestampExpression()).OnUpdate(s.dbl.dialect.GetCurrentTimestampExpression()).Nullable()
+	s.Timestamp("created_at").Nullable().Default(s.dbl.dialect.GetCurrentTimestampExpression())
+	s.Timestamp("updated_at").Nullable().Default(s.dbl.dialect.GetCurrentTimestampExpression()).OnUpdate(s.dbl.dialect.GetCurrentTimestampExpression()).Nullable()
 	return s
 }
 

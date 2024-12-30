@@ -250,12 +250,10 @@ func (qb *QueryBuilder) Delete() error {
 		return errors.New("delete without conditions is not allowed")
 	}
 
-	whereSQL := buildConditions(qb.conditions)
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s",
-		qb.table,
-		whereSQL)
+	head := fmt.Sprintf("DELETE FROM %s", qb.table)
+	body, args := qb.buildBodyQuery()
 
-	return qb.execExec(query)
+	return qb.execExec(head+body, args...)
 }
 
 // DeleteContext удаляет записи с контекстом
@@ -264,12 +262,10 @@ func (qb *QueryBuilder) DeleteContext(ctx context.Context) error {
 		return errors.New("delete without conditions is not allowed")
 	}
 
-	whereSQL := buildConditions(qb.conditions)
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s",
-		qb.table,
-		whereSQL)
+	head := fmt.Sprintf("DELETE FROM %s", qb.table)
+	body, args := qb.buildBodyQuery()
 
-	return qb.execExecContext(ctx, query)
+	return qb.execExecContext(ctx, head+body, args...)
 }
 
 // SubQuery создает подзапрос
@@ -1379,7 +1375,7 @@ func (qb *QueryBuilder) WhereDate(column string, operator string, value time.Tim
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) %s ?", column, operator),
-		args:     []interface{}{value},
+		args:     []interface{}{value.Format("2006-01-02")},
 	})
 	return qb
 }
@@ -1754,6 +1750,7 @@ func (qb *QueryBuilder) Count() (int64, error) {
 	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.table)
 
 	body, args := qb.buildBodyQuery()
+	fmt.Println(head+body, args)
 	_, err := qb.execGet(&count, head+body, args...)
 	return count, err
 }

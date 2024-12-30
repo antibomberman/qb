@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/antibomberman/dblayer"
 	"testing"
+	"time"
 )
 
 func TestCrud(t *testing.T) {
@@ -183,5 +184,18 @@ func TestWhere(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
+}
+func TestWhereDates(t *testing.T) {
+	dbl, err := ConnectDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Now()
+	count, err := dbl.Table("users").WhereDate("created_at", ">", now).Count()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Users created before:", count)
 
 }
