@@ -146,8 +146,11 @@ func (g *MysqlDialect) BuildColumnDefinition(col *Column) string {
 		sql.WriteString(" UNSIGNED")
 	}
 
-	if col.Constraints.NotNull {
+	if !col.Constraints.NotNull {
 		sql.WriteString(" NOT NULL")
+
+	} else {
+		sql.WriteString(" NULL")
 	}
 
 	if col.Definition.Default != nil {

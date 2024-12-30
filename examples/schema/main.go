@@ -45,13 +45,13 @@ func UpdateTable() {
 
 func BuildTable() {
 	err := DBLayer.CreateTable("users", func(table *dblayer.Schema) {
-		table.Column("id").Type("bigint").AutoIncrement().Primary().Add()
-		table.Column("name").Type("varchar", 255).Comment("Имя пользователя").Add()
-		table.Column("email").Type("varchar", 255).Unique().Add()
-		table.Column("password").Type("varchar", 255).Add()
-		table.Column("status").Type("enum", 20).Default("active").Add()
-		table.Column("created_at").Type("timestamp").Default("CURRENT_TIMESTAMP").Add()
-		table.Column("updated_at").Type("timestamp").Nullable().Add()
+		table.Column("id").Type("bigint").AutoIncrement().Primary()
+		table.Column("name").Type("varchar", 255).Comment("Имя пользователя")
+		table.Column("email").Type("varchar", 255).Unique()
+		table.Column("password").Type("varchar", 255)
+		table.Column("status").Type("enum", 20).Default("active")
+		table.Column("created_at").Type("timestamp").Default("CURRENT_TIMESTAMP")
+		table.Column("updated_at").Type("timestamp").Nullable()
 
 		table.UniqueKey("uk_email", "email")
 		table.Index("idx_status", "status")

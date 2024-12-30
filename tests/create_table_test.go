@@ -33,9 +33,11 @@ func TestCreateTable(t *testing.T) {
 
 		schema.BigInteger("_user_id").Unsigned()
 
-		schema.String("title", 255)
-		schema.Text("content")
+		schema.String("def", 255)
+		schema.String("title", 255).NotNull()
+		schema.Text("content").Nullable()
 		schema.Timestamps()
+		schema.SoftDeletes()
 		schema.Foreign("_user_id").References("users", "id").CascadeOnDelete()
 
 	})

@@ -3,10 +3,11 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/antibomberman/dblayer"
 	"log"
-	_ "modernc.org/sqlite"
 	"time"
+
+	"github.com/antibomberman/dblayer"
+	_ "modernc.org/sqlite"
 )
 
 // Data structures for working with database
@@ -92,7 +93,6 @@ func createTables(dbl *dblayer.DBLayer) error {
 		schema.String("title", 200)
 		schema.Text("content")
 		schema.Timestamp("created_at")
-		schema.ForeignKey("user_id", "users", "id")
 	})
 	if err != nil {
 		return fmt.Errorf("error creating posts table: %w", err)
@@ -104,8 +104,6 @@ func createTables(dbl *dblayer.DBLayer) error {
 		schema.Integer("user_id")
 		schema.Text("content")
 		schema.Timestamp("created_at")
-		schema.ForeignKey("post_id", "posts", "id")
-		schema.ForeignKey("user_id", "users", "id")
 	})
 	if err != nil {
 		return fmt.Errorf("error creating comments table: %w", err)

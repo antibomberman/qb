@@ -109,7 +109,6 @@ func (g *PostgresDialect) BuildColumnDefinition(col *Column) string {
 	sql.WriteString(col.Name)
 	sql.WriteString(" ")
 
-	// Особая обработка для PostgreSQL
 	if col.Constraints.AutoIncrement {
 		if col.Constraints.Primary {
 			sql.WriteString("SERIAL PRIMARY KEY")
@@ -125,10 +124,11 @@ func (g *PostgresDialect) BuildColumnDefinition(col *Column) string {
 		sql.WriteString(fmt.Sprintf("(%d)", col.Definition.Length))
 	}
 
-	if col.Constraints.NotNull {
+	if !col.Constraints.NotNull {
 		sql.WriteString(" NOT NULL")
+	} else {
+		sql.WriteString(" NULL")
 	}
-
 	if col.Definition.Default != nil {
 		sql.WriteString(fmt.Sprintf(" DEFAULT %v", col.Definition.Default))
 	}

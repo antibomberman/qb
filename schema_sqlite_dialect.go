@@ -128,8 +128,10 @@ func (g *SqliteDialect) BuildColumnDefinition(col *Column) string {
 		sql.WriteString(col.Definition.Type)
 	}
 
-	if col.Constraints.NotNull {
+	if !col.Constraints.NotNull {
 		sql.WriteString(" NOT NULL")
+	} else {
+		sql.WriteString(" NULL")
 	}
 
 	if col.Definition.Default != nil {

@@ -417,11 +417,6 @@ func (cb *ColumnBuilder) Type(typ string, length ...int) *ColumnBuilder {
 	return cb
 }
 
-func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
-	cb.column.Constraints.NotNull = false
-	return cb
-}
-
 func (cb *ColumnBuilder) Default(value interface{}) *ColumnBuilder {
 	cb.column.Definition.Default = value
 	return cb
@@ -475,6 +470,10 @@ func (cb *ColumnBuilder) OnUpdate(value string) *ColumnBuilder {
 // NotNull устанавливает колонку как NOT NULL
 func (cb *ColumnBuilder) NotNull() *ColumnBuilder {
 	cb.column.Constraints.NotNull = true
+	return cb
+}
+func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
+	cb.column.Constraints.NotNull = false
 	return cb
 }
 
