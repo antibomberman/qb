@@ -192,10 +192,21 @@ func TestWhereDates(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now()
-	count, err := dbl.Table("users").WhereDate("created_at", ">", now).Count()
+	count, err := dbl.Table("users").WhereDate("created_at", "=", now).Count()
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Println("Users created before:", count)
+	fmt.Println("Users: ", count)
 
+	count, err = dbl.Table("users").WhereDateTime("created_at", "<=", now).Count()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Users: ", count)
+
+	count, err = dbl.Table("users").WhereBetweenDates("created_at", now.Add(-time.Hour*24*30), now).Count()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Users: ", count)
 }
