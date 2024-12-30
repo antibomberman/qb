@@ -178,7 +178,7 @@ func TestWhere(t *testing.T) {
 	}
 	var users []User
 	_, err = dbl.Table("users").Where("id > ?", 1).OrWhereGroup(func(builder *dblayer.QueryBuilder) {
-		builder.Where("id > ?", 1).OrWhere("id < ?", 100)
+		builder.Where("id > ?", 2).OrWhere("id < ?", 100)
 	}).Get(&users)
 	if err != nil {
 		t.Error(err)
