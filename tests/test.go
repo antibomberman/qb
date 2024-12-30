@@ -1,7 +1,9 @@
 package tests
 
 import (
+	"context"
 	"database/sql"
+	"github.com/antibomberman/dblayer"
 	"time"
 )
 
@@ -21,4 +23,20 @@ type User struct {
 	Password  string       `db:"password"`
 	CreatedAt sql.NullTime `db:"created_at"`
 	UpdatedAt sql.NullTime `db:"updated_at"`
+}
+
+func ConnectDB() (*dblayer.DBLayer, error) {
+	ctx := context.Background()
+	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
+	if err != nil {
+		return nil, err
+	}
+	defer dbl.Close()
+	err = dbl.Ping()
+	if err != nil {
+		return nil, err
+	}
+
+	return dbl, nil
+
 }

@@ -1,23 +1,15 @@
 package tests
 
 import (
-	"context"
 	"fmt"
 	"github.com/antibomberman/dblayer"
 	"testing"
 )
 
 func TestCreateTable(t *testing.T) {
-	ctx := context.Background()
-	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
+	dbl, err := ConnectDB()
 	if err != nil {
-		t.Fatalf("Ошибка подключения к БД: %v", err)
-	}
-	defer dbl.Close()
-
-	err = dbl.Ping()
-	if err != nil {
-		t.Fatalf("Ошибка подключения к БД: %v", err)
+		t.Fatal(err)
 	}
 	dbl.Raw("DROP TABLE users").Exec()
 	// Тест создания таблицы
