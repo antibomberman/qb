@@ -142,3 +142,28 @@ func TestAgr(t *testing.T) {
 	}
 	fmt.Println("User with id 1 exists:", exists)
 }
+
+func TestTransaction(t *testing.T) {
+	dbl, err := ConnectDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := dbl.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := User{
+		Username: "test",
+		Email:    "test@example.com",
+		Phone:    "1",
+		Password: "password",
+	}
+	_, err = tx.Table("users").Create(user)
+	if err != nil {
+		tx.Rollback()
+		t.Error(err)
+	}
+
+	tx.Commit()
+
+}

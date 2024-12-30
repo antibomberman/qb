@@ -2,12 +2,14 @@ package dblayer
 
 import (
 	"context"
+
 	"github.com/jmoiron/sqlx"
 )
 
 // Transaction представляет транзакцию
 type Transaction struct {
-	tx *sqlx.Tx
+	tx  *sqlx.Tx
+	dbl *DBLayer
 }
 
 // Begin начинает новую транзакцию
@@ -16,7 +18,7 @@ func (d *DBLayer) Begin() (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Transaction{tx: tx}, nil
+	return &Transaction{tx: tx, dbl: d}, nil
 }
 
 // BeginContext начинает новую транзакцию с контекстом
@@ -25,7 +27,7 @@ func (d *DBLayer) BeginContext(ctx context.Context) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Transaction{tx: tx}, nil
+	return &Transaction{tx: tx, dbl: d}, nil
 }
 
 // Transaction выполняет функцию в транзакции

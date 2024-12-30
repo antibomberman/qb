@@ -25,7 +25,7 @@ type ErrorHandler interface {
 	WrapError(err error, msg string) error
 }
 
-func (d *DBLayer) SetDialect() {
+func (d *DBLayer) setDialect() {
 	switch d.driverName {
 	case "mysql":
 		d.dialect = &MysqlDialect{}
@@ -45,7 +45,7 @@ func New(driverName string, db *sql.DB) *DBLayer {
 		db:         x,
 		driverName: driverName,
 	}
-	d.SetDialect()
+	d.setDialect()
 
 	return d
 }
@@ -57,11 +57,10 @@ func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 		db:         dbx,
 		driverName: driverName,
 	}
-	d.SetDialect()
+	d.setDialect()
 
 	return d
 }
-
 func Connect(driverName string, dataSourceName string) *DBLayer {
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
@@ -122,6 +121,7 @@ func (d *DBLayer) Table(name string) *QueryBuilder {
 func (t *Transaction) Table(name string) *QueryBuilder {
 	return &QueryBuilder{
 		table: name,
+		dbl:   t.dbl,
 		db:    t.tx,
 	}
 }
