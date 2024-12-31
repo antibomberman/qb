@@ -1,9 +1,9 @@
-package dblayer
+package DBL
 
 import "github.com/jmoiron/sqlx"
 
 // Raw выполняет сырой SQL-запрос
-func (d *DBLayer) Raw(query string, args ...interface{}) *RawQuery {
+func (d *DBL) Raw(query string, args ...interface{}) *RawQuery {
 	return &RawQuery{
 		query: query,
 		args:  args,

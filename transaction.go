@@ -1,4 +1,4 @@
-package dblayer
+package DBL
 
 import (
 	"context"
@@ -9,11 +9,11 @@ import (
 // Transaction представляет транзакцию
 type Transaction struct {
 	tx  *sqlx.Tx
-	dbl *DBLayer
+	dbl *DBL
 }
 
 // Begin начинает новую транзакцию
-func (d *DBLayer) Begin() (*Transaction, error) {
+func (d *DBL) Begin() (*Transaction, error) {
 	tx, err := d.db.Beginx()
 	if err != nil {
 		return nil, err
@@ -22,7 +22,7 @@ func (d *DBLayer) Begin() (*Transaction, error) {
 }
 
 // BeginContext начинает новую транзакцию с контекстом
-func (d *DBLayer) BeginContext(ctx context.Context) (*Transaction, error) {
+func (d *DBL) BeginContext(ctx context.Context) (*Transaction, error) {
 	tx, err := d.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (d *DBLayer) BeginContext(ctx context.Context) (*Transaction, error) {
 }
 
 // Transaction выполняет функцию в транзакции
-func (d *DBLayer) Transaction(fn func(*Transaction) error) error {
+func (d *DBL) Transaction(fn func(*Transaction) error) error {
 	tx, err := d.Begin()
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func (d *DBLayer) Transaction(fn func(*Transaction) error) error {
 }
 
 // TransactionContext выполняет функцию в транзакции с контекстом
-func (d *DBLayer) TransactionContext(ctx context.Context, fn func(*Transaction) error) error {
+func (d *DBL) TransactionContext(ctx context.Context, fn func(*Transaction) error) error {
 	tx, err := d.BeginContext(ctx)
 	if err != nil {
 		return err

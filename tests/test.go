@@ -3,7 +3,7 @@ package tests
 import (
 	"context"
 	"database/sql"
-	"github.com/antibomberman/dblayer"
+	"github.com/antibomberman/DBL"
 	"time"
 )
 
@@ -25,9 +25,9 @@ type User struct {
 	UpdatedAt sql.NullTime `db:"updated_at"`
 }
 
-func ConnectDB() (*dblayer.DBLayer, error) {
+func ConnectDB() (*DBL.DBL, error) {
 	ctx := context.Background()
-	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
+	dbl, err := DBL.Connection(ctx, driver, dsn, maxAttempts, timeout)
 	if err != nil {
 		return nil, err
 	}

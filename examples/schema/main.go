@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"log"
 
-	"github.com/antibomberman/dblayer"
+	"github.com/antibomberman/DBL"
 	_ "modernc.org/sqlite"
 )
 
-var DBLayer *dblayer.DBLayer
+var DBL *DBL.DBL
 
 func main() {
 
@@ -18,13 +18,13 @@ func main() {
 	}
 	defer db.Close()
 
-	DBLayer = dblayer.New("sqlite", db)
+	DBL = DBL.New("sqlite", db)
 	BuildTable()
 }
 
 // CreateTable создает таблицу
 func CreateTable() {
-	DBLayer.CreateTable("users", func(table *dblayer.Schema) {
+	DBL.CreateTable("users", func(table *DBL.Schema) {
 		table.ID()
 		table.String("name", 255)
 		table.String("email", 255)
@@ -33,7 +33,7 @@ func CreateTable() {
 }
 func UpdateTable() {
 	// Обновление таблицы
-	DBLayer.UpdateTable("users", func(table *dblayer.Schema) {
+	DBL.UpdateTable("users", func(table *DBL.Schema) {
 		// Добавление новых колонок - тот же API, что и при создании
 		table.String("phone", 20)
 		// Специфичные для обновления операции
@@ -44,7 +44,7 @@ func UpdateTable() {
 }
 
 func BuildTable() {
-	err := DBLayer.CreateTable("users", func(table *dblayer.Schema) {
+	err := DBL.CreateTable("users", func(table *DBL.Schema) {
 		table.Column("id").Type("bigint").AutoIncrement().Primary()
 		table.Column("name").Type("varchar", 255).Comment("Имя пользователя")
 		table.Column("email").Type("varchar", 255).Unique()

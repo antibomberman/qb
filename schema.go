@@ -1,10 +1,10 @@
-package dblayer
+package DBL
 
 import "fmt"
 
 // Schema с более четкой структурой и инкапсуляцией
 type Schema struct {
-	dbl        *DBLayer
+	dbl        *DBL
 	definition SchemaDefinition
 	builder    SchemaBuilder
 }

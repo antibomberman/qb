@@ -1,4 +1,4 @@
-package dblayer
+package DBL
 
 import (
 	"context"
@@ -22,7 +22,7 @@ type Condition struct {
 
 type QueryBuilder struct {
 	db            interface{} // может быть *sqlx.DB или *sqlx.Tx
-	dbl           *DBLayer
+	dbl           *DBL
 	table         string
 	conditions    []Condition
 	columns       []string

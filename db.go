@@ -1,4 +1,4 @@
-package dblayer
+package DBL
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type DBLayer struct {
+type DBL struct {
 	db           *sqlx.DB
 	cache        CacheDriver
 	mu           sync.RWMutex
@@ -25,7 +25,7 @@ type ErrorHandler interface {
 	WrapError(err error, msg string) error
 }
 
-func (d *DBLayer) setDialect() {
+func (d *DBL) setDialect() {
 	switch d.driverName {
 	case "mysql":
 		d.dialect = &MysqlDialect{}
@@ -36,12 +36,12 @@ func (d *DBLayer) setDialect() {
 	}
 }
 
-func New(driverName string, db *sql.DB) *DBLayer {
+func New(driverName string, db *sql.DB) *DBL {
 	x := sqlx.NewDb(db, driverName)
 	if x == nil {
 		panic("Couldn't create database new method")
 	}
-	d := &DBLayer{
+	d := &DBL{
 		db:         x,
 		driverName: driverName,
 	}
@@ -49,11 +49,11 @@ func New(driverName string, db *sql.DB) *DBLayer {
 
 	return d
 }
-func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
+func NewX(driverName string, dbx *sqlx.DB) *DBL {
 	if dbx == nil {
 		panic("Couldn't create database newX method")
 	}
-	d := &DBLayer{
+	d := &DBL{
 		db:         dbx,
 		driverName: driverName,
 	}
@@ -61,14 +61,14 @@ func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 
 	return d
 }
-func Connect(driverName string, dataSourceName string) *DBLayer {
+func Connect(driverName string, dataSourceName string) *DBL {
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		panic(err)
 	}
 	return New(driverName, db)
 }
-func Connection(ctx context.Context, driverName string, dataSourceName string, maxAttempts int, connectionTimeout time.Duration) (*DBLayer, error) {
+func Connection(ctx context.Context, driverName string, dataSourceName string, maxAttempts int, connectionTimeout time.Duration) (*DBL, error) {
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		log.Printf("Attempting to connect to MySQL (attempt %d/%d)", attempt, maxAttempts)
@@ -95,21 +95,21 @@ func Connection(ctx context.Context, driverName string, dataSourceName string, m
 	return nil, fmt.Errorf("failed to connect to database after %d attempts", maxAttempts)
 }
 
-func (d *DBLayer) Close() error {
+func (d *DBL) Close() error {
 	return d.db.Close()
 }
-func (d *DBLayer) Ping() error {
+func (d *DBL) Ping() error {
 	return d.db.Ping()
 }
-func (d *DBLayer) CacheRedisDriver(addr string, password string, db int) {
+func (d *DBL) CacheRedisDriver(addr string, password string, db int) {
 	d.cache = NewCacheRedis(addr, password, db)
 }
-func (d *DBLayer) CacheMemoryDriver() {
+func (d *DBL) CacheMemoryDriver() {
 	d.cache = NewCacheMemory()
 }
 
 // Table теперь возвращает QueryBuilder с доступом к кешу
-func (d *DBLayer) Table(name string) *QueryBuilder {
+func (d *DBL) Table(name string) *QueryBuilder {
 	return &QueryBuilder{
 		table: name,
 		dbl:   d,
@@ -127,21 +127,21 @@ func (t *Transaction) Table(name string) *QueryBuilder {
 }
 
 // Truncate создает построитель очистки таблиц
-func (d *DBLayer) Truncate(tables ...string) *TruncateTable {
+func (d *DBL) Truncate(tables ...string) *TruncateTable {
 	return &TruncateTable{
 		dbl:    d,
 		tables: tables,
 	}
 }
 
-func (d *DBLayer) Drop(tables ...string) *DropTable {
+func (d *DBL) Drop(tables ...string) *DropTable {
 	return &DropTable{
 		dbl:    d,
 		tables: tables,
 	}
 }
 
-func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
+func (dbl *DBL) CreateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
 		definition: SchemaDefinition{
@@ -166,7 +166,7 @@ func (dbl *DBLayer) CreateTable(name string, fn func(*Schema)) error {
 }
 
 // Добавьте конструктор для Schema или измените CreateTable
-func (dbl *DBLayer) CreateTableIfNotExists(name string, fn func(*Schema)) error {
+func (dbl *DBL) CreateTableIfNotExists(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
 		definition: SchemaDefinition{
@@ -190,7 +190,7 @@ func (dbl *DBLayer) CreateTableIfNotExists(name string, fn func(*Schema)) error 
 }
 
 // Update обновляет существующую таблицу
-func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
+func (dbl *DBL) UpdateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
 		definition: SchemaDefinition{
@@ -216,7 +216,7 @@ func (dbl *DBLayer) UpdateTable(name string, fn func(*Schema)) error {
 //check table `SELECT column_name, data_type, character_maximum_length FROM information_schema.columns WHERE table_name = 'users'``
 
 // Create Aydit table
-func (d *DBLayer) AuditTableCreate() error {
+func (d *DBL) AuditTableCreate() error {
 	err := d.CreateTableIfNotExists("audits", func(schema *Schema) {
 		schema.ID()
 		schema.String("table_name", 20)

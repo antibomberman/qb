@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/antibomberman/dblayer"
+	"github.com/antibomberman/DBL"
 )
 
 func TestCrud(t *testing.T) {
@@ -169,7 +169,7 @@ func TestTransaction(t *testing.T) {
 
 	tx.Commit()
 
-	err = dbl.Transaction(func(tx *dblayer.Transaction) error {
+	err = dbl.Transaction(func(tx *DBL.Transaction) error {
 		_, err := tx.Table("users").Create(user)
 		return err
 	})
@@ -188,7 +188,7 @@ func TestWhere(t *testing.T) {
 		t.Fatal(err)
 	}
 	var users []User
-	_, err = dbl.Table("users").Where("id > ?", 1).OrWhereGroup(func(builder *dblayer.QueryBuilder) {
+	_, err = dbl.Table("users").Where("id > ?", 1).OrWhereGroup(func(builder *DBL.QueryBuilder) {
 		builder.Where("id > ?", 2).OrWhere("id < ?", 100)
 	}).Get(&users)
 	if err != nil {

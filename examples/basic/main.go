@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/antibomberman/dblayer"
+	"github.com/antibomberman/DBL"
 	_ "modernc.org/sqlite"
 )
 
@@ -42,8 +42,8 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	// Initialize DBLayer
-	dbl := dblayer.New("mysql", db)
+	// Initialize DBL
+	dbl := DBL.New("mysql", db)
 	// Create tables
 	if err := createTables(dbl); err != nil {
 		log.Fatal(err)
@@ -73,9 +73,9 @@ func main() {
 
 }
 
-func createTables(dbl *dblayer.DBLayer) error {
+func createTables(dbl *DBL.DBL) error {
 	// Create users table
-	err := dbl.CreateTable("users", func(schema *dblayer.Schema) {
+	err := dbl.CreateTable("users", func(schema *DBL.Schema) {
 		schema.ID()
 		schema.String("email", 255).Unique()
 		schema.String("name", 100)
@@ -87,7 +87,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating users table: %w", err)
 	}
 	// Create posts table
-	err = dbl.CreateTable("posts", func(schema *dblayer.Schema) {
+	err = dbl.CreateTable("posts", func(schema *DBL.Schema) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("user_id")
 		schema.String("title", 200)
@@ -98,7 +98,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating posts table: %w", err)
 	}
 	// Create comments table
-	err = dbl.CreateTable("comments", func(schema *dblayer.Schema) {
+	err = dbl.CreateTable("comments", func(schema *DBL.Schema) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("post_id")
 		schema.Integer("user_id")
@@ -111,7 +111,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 	return nil
 }
 
-func examples(dbl *dblayer.DBLayer) error {
+func examples(dbl *DBL.DBL) error {
 	// 1. Create user with transaction and audit
 	tx, err := dbl.Begin()
 	if err != nil {
@@ -199,7 +199,7 @@ func examples(dbl *dblayer.DBLayer) error {
 	}
 	// 7. Pagination with metrics
 	var pagedUsers []User
-	collector := dblayer.NewMetricsCollector()
+	collector := DBL.NewMetricsCollector()
 	result, err := dbl.Table("users").
 		WithMetrics(collector).
 		OrderBy("created_at", "DESC").

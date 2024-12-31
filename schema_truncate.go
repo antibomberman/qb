@@ -1,4 +1,4 @@
-package dblayer
+package DBL
 
 import "strings"
 
@@ -13,7 +13,7 @@ type TruncateOptions struct {
 
 // TruncateTable очищает таблицу
 type TruncateTable struct {
-	dbl     *DBLayer
+	dbl     *DBL
 	tables  []string
 	options TruncateOptions
 }

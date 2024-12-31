@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/antibomberman/dblayer"
+	"github.com/antibomberman/DBL"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -18,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.Close()
-	dbl := dblayer.New("mysql", db)
+	dbl := DBL.New("mysql", db)
 	// Пример использования очередей
 	// Queue usage example
 	if err := queueExample(dbl); err != nil {
@@ -36,7 +36,7 @@ func main() {
 	}
 }
 
-func queueExample(dbl *dblayer.DBLayer) error {
+func queueExample(dbl *DBL.DBL) error {
 	// Создаем отложенную операцию
 	// Create a delayed operation
 	err := dbl.Table("queued_operations").Queue(
@@ -53,22 +53,22 @@ func queueExample(dbl *dblayer.DBLayer) error {
 	}
 	// Обработка очереди
 	// Process the queue
-	return dbl.Table("queued_operations").ProcessQueue(func(op dblayer.QueuedOperation) error {
+	return dbl.Table("queued_operations").ProcessQueue(func(op DBL.QueuedOperation) error {
 		fmt.Printf("Processing operation: %s\n", op.Operation)
 		return nil
 	})
 }
 
-func eventsExample(dbl *dblayer.DBLayer) error {
+func eventsExample(dbl *DBL.DBL) error {
 	// Регистрируем обработчики событий
 	// Register event handlers
 	qb := dbl.Table("users")
 
-	qb.On(dblayer.BeforeCreate, func(data interface{}) error {
+	qb.On(DBL.BeforeCreate, func(data interface{}) error {
 		fmt.Println("Before creating user")
 		return nil
 	})
-	qb.On(dblayer.AfterCreate, func(data interface{}) error {
+	qb.On(DBL.AfterCreate, func(data interface{}) error {
 		fmt.Println("After creating user")
 		return nil
 	})
@@ -81,7 +81,7 @@ func eventsExample(dbl *dblayer.DBLayer) error {
 	return err
 }
 
-func geoExample(dbl *dblayer.DBLayer) error {
+func geoExample(dbl *DBL.DBL) error {
 	// Поиск мест в радиусе 5 км от точки
 	// Search for places within 5km radius from point
 	var places []struct {
@@ -90,7 +90,7 @@ func geoExample(dbl *dblayer.DBLayer) error {
 		Lat  float64 `db:"lat"`
 		Lng  float64 `db:"lng"`
 	}
-	point := dblayer.Point{
+	point := DBL.Point{
 		Lat: 55.7558,
 		Lng: 37.6173,
 	}

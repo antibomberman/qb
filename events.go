@@ -1,4 +1,4 @@
-package dblayer
+package DBL
 
 type EventType string
 

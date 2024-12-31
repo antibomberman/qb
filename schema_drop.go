@@ -1,4 +1,4 @@
-package dblayer
+package DBL
 
 import (
 	"strings"
@@ -16,7 +16,7 @@ type DropOptions struct {
 
 // DropTable удаляет таблицу
 type DropTable struct {
-	dbl     *DBLayer
+	dbl     *DBL
 	tables  []string
 	options DropOptions
 }
