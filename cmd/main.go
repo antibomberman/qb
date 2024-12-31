@@ -1,4 +1,4 @@
-package dblayer
+package main
 
 import (
 	"fmt"
