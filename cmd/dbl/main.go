@@ -9,7 +9,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "myapp",
+	Use:   "dbl",
 	Short: "Приложение для управления миграциями",
 }
 
