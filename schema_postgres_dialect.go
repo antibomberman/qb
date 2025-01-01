@@ -388,3 +388,9 @@ func (g *PostgresDialect) CheckColumnExists(table, column string) string {
 			WHERE table_schema = 'public' 
 			AND table_name = $1 AND column_name = $2`
 }
+
+func (g *PostgresDialect) CheckTableExists(table string) string {
+	return `SELECT COUNT(*) > 0 FROM information_schema.tables 
+			WHERE table_schema = 'public' 
+			AND table_name = $1`
+}

@@ -304,6 +304,8 @@ func (qb *QueryBuilder) buildUpdateQuery(data interface{}, fields []string) (str
 	return head + body, args
 
 }
+
+// buildInsertQuery собирает SQL запрос для INSERT
 func (qb *QueryBuilder) buildUpdateMapQuery(data map[string]interface{}) (string, []interface{}) {
 
 	var sets []string

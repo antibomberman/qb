@@ -12,10 +12,19 @@ var rootCmd = &cobra.Command{
 	Use:   "dbl",
 	Short: "Приложение для управления миграциями",
 }
-
 var migrationCmd = &cobra.Command{
 	Use:   "migration",
 	Short: "Команды для работы с миграциями",
+}
+
+// reset
+var resetCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "Откатить все миграции",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("Откат всех миграций...")
+		// Здесь добавьте логику отката всех миграций
+	},
 }
 
 var createCmd = &cobra.Command{

@@ -552,33 +552,23 @@ func (qb *QueryBuilder) RawQuery(dest interface{}, query string, args ...interfa
 // Value получает значение одного поля
 func (qb *QueryBuilder) Value(column string) (interface{}, error) {
 	var result interface{}
-	query := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
 	qb.Limit(1)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		query = qb.rebindQuery(query)
-		_, err := qb.execGet(&result, query)
-		return result, err
-	}
-	query = qb.rebindQuery(query)
-	_, err := qb.execGet(&result, query)
+
+	body, args := qb.buildBodyQuery()
+
+	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 
 // Values получает значения одного поля для всех записей
 func (qb *QueryBuilder) Values(column string) ([]interface{}, error) {
 	var result []interface{}
-	query := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		query = qb.rebindQuery(query)
-		_, err := qb.execSelect(&result, query)
-		return result, err
-	}
-	query = qb.rebindQuery(query)
-	_, err := qb.execSelect(&result, query)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+
+	body, args := qb.buildBodyQuery()
+
+	_, err := qb.execSelect(&result, head+body, args...)
 	return result, err
 }
 

@@ -1,6 +1,7 @@
 package DBL
 
 import (
+	"context"
 	"fmt"
 	"strings"
 )
@@ -448,4 +449,8 @@ func (g *MysqlDialect) CheckColumnExists(table, column string) string {
 	return `SELECT COUNT(*) > 0 FROM information_schema.columns 
 			WHERE table_schema = DATABASE() 
 			AND table_name = ? AND column_name = ?`
+}
+
+func (g *MysqlDialect) Create(ctx context.Context, data interface{}, fields ...string) (int64, error) {
+	return 0, nil
 }

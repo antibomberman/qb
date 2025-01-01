@@ -1,6 +1,9 @@
 package DBL
 
-import "strings"
+import (
+	"context"
+	"strings"
+)
 
 type MysqlDialect struct{}
 type PostgresDialect struct{}
@@ -13,6 +16,11 @@ type Dialect interface {
 	TypeDialect
 	QuotingDialect
 	IndexDialect
+	//QueryBuilderDialect
+}
+
+type QueryBuilderDialect interface {
+	Create(ctx context.Context, data interface{}, fields ...string) (int64, error)
 }
 
 type TableDialect interface {
