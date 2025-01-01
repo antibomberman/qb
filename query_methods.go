@@ -200,9 +200,7 @@ func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
 
 // Get получает все записи
 func (qb *QueryBuilder) Get(dest interface{}) (bool, error) {
-	query, args := qb.buildSelectQuery()
-	fmt.Println(query, args)
-	return qb.execSelect(dest, query, args...)
+	return qb.GetContext(context.Background(), dest)
 }
 
 // GetContext получает все записи с контекстом
@@ -213,9 +211,7 @@ func (qb *QueryBuilder) GetContext(ctx context.Context, dest interface{}) (bool,
 
 // First получает первую запись
 func (qb *QueryBuilder) First(dest interface{}) (bool, error) {
-	qb.Limit(1)
-	query, args := qb.buildSelectQuery()
-	return qb.execGet(dest, query, args...)
+	return qb.FirstContext(context.Background(), dest)
 }
 
 // FirstContext получает первую запись с контекстом
@@ -227,18 +223,7 @@ func (qb *QueryBuilder) FirstContext(ctx context.Context, dest interface{}) (boo
 
 // Delete удаляет записи
 func (qb *QueryBuilder) Delete() error {
-	go qb.Trigger(BeforeDelete, qb.conditions)
-	defer func() {
-		go qb.Trigger(AfterDelete, qb.conditions)
-	}()
-	if len(qb.conditions) == 0 {
-		return errors.New("delete without conditions is not allowed")
-	}
-
-	head := fmt.Sprintf("DELETE FROM %s", qb.table)
-	body, args := qb.buildBodyQuery()
-
-	return qb.execExec(head+body, args...)
+	return qb.DeleteContext(context.Background())
 }
 
 // DeleteContext удаляет записи с контекстом
@@ -585,43 +570,7 @@ func (qb *QueryBuilder) Restore() error {
 // Create add new record to database and return id
 // Create создает новую запись из структуры и возвращает её id
 func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error) {
-
-	go qb.Trigger(BeforeCreate, data)
-	defer func() {
-		go qb.Trigger(AfterCreate, data)
-	}()
-
-	var insertFields, placeholders []string
-
-	if len(fields) > 0 {
-		// Используем только указанные поля
-		insertFields = fields
-		placeholders = make([]string, len(fields))
-		for i, field := range fields {
-			placeholders[i] = ":" + field
-		}
-	} else {
-		// Используем все поля из структуры
-		insertFields, placeholders, _ = qb.getStructInfo(data)
-	}
-
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.table,
-		strings.Join(insertFields, ", "),
-		strings.Join(placeholders, ", "))
-
-	if qb.getDriverName() == "postgres" {
-		var id int64
-		query += " RETURNING id"
-		err := qb.getExecutor().QueryRowx(query, data).Scan(&id)
-		return id, err
-	}
-
-	result, err := qb.getExecutor().NamedExec(query, data)
-	if err != nil {
-		return 0, err
-	}
-	return result.LastInsertId()
+	return qb.CreateContext(context.Background(), data, fields...)
 }
 
 // CreateContext создает новую запись из структуры и возвращает её id
@@ -665,38 +614,7 @@ func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fie
 
 // CreateMap создает новую запись из map и возвращает её id
 func (qb *QueryBuilder) CreateMap(data map[string]interface{}) (int64, error) {
-	go qb.Trigger(BeforeCreate, data)
-	defer func() {
-		go qb.Trigger(AfterCreate, data)
-	}()
-	columns := make([]string, 0)
-	placeholders := make([]string, 0)
-	values := make([]interface{}, 0)
-
-	// Используем все поля из map
-	for col, val := range data {
-		columns = append(columns, col)
-		placeholders = append(placeholders, "?")
-		values = append(values, val)
-	}
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.table,
-		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "))
-
-	if qb.getDriverName() == "postgres" {
-		var id int64
-		query = qb.rebindQuery(query + " RETURNING id")
-		err := qb.getExecutor().QueryRowx(query, values...).Scan(&id)
-		return id, err
-	}
-
-	result, err := qb.getExecutor().Exec(qb.rebindQuery(query), values...)
-	if err != nil {
-		return 0, err
-	}
-
-	return result.LastInsertId()
+	return qb.CreateMapContext(context.Background(), data)
 }
 
 // CreateMapContext создает новую запись из map с контекстом и возвращает её id
@@ -734,37 +652,7 @@ func (qb *QueryBuilder) CreateMapContext(ctx context.Context, data map[string]in
 
 // BatchInsert вставляет множество записей
 func (qb *QueryBuilder) BatchInsert(records []map[string]interface{}) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	// Получаем все колонки из первой записи
-	columns := make([]string, 0)
-	for column := range records[0] {
-		columns = append(columns, column)
-	}
-	sort.Strings(columns)
-
-	// Создаем placeholders и значения
-	var placeholders []string
-	var values []interface{}
-	for _, record := range records {
-		placeholder := make([]string, len(columns))
-		for i := range columns {
-			placeholder[i] = "?"
-			values = append(values, record[columns[i]])
-		}
-		placeholders = append(placeholders, "("+strings.Join(placeholder, ", ")+")")
-	}
-
-	query := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES %s",
-		qb.table,
-		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "),
-	)
-
-	return qb.execExec(query, values...)
+	return qb.BatchInsertContext(context.Background(), records)
 }
 
 // BatchInsertContext вставляет множество записей с контекстом
@@ -804,70 +692,7 @@ func (qb *QueryBuilder) BatchInsertContext(ctx context.Context, records []map[st
 
 // BulkInsert выполняет массовую вставку записей с возвратом ID
 func (qb *QueryBuilder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
-	if len(records) == 0 {
-		return nil, nil
-	}
-
-	// Получаем все колонки из первой записи
-	columns := make([]string, 0)
-	for column := range records[0] {
-		columns = append(columns, column)
-	}
-	sort.Strings(columns)
-
-	// Создаем placeholders и значения
-	var placeholders []string
-	var values []interface{}
-	for _, record := range records {
-		placeholder := make([]string, len(columns))
-		for i := range columns {
-			placeholder[i] = "?"
-			values = append(values, record[columns[i]])
-		}
-		placeholders = append(placeholders, "("+strings.Join(placeholder, ", ")+")")
-	}
-
-	var query string
-	if qb.getDriverName() == "postgres" {
-		query = fmt.Sprintf(
-			"INSERT INTO %s (%s) VALUES %s RETURNING id",
-			qb.table,
-			strings.Join(columns, ", "),
-			strings.Join(placeholders, ", "),
-		)
-		var ids []int64
-		err := qb.getExecutor().Select(&ids, qb.rebindQuery(query), values...)
-		return ids, err
-	}
-
-	query = fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES %s",
-		qb.table,
-		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "),
-	)
-
-	result, err := qb.getExecutor().Exec(qb.rebindQuery(query), values...)
-	if err != nil {
-		return nil, err
-	}
-
-	lastID, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	ids := make([]int64, rowsAffected)
-	for i := range ids {
-		ids[i] = lastID + int64(i)
-	}
-
-	return ids, nil
+	return qb.BulkInsertContext(context.Background(), records)
 }
 
 // BulkInsertContext выполняет массовую вставку записей с возвратом ID и поддержкой контекста
@@ -940,13 +765,7 @@ func (qb *QueryBuilder) BulkInsertContext(ctx context.Context, records []map[str
 
 // Update обновляет записи используя структуру
 func (qb *QueryBuilder) Update(data interface{}, fields ...string) error {
-	go qb.Trigger(BeforeUpdate, data)
-	defer func() {
-		go qb.Trigger(AfterUpdate, data)
-	}()
-
-	query, args := qb.buildUpdateQuery(data, fields)
-	return qb.execExec(query, args...)
+	return qb.UpdateContext(context.Background(), data, fields...)
 }
 
 // UpdateContext обновляет записи с контекстом
@@ -961,13 +780,7 @@ func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fie
 
 // UpdateMap обновляет записи используя map
 func (qb *QueryBuilder) UpdateMap(data map[string]interface{}) error {
-	go qb.Trigger(BeforeUpdate, data)
-	defer func() {
-		go qb.Trigger(AfterUpdate, data)
-	}()
-	query, args := qb.buildUpdateMapQuery(data)
-	fmt.Println(query)
-	return qb.execExec(query, args...)
+	return qb.UpdateMapContext(context.Background(), data)
 }
 
 func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
@@ -982,54 +795,7 @@ func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]in
 
 // BulkUpdate выполняет массовое обновление записей
 func (qb *QueryBuilder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	// Получаем все колонки из первой записи
-	columns := make([]string, 0)
-	for column := range records[0] {
-		if column != keyColumn {
-			columns = append(columns, column)
-		}
-	}
-	sort.Strings(columns)
-
-	// Формируем CASE выражения для каждой колонки
-	cases := make([]string, len(columns))
-	keyValues := make([]interface{}, 0, len(records))
-	valueArgs := make([]interface{}, 0, len(records)*len(columns))
-
-	for i, column := range columns {
-		whenClauses := make([]string, 0, len(records))
-		for _, record := range records {
-			if i == 0 {
-				keyValues = append(keyValues, record[keyColumn])
-			}
-			whenClauses = append(whenClauses, "WHEN ? THEN ?")
-			valueArgs = append(valueArgs, record[keyColumn], record[column])
-		}
-		cases[i] = fmt.Sprintf("%s = CASE %s %s END",
-			column,
-			keyColumn,
-			strings.Join(whenClauses, " "),
-		)
-	}
-
-	query := fmt.Sprintf(
-		"UPDATE %s SET %s WHERE %s IN (%s)",
-		qb.table,
-		strings.Join(cases, ", "),
-		keyColumn,
-		strings.Repeat("?,", len(records)-1)+"?",
-	)
-
-	// Объединяем все аргументы
-	args := make([]interface{}, 0, len(valueArgs)+len(keyValues))
-	args = append(args, valueArgs...)
-	args = append(args, keyValues...)
-
-	return qb.execExec(query, args...)
+	return qb.BulkUpdateContext(context.Background(), records, keyColumn)
 }
 
 // BulkUpdateContext выполняет массовое обновление записей с контекстом
@@ -1086,25 +852,7 @@ func (qb *QueryBuilder) BulkUpdateContext(ctx context.Context, records []map[str
 
 // BatchUpdate обновляет записи пакетами указанного размера
 func (qb *QueryBuilder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	// Разбиваем записи на пакеты
-	for i := 0; i < len(records); i += batchSize {
-		end := i + batchSize
-		if end > len(records) {
-			end = len(records)
-		}
-		batch := records[i:end]
-
-		// Обновляем текущий пакет
-		if err := qb.BulkUpdate(batch, keyColumn); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
 }
 
 // BatchUpdateContext обновляет записи пакетами с поддержкой контекста
@@ -1658,7 +1406,6 @@ func (qb *QueryBuilder) Paginate(page int, perPage int, dest interface{}) (*Pagi
 		return nil, err
 	}
 
-	fmt.Println("Total", total)
 	lastPage := int(math.Ceil(float64(total) / float64(perPage)))
 
 	qb.Limit(perPage)
