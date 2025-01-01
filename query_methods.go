@@ -179,38 +179,23 @@ func (qb *QueryBuilder) FindContext(ctx context.Context, id interface{}, dest in
 
 // Increment увеличивает значение поля
 func (qb *QueryBuilder) Increment(column string, value interface{}) error {
-	var args []interface{}
+	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.table, column, column)
+
+	body, args := qb.buildBodyQuery()
+
 	args = append(args, value)
 
-	query := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.table, column, column)
-
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
-
-	return qb.execExec(query, args...)
+	return qb.execExec(head+body, args...)
 }
 
 // Decrement уменьшает значение поля
 func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
-	var args []interface{}
+	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.table, column, column)
+
+	body, args := qb.buildBodyQuery()
 	args = append(args, value)
 
-	query := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.table, column, column)
-
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
-	}
-
-	return qb.execExec(query, args...)
+	return qb.execExec(head+body, args...)
 }
 
 // Get получает все записи
@@ -453,14 +438,10 @@ func (qb *QueryBuilder) OrWhereRaw(sql string, args ...interface{}) *QueryBuilde
 
 // Pluck получает значения одной колонки
 func (qb *QueryBuilder) Pluck(column string, dest interface{}) error {
-	query := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
-	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
-		query += " WHERE " + whereSQL
-		_, err := qb.execSelect(dest, query)
-		return err
-	}
-	_, err := qb.execSelect(dest, query)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+
+	body, args := qb.buildBodyQuery()
+	_, err := qb.execSelect(dest, head+body, args...)
 	return err
 }
 
