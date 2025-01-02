@@ -3,7 +3,7 @@ package tests
 import (
 	"testing"
 
-	"github.com/antibomberman/DBL"
+	"github.com/antibomberman/dbl"
 )
 
 func TestCreateTable(t *testing.T) {

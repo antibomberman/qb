@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"time"
-
+	"github.com/antibomberman/dbl/cmd/dbl/internal"
 	"github.com/spf13/cobra"
+	"log"
+	"os"
 )
 
 var rootCmd = &cobra.Command{
@@ -13,35 +13,24 @@ var rootCmd = &cobra.Command{
 	Short: "Приложение для управления миграциями",
 }
 var migrationCmd = &cobra.Command{
-	Use:   "migration",
+	Use:   "migrate",
 	Short: "Команды для работы с миграциями",
 }
 
-// reset
-var resetCmd = &cobra.Command{
-	Use:   "reset",
-	Short: "Откатить все миграции",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Откат всех миграций...")
-		// Здесь добавьте логику отката всех миграций
-	},
-}
-
 var createCmd = &cobra.Command{
-	Use:   "create [название_миграции]",
+	Use:   "create [название_миграции] ",
 	Short: "Создать новую миграцию",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			fmt.Println("Необходимо указать название миграции")
 			return
 		}
+		err := internal.Create(args[0])
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
 
-		// Генерируем имя файла в формате: YYYYMMDDHHMMSS_название_миграции.sql
-		timestamp := time.Now().Format("20060102150405")
-		fileName := fmt.Sprintf("%s_%s.sql", timestamp, args[0])
-
-		// Здесь можно добавить создание файла миграции
-		fmt.Printf("Создана миграция: %s\n", fileName)
 	},
 }
 
@@ -63,25 +52,12 @@ var downCmd = &cobra.Command{
 	},
 }
 
-var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Показать статус миграций",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Статус миграций:")
-		// Здесь добавьте вывод статуса миграций
-	},
-}
-
-func init() {
+func main() {
 	rootCmd.AddCommand(migrationCmd)
-
 	migrationCmd.AddCommand(createCmd)
 	migrationCmd.AddCommand(upCmd)
 	migrationCmd.AddCommand(downCmd)
-	migrationCmd.AddCommand(statusCmd)
-}
 
-func main() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)

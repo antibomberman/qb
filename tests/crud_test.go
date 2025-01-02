@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/antibomberman/DBL"
+	"github.com/antibomberman/dbl"
 )
 
 func TestCrud(t *testing.T) {

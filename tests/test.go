@@ -3,7 +3,7 @@ package tests
 import (
 	"context"
 	"database/sql"
-	"github.com/antibomberman/DBL"
+	"github.com/antibomberman/dbl"
 	"time"
 )
 
