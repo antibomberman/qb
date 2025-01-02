@@ -2,7 +2,7 @@ package internal
 
 import (
 	"fmt"
-	DBL "github.com/antibomberman/dbl"
+	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"time"
@@ -24,47 +24,34 @@ CREATE TABLE IF NOT EXISTS %s (
 DROP TABLE IF EXISTS %s;
 `
 
-func Create(name string) error {
-	// Генерируем имя файла в формате: YYYYMMDDHHMMSS_название_миграции.sql
-	timestamp := time.Now().Format("20060102150405")
-	fileName := fmt.Sprintf("%s_%s.sql", timestamp, name)
-
-	// Создаем папку migrations, если ее нет
-	if _, err := os.Stat("migrations"); os.IsNotExist(err) {
-		err := os.Mkdir("migrations", 0755)
+var CreateCmd = &cobra.Command{
+	Use:   "create [название_миграции] ",
+	Short: "Создать новую миграцию",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 1 {
+			fmt.Println("Необходимо указать название миграции")
+			return
+		}
+		// Создаем папку migrations, если ее нет
+		if _, err := os.Stat("migrations"); os.IsNotExist(err) {
+			err := os.Mkdir("migrations", 0755)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		name := args[0]
+		// Генерируем имя файла в формате: YYYYMMDDHHMMSS_название_миграции.sql
+		timestamp := time.Now().Format("20060102150405")
+		fileName := fmt.Sprintf("%s_%s.sql", timestamp, name)
+		// Создаем файл миграции
+		file, err := os.Create(fmt.Sprintf("migrations/%s", fileName))
+		if err != nil {
+		}
+		_, err = file.WriteString(fmt.Sprintf(defaultContent, name, name))
 		if err != nil {
 			log.Fatal(err)
 		}
-	}
-	// Создаем файл миграции
-	file, err := os.Create(fmt.Sprintf("migrations/%s", fileName))
-	if err != nil {
-	}
-	_, err = file.WriteString(fmt.Sprintf(defaultContent, name, name))
-	if err != nil {
-		return err
-	}
-	defer file.Close()
+		defer file.Close()
 
-	return err
-}
-
-func migrationTable() {
-
-	dbl, err := ConnectDB()
-	if err != nil {
-		log.Fatal(err)
-	}
-	err = dbl.CreateTableIfNotExists("migrations", func(schema *DBL.Schema) {
-		schema.ID()
-		schema.String("name", 255)
-		schema.Text("up")
-		schema.Text("down")
-		schema.String("status", 256).Default("init")
-		schema.Integer("version").Default(0)
-		schema.Timestamps()
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	},
 }

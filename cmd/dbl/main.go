@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/antibomberman/dbl/cmd/dbl/internal"
 	"github.com/spf13/cobra"
-	"log"
 	"os"
 )
 
@@ -15,32 +14,6 @@ var rootCmd = &cobra.Command{
 var migrationCmd = &cobra.Command{
 	Use:   "migrate",
 	Short: "Команды для работы с миграциями",
-}
-
-var createCmd = &cobra.Command{
-	Use:   "create [название_миграции] ",
-	Short: "Создать новую миграцию",
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			fmt.Println("Необходимо указать название миграции")
-			return
-		}
-		err := internal.Create(args[0])
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-
-	},
-}
-
-var upCmd = &cobra.Command{
-	Use:   "up",
-	Short: "Применить все миграции",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Применение всех миграций...")
-		// Здесь добавьте логику применения миграций
-	},
 }
 
 var downCmd = &cobra.Command{
@@ -54,8 +27,8 @@ var downCmd = &cobra.Command{
 
 func main() {
 	rootCmd.AddCommand(migrationCmd)
-	migrationCmd.AddCommand(createCmd)
-	migrationCmd.AddCommand(upCmd)
+	migrationCmd.AddCommand(internal.CreateCmd)
+	migrationCmd.AddCommand(internal.UpCmd)
 	migrationCmd.AddCommand(downCmd)
 
 	if err := rootCmd.Execute(); err != nil {
