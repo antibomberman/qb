@@ -2,6 +2,7 @@ package internal
 
 import (
 	"fmt"
+	DBL "github.com/antibomberman/dbl"
 	"log"
 	"os"
 	"time"
@@ -46,4 +47,24 @@ func Create(name string) error {
 	defer file.Close()
 
 	return err
+}
+
+func migrationTable() {
+
+	dbl, err := ConnectDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = dbl.CreateTableIfNotExists("migrations", func(schema *DBL.Schema) {
+		schema.ID()
+		schema.String("name", 255)
+		schema.Text("up")
+		schema.Text("down")
+		schema.String("status", 256).Default("init")
+		schema.Integer("version").Default(0)
+		schema.Timestamps()
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
