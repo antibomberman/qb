@@ -131,7 +131,7 @@ func (s *Schema) Timestamp(Name string) *ColumnBuilder {
 
 // Index добавляет индекс
 func (s *Schema) Index(Name string, Columns ...string) *Schema {
-	s.Definition.Constraints.Indexes[Name] = Columns
+	s.Definition.KeyIndex.Indexes[Name] = Columns
 	return s
 }
 

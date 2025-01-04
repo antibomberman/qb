@@ -34,7 +34,7 @@ func (s *Schema) foreign(column, refTable, refColumn string) *ForeignBuilder {
 		Table:  refTable,
 		Column: refColumn,
 	}
-	s.Definition.Constraints.ForeignKeys[column] = fk
+	s.Definition.KeyIndex.ForeignKeys[column] = fk
 	return &ForeignBuilder{
 		schema: s,
 		fk:     fk,
@@ -43,7 +43,7 @@ func (s *Schema) foreign(column, refTable, refColumn string) *ForeignBuilder {
 }
 func (s *Schema) Foreign(column string) *ForeignBuilder {
 	fk := &Foreign{}
-	s.Definition.Constraints.ForeignKeys[column] = fk
+	s.Definition.KeyIndex.ForeignKeys[column] = fk
 	return &ForeignBuilder{
 		schema: s,
 		fk:     fk,

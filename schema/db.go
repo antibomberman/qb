@@ -47,7 +47,7 @@ func (dbl *DBL) CreateTable(name string, fn func(*Schema)) error {
 				IfNotExists: false,
 			},
 			// Инициализируем все maps в constraints
-			Constraints: Constraints{
+			KeyIndex: KeyIndex{
 				PrimaryKey:  make([]string, 0),
 				UniqueKeys:  make(map[string][]string),
 				Indexes:     make(map[string][]string),
@@ -70,7 +70,7 @@ func (dbl *DBL) CreateTableIfNotExists(name string, fn func(*Schema)) error {
 				IfNotExists: true,
 			},
 			Mode: "create",
-			Constraints: Constraints{
+			KeyIndex: KeyIndex{
 				PrimaryKey:  make([]string, 0),
 				UniqueKeys:  make(map[string][]string),
 				Indexes:     make(map[string][]string),

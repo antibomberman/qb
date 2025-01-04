@@ -8,57 +8,47 @@ import (
 type Schema struct {
 	dbl        *DBL
 	Definition SchemaDefinition
-	builder    SchemaBuilder
+	//builder    SchemaBuilder
 }
 
 type SchemaDefinition struct {
-	Name        string
-	Mode        string // "create" или "update"
-	Columns     []*Column
-	Commands    []Command
-	Constraints Constraints
-	Options     TableOptions
+	Name     string
+	Mode     string // "create" или "update"
+	Columns  []*Column
+	Commands []Command
+	KeyIndex KeyIndex
+	Options  TableOptions
 }
 
-type SchemaBuilder interface {
-	AddColumn(col Column)
-	AddConstraint(constraint Constraint)
-	SetOption(key string, value interface{})
-	Build() string
-}
+//type SchemaBuilder interface {
+//	AddColumn(col Column)
+//	AddConstraint(constraint Constraint)
+//	SetOption(key string, value interface{})
+//	Build() string
+//}
 
-type Constraints struct {
+type KeyIndex struct {
 	PrimaryKey  []string
 	UniqueKeys  map[string][]string
 	Indexes     map[string][]string
 	ForeignKeys map[string]*Foreign
 }
 
+// Command представляет команду изменения схемы
+type Command struct {
+	Type    string
+	Name    string
+	NewName string
+	Cmd     string
+	Columns []string
+	Options map[string]interface{}
+}
 type TableOptions struct {
 	Engine      string
 	Charset     string
 	Collate     string
 	Comment     string
 	IfNotExists bool
-}
-
-// Constraint представляет ограничение таблицы
-type Constraint struct {
-	Type          string
-	Name          string
-	Columns       []string
-	NewName       string
-	NewDefinition ColumnDefinition
-	Unique        bool
-}
-
-// Command представляет команду изменения схемы
-type Command struct {
-	Type    string
-	Name    string
-	Cmd     string
-	Columns []string
-	Options map[string]interface{}
 }
 
 func (s *Schema) BuildCreate() string {
@@ -71,10 +61,10 @@ func (s *Schema) BuildAlter() string {
 // Добавляем методы для обновления
 func (s *Schema) RenameColumn(from, to string) *Schema {
 	if s.Definition.Mode == "update" {
-		s.builder.AddConstraint(Constraint{
-			Type:    "RENAME COLUMN",
-			Columns: []string{from},
-			NewName: to,
+		s.Definition.Commands = append(s.Definition.Commands, Command{
+			Type: "RENAME COLUMN",
+			Name: from,
+			Cmd:  fmt.Sprintf("RENAME COLUMN %s TO %s", from, to),
 		})
 	}
 	return s
@@ -88,7 +78,7 @@ func (s *Schema) UniqueIndex(name string, columns ...string) *Schema {
 // FullText добавляет полнотекстовый индекс
 func (s *Schema) FullText(name string, columns ...string) *Schema {
 	if s.dbl.DB.DriverName() == "mysql" {
-		s.Definition.Constraints.Indexes[name] = columns
+		s.Definition.KeyIndex.Indexes[name] = columns
 		return s
 	}
 	return s
@@ -96,13 +86,13 @@ func (s *Schema) FullText(name string, columns ...string) *Schema {
 
 // PrimaryKey устанавливает первичный ключ
 func (s *Schema) PrimaryKey(columns ...string) *Schema {
-	s.Definition.Constraints.PrimaryKey = columns
+	s.Definition.KeyIndex.PrimaryKey = columns
 	return s
 }
 
 // UniqueKey добавляет уникальный ключ
 func (s *Schema) UniqueKey(name string, columns ...string) *Schema {
-	s.Definition.Constraints.UniqueKeys[name] = columns
+	s.Definition.KeyIndex.UniqueKeys[name] = columns
 	return s
 }
 
@@ -160,18 +150,18 @@ func (s *Schema) DropColumn(name string) *Schema {
 
 // AddIndex добавляет индекс
 func (s *Schema) AddIndex(name string, columns []string, unique bool) *Schema {
-	s.builder.AddConstraint(Constraint{
+	s.Definition.Commands = append(s.Definition.Commands, Command{
 		Type:    "ADD INDEX",
 		Name:    name,
 		Columns: columns,
-		Unique:  unique,
+		//Unique:  unique,
 	})
 	return s
 }
 
 // DropIndex удаляет индекс
 func (s *Schema) DropIndex(name string) *Schema {
-	s.builder.AddConstraint(Constraint{
+	s.Definition.Commands = append(s.Definition.Commands, Command{
 		Type: "DROP INDEX",
 		Name: name,
 	})
@@ -180,7 +170,7 @@ func (s *Schema) DropIndex(name string) *Schema {
 
 // RenameTable переименует таблицу
 func (s *Schema) RenameTable(newName string) *Schema {
-	s.builder.AddConstraint(Constraint{
+	s.Definition.Commands = append(s.Definition.Commands, Command{
 		Type:    "RENAME TO",
 		NewName: newName,
 	})
@@ -189,7 +179,7 @@ func (s *Schema) RenameTable(newName string) *Schema {
 
 // ChangeEngine меняет движок таблицы
 func (s *Schema) ChangeEngine(Engine string) *Schema {
-	s.builder.SetOption("Engine", Engine)
+	s.Definition.Options.Engine = Engine
 	return s
 }
 
@@ -209,13 +199,13 @@ func (s *Schema) buildColumn(col *Column) string {
 func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 	if s.dbl.Dialect.SupportsSpatialIndex() {
 		if s.Definition.Mode == "create" {
-			s.builder.AddConstraint(Constraint{
+			s.Definition.Commands = append(s.Definition.Commands, Command{
 				Type:    "ADD SPATIAL INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		} else {
-			s.builder.AddConstraint(Constraint{
+			s.Definition.Commands = append(s.Definition.Commands, Command{
 				Type:    "ADD SPATIAL INDEX",
 				Name:    name,
 				Columns: columns,
@@ -228,13 +218,13 @@ func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
 	if s.dbl.Dialect.SupportsFullTextIndex() {
 		if s.Definition.Mode == "create" {
-			s.builder.AddConstraint(Constraint{
+			s.Definition.Commands = append(s.Definition.Commands, Command{
 				Type:    "ADD FULLTEXT INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		} else {
-			s.builder.AddConstraint(Constraint{
+			s.Definition.Commands = append(s.Definition.Commands, Command{
 				Type:    "ADD FULLTEXT INDEX",
 				Name:    name,
 				Columns: columns,

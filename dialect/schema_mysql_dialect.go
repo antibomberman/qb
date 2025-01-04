@@ -65,6 +65,7 @@ func (d *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
 		defaultIfEmpty(s.Definition.Options.Charset, "utf8mb4")))
 	sql.WriteString(fmt.Sprintf(" COLLATE=%s",
 		defaultIfEmpty(s.Definition.Options.Collate, "utf8mb4_unicode_ci")))
+
 	if s.Definition.Options.Comment != "" {
 		sql.WriteString(fmt.Sprintf(" COMMENT='%s'",
 			strings.Replace(s.Definition.Options.Comment, "'", "\\'", -1)))
