@@ -43,7 +43,6 @@ func Connect(driverName string, dataSourceName string) *DBLayer {
 func Connection(ctx context.Context, driverName string, dataSourceName string, maxAttempts int, connectionTimeout time.Duration) (*DBLayer, error) {
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		log.Printf("Attempting to connect (attempt %d/%d)", attempt, maxAttempts)
 
 		db, err := sql.Open(driverName, dataSourceName)
 		if err != nil {
@@ -56,7 +55,6 @@ func Connection(ctx context.Context, driverName string, dataSourceName string, m
 		cancel()
 
 		if err == nil {
-			log.Println("Connected to dataDBLayer")
 			return New(driverName, db), nil
 		}
 		log.Printf("Failed to ping dataDBLayer: %v", err)
