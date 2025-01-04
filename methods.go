@@ -3,6 +3,7 @@ package dblayer
 import (
 	"context"
 	q "github.com/antibomberman/dbl/query"
+	s "github.com/antibomberman/dbl/schema"
 )
 
 func (d *DBLayer) Table(name string) *q.Builder {
@@ -45,4 +46,25 @@ func (d *DBLayer) Cache() q.CacheDriver {
 func (d *DBLayer) Raw(query string, args ...interface{}) *q.RawQuery {
 	qb := q.NewQueryBuilder(d.DB, d.DriverName)
 	return qb.Raw(query, args...)
+}
+
+//schema
+
+func (d *DBLayer) CreateTable(name string, fn func(builder *s.Builder)) error {
+	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
+
+	return qb.CreateTable(name, fn)
+
+}
+func (d *DBLayer) CreateTableIfNotExists(name string, fn func(builder *s.Builder)) error {
+	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
+
+	return qb.CreateTableIfNotExists(name, fn)
+
+}
+func (d *DBLayer) UpdateTable(name string, fn func(builder *s.Builder)) error {
+	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
+
+	return qb.UpdateTable(name, fn)
+
 }

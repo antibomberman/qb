@@ -12,17 +12,7 @@ type Schema struct {
 	Dialect    dialect.Dialect
 }
 
-func (s *Schema) setDialect() {
-	switch s.DriverName {
-	case "mysql":
-		s.Dialect = &dialect.MysqlDialect{}
-	case "postgres":
-		s.Dialect = &dialect.PostgresDialect{}
-	case "sqlite":
-		s.Dialect = &dialect.SqliteDialect{}
-	}
-}
-func NewSchema(db *sqlx.DB, driverName string) *Schema {
+func NewSchemaBuilder(db *sqlx.DB, driverName string) *Schema {
 	schema := &Schema{
 		DB:         db,
 		DriverName: driverName,
