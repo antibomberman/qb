@@ -59,16 +59,12 @@ func (d *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
 	sql.WriteString("\n)")
 
 	// Опции таблицы
-	sql.WriteString(fmt.Sprintf(" ENGINE=%s",
-		defaultIfEmpty(s.Definition.Options.Engine, "InnoDB")))
-	sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s",
-		defaultIfEmpty(s.Definition.Options.Charset, "utf8mb4")))
-	sql.WriteString(fmt.Sprintf(" COLLATE=%s",
-		defaultIfEmpty(s.Definition.Options.Collate, "utf8mb4_unicode_ci")))
+	sql.WriteString(fmt.Sprintf(" ENGINE=%s", defaultIfEmpty(s.Definition.Options.Engine, "InnoDB")))
+	sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s", defaultIfEmpty(s.Definition.Options.Charset, "utf8mb4")))
+	sql.WriteString(fmt.Sprintf(" COLLATE=%s", defaultIfEmpty(s.Definition.Options.Collate, "utf8mb4_unicode_ci")))
 
 	if s.Definition.Options.Comment != "" {
-		sql.WriteString(fmt.Sprintf(" COMMENT='%s'",
-			strings.Replace(s.Definition.Options.Comment, "'", "\\'", -1)))
+		sql.WriteString(fmt.Sprintf(" COMMENT='%s'", strings.Replace(s.Definition.Options.Comment, "'", "\\'", -1)))
 	}
 
 	return sql.String()
