@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/antibomberman/dbl/cmd/dbl/internal"
+	"github.com/antibomberman/dblayer/cli/internal"
 	"github.com/spf13/cobra"
 	"os"
 )
