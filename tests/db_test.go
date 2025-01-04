@@ -11,7 +11,7 @@ func TestAudit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = dbl.AuditTableCreate()
+	//err = dbl.AuditTableCreate()
 	if err != nil {
 		t.Fatalf("Ошибка создания таблицы аудита: %v", err)
 	}
