@@ -10,7 +10,7 @@ const (
 	envFileContent = `DRIVER=
 DSN=
 MAX_ATTEMPTS=3
-TIMEOUT=3
+TIMEOUT=1
 `
 )
 
