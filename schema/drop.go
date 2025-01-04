@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"fmt"
 	"strings"
 )
 
@@ -91,10 +90,4 @@ func (dt *DropTable) Build() string {
 	}
 
 	return sql.String()
-}
-
-// Execute выполняет удаление таблицы
-func (dt *DropTable) Execute() error {
-	fmt.Println(dt.Build())
-	return nil
 }

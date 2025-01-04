@@ -22,15 +22,33 @@ func (s *Schema) setDialect() {
 		s.Dialect = &dialect.SqliteDialect{}
 	}
 }
+func NewSchema(db *sqlx.DB, driverName string) *Schema {
+	schema := &Schema{
+		DB:         db,
+		DriverName: driverName,
+	}
+	switch driverName {
+	case "mysql":
+		schema.Dialect = &dialect.MysqlDialect{}
+	case "postgres":
+		schema.Dialect = &dialect.PostgresDialect{}
+	case "sqlite":
+		schema.Dialect = &dialect.SqliteDialect{}
+	}
+	return schema
 
-func (s *Schema) Truncate(tables ...string) *TruncateTable {
-	return &TruncateTable{
+}
+
+func (s *Schema) TruncateTable(tables ...string) *TruncateTable {
+	tb := &TruncateTable{
 		Schema: s,
 		Tables: tables,
 	}
+
+	return tb
 }
 
-func (s *Schema) Drop(tables ...string) *DropTable {
+func (s *Schema) DropTable(tables ...string) *DropTable {
 	return &DropTable{
 		Schema: s,
 		Tables: tables,
