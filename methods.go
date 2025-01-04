@@ -64,7 +64,15 @@ func (d *DBLayer) CreateTableIfNotExists(name string, fn func(builder *s.Builder
 }
 func (d *DBLayer) UpdateTable(name string, fn func(builder *s.Builder)) error {
 	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
-
 	return qb.UpdateTable(name, fn)
+}
 
+func (d *DBLayer) DropTable(name string) error {
+	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
+	return qb.DropTable(name)
+}
+
+func (d *DBLayer) TruncateTable(name string) error {
+	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
+	return qb.TruncateTable(name)
 }
