@@ -3,7 +3,7 @@ package tests
 import (
 	"context"
 	"fmt"
-	"github.com/antibomberman/dbl/query"
+	"github.com/antibomberman/dblayer/query"
 	"testing"
 	"time"
 )

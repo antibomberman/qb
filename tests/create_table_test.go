@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"github.com/antibomberman/dbl/schema"
+	"github.com/antibomberman/dblayer/schema"
 	"testing"
 )
 

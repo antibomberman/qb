@@ -24,6 +24,13 @@ var downCmd = &cobra.Command{
 		// Здесь добавьте логику отката миграций
 	},
 }
+var initCmd = &cobra.Command{
+	Use:   "init",
+	Short: "generate default files",
+	Run: func(cmd *cobra.Command, args []string) {
+		internal.GenerateDefaultFiles()
+	},
+}
 
 func main() {
 	rootCmd.AddCommand(migrationCmd)

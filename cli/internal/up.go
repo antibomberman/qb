@@ -14,7 +14,6 @@ var UpCmd = &cobra.Command{
 	Short: "Применить все миграции",
 	Run: func(cmd *cobra.Command, args []string) {
 		//check exist dir migrations
-
 		if _, err := os.Stat("migrations"); os.IsNotExist(err) {
 			err := os.Mkdir("migrations", 0755)
 			if err != nil {
@@ -26,12 +25,17 @@ var UpCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 		for _, file := range files {
-			upSQL, downSQL, err := parseSqlFromFile("migrations/" + file)
+			upSQL, _, err := parseSqlFromFile("migrations/" + file)
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Println(upSQL)
-			fmt.Println(downSQL)
+			dbl, err := ConnectDB()
+
+			if err != nil {
+				log.Fatal(err)
+			}
+			dbl.Raw(upSQL)
+
 		}
 		//create table migrations
 

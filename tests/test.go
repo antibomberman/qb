@@ -3,7 +3,7 @@ package tests
 import (
 	"context"
 	"database/sql"
-	dblayer "github.com/antibomberman/dbl"
+	"github.com/antibomberman/dblayer"
 	"time"
 )
 

@@ -32,20 +32,15 @@ var CreateCmd = &cobra.Command{
 			fmt.Println("Необходимо указать название миграции")
 			return
 		}
-		// Создаем папку migrations, если ее нет
-		if _, err := os.Stat("migrations"); os.IsNotExist(err) {
-			err := os.Mkdir("migrations", 0755)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
+		GenerateDefaultFiles()
+
 		name := args[0]
-		// Генерируем имя файла в формате: YYYYMMDDHHMMSS_название_миграции.sql
 		timestamp := time.Now().Format("20060102150405")
 		fileName := fmt.Sprintf("%s_%s.sql", timestamp, name)
-		// Создаем файл миграции
+
 		file, err := os.Create(fmt.Sprintf("migrations/%s", fileName))
 		if err != nil {
+			log.Fatal(err)
 		}
 		_, err = file.WriteString(fmt.Sprintf(defaultContent, name, name))
 		if err != nil {
