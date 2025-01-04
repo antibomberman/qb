@@ -7,44 +7,44 @@ import (
 	"strings"
 )
 
-func (g *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
+func (d *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
 
 	sql.WriteString("TABLE ")
-	if s.definition.options.ifNotExists {
+	if s.Definition.Options.IfNotExists {
 		sql.WriteString("IF NOT EXISTS ")
 	}
-	sql.WriteString(s.definition.name)
+	sql.WriteString(s.Definition.Name)
 	sql.WriteString(" (\n")
 
 	// Колонки
-	var columns []string
-	for _, col := range s.definition.columns {
-		columns = append(columns, g.BuildColumnDefinition(col))
+	var Columns []string
+	for _, col := range s.Definition.Columns {
+		Columns = append(Columns, g.BuildColumnDefinition(col))
 	}
 
 	// Первичный ключ
-	if len(s.definition.constraints.primaryKey) > 0 {
-		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.definition.constraints.primaryKey, ", ")))
+	if len(s.Definition.Constraints.PrimaryKey) > 0 {
+		Columns = append(Columns, fmt.Sprintf("PRIMARY KEY (%s)",
+			strings.Join(s.Definition.Constraints.PrimaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for name, cols := range s.definition.constraints.uniqueKeys {
-		columns = append(columns, fmt.Sprintf("UNIQUE KEY %s (%s)",
-			name, strings.Join(cols, ", ")))
+	for Name, cols := range s.Definition.Constraints.UniqueKeys {
+		Columns = append(Columns, fmt.Sprintf("UNIQUE KEY %s (%s)",
+			Name, strings.Join(cols, ", ")))
 	}
 
 	// Индексы
-	for name, cols := range s.definition.constraints.indexes {
-		columns = append(columns, fmt.Sprintf("INDEX %s (%s)",
-			name, strings.Join(cols, ", ")))
+	for Name, cols := range s.Definition.Constraints.Indexes {
+		Columns = append(Columns, fmt.Sprintf("INDEX %s (%s)",
+			Name, strings.Join(cols, ", ")))
 	}
 
 	// Внешние ключи
-	for col, fk := range s.definition.constraints.foreignKeys {
+	for col, fk := range s.Definition.Constraints.ForeignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)", col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
 			constraint += " ON DELETE " + fk.OnDelete
@@ -52,22 +52,22 @@ func (g *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
 		if fk.OnUpdate != "" {
 			constraint += " ON UPDATE " + fk.OnUpdate
 		}
-		columns = append(columns, constraint)
+		Columns = append(Columns, constraint)
 	}
 
-	sql.WriteString(strings.Join(columns, ",\n"))
+	sql.WriteString(strings.Join(Columns, ",\n"))
 	sql.WriteString("\n)")
 
 	// Опции таблицы
 	sql.WriteString(fmt.Sprintf(" ENGINE=%s",
-		defaultIfEmpty(s.definition.options.engine, "InnoDB")))
+		defaultIfEmpty(s.Definition.Options.Engine, "InnoDB")))
 	sql.WriteString(fmt.Sprintf(" DEFAULT CHARSET=%s",
-		defaultIfEmpty(s.definition.options.charset, "utf8mb4")))
+		defaultIfEmpty(s.Definition.Options.Charset, "utf8mb4")))
 	sql.WriteString(fmt.Sprintf(" COLLATE=%s",
-		defaultIfEmpty(s.definition.options.collate, "utf8mb4_unicode_ci")))
-	if s.definition.options.comment != "" {
+		defaultIfEmpty(s.Definition.Options.Collate, "utf8mb4_unicode_ci")))
+	if s.Definition.Options.Comment != "" {
 		sql.WriteString(fmt.Sprintf(" COMMENT='%s'",
-			strings.Replace(s.definition.options.comment, "'", "\\'", -1)))
+			strings.Replace(s.Definition.Options.Comment, "'", "\\'", -1)))
 	}
 
 	return sql.String()
@@ -80,9 +80,9 @@ func defaultIfEmpty(value, defaultValue string) string {
 	return value
 }
 
-func (g *MysqlDialect) BuildAlterTable(s *schema.Schema) string {
+func (d *MysqlDialect) BuildAlterTable(s *schema.Schema) string {
 	var commands []string
-	for _, cmd := range s.definition.commands {
+	for _, cmd := range s.Definition.Commands {
 		if cmd.Cmd != "" {
 			commands = append(commands, cmd.Cmd)
 		} else {
@@ -102,38 +102,38 @@ func (g *MysqlDialect) BuildAlterTable(s *schema.Schema) string {
 
 	return fmt.Sprintf(
 		"ALTER TABLE %s\n%s",
-		s.definition.name,
+		s.Definition.Name,
 		strings.Join(commands, ",\n"),
 	)
 }
 
-func (g *MysqlDialect) BuildDropTable(dt *schema.DropTable) string {
+func (d *MysqlDialect) BuildDropTable(dt *schema.DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
-	if dt.options.Temporary {
+	if dt.Options.Temporary {
 		sql.WriteString("TEMPORARY ")
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent {
+	if dt.Options.Concurrent {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
-	if dt.options.IfExists {
+	if dt.Options.IfExists {
 		sql.WriteString("IF EXISTS ")
 	}
 
 	sql.WriteString(strings.Join(dt.tables, ", "))
 
-	if dt.options.Force {
+	if dt.Options.Force {
 		sql.WriteString(" FORCE")
 	}
 
 	return sql.String()
 }
 
-func (g *MysqlDialect) BuildColumnDefinition(col *schema.Column) string {
+func (d *MysqlDialect) BuildColumnDefinition(col *schema.Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -186,12 +186,12 @@ func (g *MysqlDialect) BuildColumnDefinition(col *schema.Column) string {
 	return sql.String()
 }
 
-func (g *MysqlDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
+func (d *MysqlDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
 	var sql strings.Builder
 	sql.WriteString("TRUNCATE TABLE ")
-	sql.WriteString(strings.Join(tt.tables, ", "))
+	sql.WriteString(strings.Join(tt.Tables, ", "))
 
-	if tt.options.Force {
+	if tt.Options.Force {
 		sql.WriteString(" FORCE")
 	}
 
@@ -205,14 +205,14 @@ type IndexOptions struct {
 	Options map[string]string // Дополнительные опции
 }
 
-func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string {
+func (d *MysqlDialect) BuildIndexDefinition(Name string, Columns []string, unique bool, opts *IndexOptions) string {
 	var sql strings.Builder
 
 	if unique {
 		sql.WriteString("UNIQUE ")
 	}
 	sql.WriteString("INDEX ")
-	sql.WriteString(g.QuoteIdentifier(name))
+	sql.WriteString(d.QuoteIdentifier(Name))
 
 	if opts != nil && opts.Using != "" {
 		sql.WriteString(" USING " + opts.Using)
@@ -220,13 +220,13 @@ func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, uniqu
 
 	sql.WriteString(" (")
 	// Поддержка длины индекса для каждой колонки
-	quotedColumns := make([]string, len(columns))
-	for i, col := range columns {
+	quotedColumns := make([]string, len(Columns))
+	for i, col := range Columns {
 		// Проверяем на наличие длины индекса (format: column(length))
 		if parts := strings.Split(col, "("); len(parts) > 1 {
-			quotedColumns[i] = g.QuoteIdentifier(parts[0]) + "(" + strings.TrimRight(parts[1], ")")
+			quotedColumns[i] = d.QuoteIdentifier(parts[0]) + "(" + strings.TrimRight(parts[1], ")")
 		} else {
-			quotedColumns[i] = g.QuoteIdentifier(col)
+			quotedColumns[i] = d.QuoteIdentifier(col)
 		}
 	}
 	sql.WriteString(strings.Join(quotedColumns, ", "))
@@ -248,13 +248,13 @@ func (g *MysqlDialect) BuildIndexDefinition(name string, columns []string, uniqu
 	return sql.String()
 }
 
-func (g *MysqlDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
+func (d *MysqlDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
-	sql.WriteString(g.QuoteIdentifier(fk.Table))
+	sql.WriteString(d.QuoteIdentifier(fk.Table))
 	sql.WriteString("(")
-	sql.WriteString(g.QuoteIdentifier(fk.Column))
+	sql.WriteString(d.QuoteIdentifier(fk.Column))
 	sql.WriteString(")")
 
 	if fk.OnDelete != "" {
@@ -270,188 +270,188 @@ func (g *MysqlDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
 	return sql.String()
 }
 
-func (g *MysqlDialect) SupportsDropConcurrently() bool {
+func (d *MysqlDialect) SupportsDropConcurrently() bool {
 	return false
 }
 
-func (g *MysqlDialect) SupportsRestartIdentity() bool {
+func (d *MysqlDialect) SupportsRestartIdentity() bool {
 	return false
 }
 
-func (g *MysqlDialect) SupportsCascade() bool {
+func (d *MysqlDialect) SupportsCascade() bool {
 	return false
 }
 
-func (g *MysqlDialect) SupportsForce() bool {
+func (d *MysqlDialect) SupportsForce() bool {
 	return true
 }
 
-func (g *MysqlDialect) GetAutoIncrementType() string {
+func (d *MysqlDialect) GetAutoIncrementType() string {
 	return "AUTO_INCREMENT"
 }
 
-func (g *MysqlDialect) GetUUIDType() string {
+func (d *MysqlDialect) GetUUIDType() string {
 	return "CHAR(36)"
 }
 
-func (g *MysqlDialect) GetBooleanType() string {
+func (d *MysqlDialect) GetBooleanType() string {
 	return "TINYINT(1)"
 }
 
-func (g *MysqlDialect) GetIntegerType() string {
+func (d *MysqlDialect) GetIntegerType() string {
 	return "INT"
 }
 
-func (g *MysqlDialect) GetBigIntegerType() string {
+func (d *MysqlDialect) GetBigIntegerType() string {
 	return "BIGINT"
 }
 
-func (g *MysqlDialect) GetFloatType() string {
+func (d *MysqlDialect) GetFloatType() string {
 	return "FLOAT"
 }
-func (g *MysqlDialect) GetDoubleType() string {
+func (d *MysqlDialect) GetDoubleType() string {
 	return "DOUBLE"
 }
 
-func (g *MysqlDialect) GetDecimalType(precision, scale int) string {
+func (d *MysqlDialect) GetDecimalType(precision, scale int) string {
 	return fmt.Sprintf("DECIMAL(%d,%d)", precision, scale)
 }
 
-func (g *MysqlDialect) GetStringType(length int) string {
+func (d *MysqlDialect) GetStringType(length int) string {
 	return fmt.Sprintf("VARCHAR(%d)", length)
 }
 
-func (g *MysqlDialect) GetTextType() string {
+func (d *MysqlDialect) GetTextType() string {
 	return "TEXT"
 }
-func (g *MysqlDialect) GetBinaryType(length int) string {
+func (d *MysqlDialect) GetBinaryType(length int) string {
 	return fmt.Sprintf("BINARY(%d)", length)
 }
 
-func (g *MysqlDialect) GetJsonType() string {
+func (d *MysqlDialect) GetJsonType() string {
 	return "JSON"
 }
 
-func (g *MysqlDialect) GetTimestampType() string {
+func (d *MysqlDialect) GetTimestampType() string {
 	return "TIMESTAMP"
 }
-func (g *MysqlDialect) GetDateType() string {
+func (d *MysqlDialect) GetDateType() string {
 	return "DATE"
 }
-func (g *MysqlDialect) GetTimeType() string {
+func (d *MysqlDialect) GetTimeType() string {
 	return "TIME"
 }
-func (g *MysqlDialect) GetCurrentTimestampExpression() string {
+func (d *MysqlDialect) GetCurrentTimestampExpression() string {
 	return "CURRENT_TIMESTAMP"
 }
 
-func (g *MysqlDialect) QuoteIdentifier(name string) string {
-	if len(name) > 64 {
+func (d *MysqlDialect) QuoteIdentifier(Name string) string {
+	if len(Name) > 64 {
 		// Можно либо обрезать, либо вызвать ошибку
-		name = name[:64]
+		Name = Name[:64]
 	}
-	return "`" + strings.Replace(name, "`", "``", -1) + "`"
+	return "`" + strings.Replace(Name, "`", "``", -1) + "`"
 }
 
-func (g *MysqlDialect) QuoteString(value string) string {
+func (d *MysqlDialect) QuoteString(value string) string {
 	return "'" + strings.Replace(value, "'", "''", -1) + "'"
 }
 
-func (g *MysqlDialect) SupportsColumnPositioning() bool {
+func (d *MysqlDialect) SupportsColumnPositioning() bool {
 	return true
 }
 
-func (g *MysqlDialect) SupportsEnum() bool {
+func (d *MysqlDialect) SupportsEnum() bool {
 	return true
 }
-func (g *MysqlDialect) GetEnumType(values []string) string {
+func (d *MysqlDialect) GetEnumType(values []string) string {
 	return fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))
 }
-func (g *MysqlDialect) SupportsColumnComments() bool {
+func (d *MysqlDialect) SupportsColumnComments() bool {
 	return true
 }
 
-func (g *MysqlDialect) SupportsSpatialIndex() bool {
+func (d *MysqlDialect) SupportsSpatialIndex() bool {
 	return true
 }
 
-func (g *MysqlDialect) SupportsFullTextIndex() bool {
+func (d *MysqlDialect) SupportsFullTextIndex() bool {
 	return true
 }
 
-func (g *MysqlDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
-	return fmt.Sprintf("SPATIAL INDEX %s (%s)", name, strings.Join(columns, ", "))
+func (d *MysqlDialect) BuildSpatialIndexDefinition(Name string, Columns []string) string {
+	return fmt.Sprintf("SPATIAL INDEX %s (%s)", Name, strings.Join(Columns, ", "))
 }
 
-func (g *MysqlDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
-	return fmt.Sprintf("FULLTEXT INDEX %s (%s)", name, strings.Join(columns, ", "))
+func (d *MysqlDialect) BuildFullTextIndexDefinition(Name string, Columns []string) string {
+	return fmt.Sprintf("FULLTEXT INDEX %s (%s)", Name, strings.Join(Columns, ", "))
 }
 
-func (g *MysqlDialect) GetSmallIntegerType() string {
+func (d *MysqlDialect) GetSmallIntegerType() string {
 	return "SMALLINT"
 }
 
-func (g *MysqlDialect) GetMediumIntegerType() string {
+func (d *MysqlDialect) GetMediumIntegerType() string {
 	return "MEDIUMINT"
 }
 
-func (g *MysqlDialect) GetTinyIntegerType() string {
+func (d *MysqlDialect) GetTinyIntegerType() string {
 	return "TINYINT"
 }
 
-func (g *MysqlDialect) GetMoneyType() string {
+func (d *MysqlDialect) GetMoneyType() string {
 	return "DECIMAL(19,4)"
 }
 
-func (g *MysqlDialect) GetCharType(length int) string {
+func (d *MysqlDialect) GetCharType(length int) string {
 	return fmt.Sprintf("CHAR(%d)", length)
 }
 
-func (g *MysqlDialect) GetMediumTextType() string {
+func (d *MysqlDialect) GetMediumTextType() string {
 	return "MEDIUMTEXT"
 }
 
-func (g *MysqlDialect) GetLongTextType() string {
+func (d *MysqlDialect) GetLongTextType() string {
 	return "LONGTEXT"
 }
 
-func (g *MysqlDialect) GetSetType(values []string) string {
+func (d *MysqlDialect) GetSetType(values []string) string {
 	return fmt.Sprintf("SET('%s')", strings.Join(values, "','"))
 }
 
-func (g *MysqlDialect) GetYearType() string {
+func (d *MysqlDialect) GetYearType() string {
 	return "YEAR"
 }
 
-func (g *MysqlDialect) GetPointType() string {
+func (d *MysqlDialect) GetPointType() string {
 	return "POINT"
 }
 
-func (g *MysqlDialect) GetPolygonType() string {
+func (d *MysqlDialect) GetPolygonType() string {
 	return "POLYGON"
 }
 
-func (g *MysqlDialect) GetGeometryType() string {
+func (d *MysqlDialect) GetGeometryType() string {
 	return "GEOMETRY"
 }
 
-func (g *MysqlDialect) GetIpType() string {
+func (d *MysqlDialect) GetIpType() string {
 	return "VARCHAR(45)"
 }
 
-func (g *MysqlDialect) GetMacAddressType() string {
+func (d *MysqlDialect) GetMacAddressType() string {
 	return "VARCHAR(17)"
 }
-func (g *MysqlDialect) GetUnsignedType() string {
+func (d *MysqlDialect) GetUnsignedType() string {
 	return "UNSIGNED"
 }
 
-func (g *MysqlDialect) CheckColumnExists(table, column string) string {
-	return `SELECT COUNT(*) > 0 FROM information_schema.columns 
+func (d *MysqlDialect) CheckColumnExists(table, column string) string {
+	return `SELECT COUNT(*) > 0 FROM information_schema.Columns 
 			WHERE table_schema = DATABASE() 
-			AND table_name = ? AND column_name = ?`
+			AND table_Name = ? AND column_Name = ?`
 }
 
-func (g *MysqlDialect) Create(ctx context.Context, data interface{}, fields ...string) (int64, error) {
+func (d *MysqlDialect) Create(ctx context.Context, data interface{}, fields ...string) (int64, error) {
 	return 0, nil
 }

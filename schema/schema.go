@@ -7,17 +7,17 @@ import (
 // Schema с более четкой структурой и инкапсуляцией
 type Schema struct {
 	dbl        *DBL
-	definition SchemaDefinition
+	Definition SchemaDefinition
 	builder    SchemaBuilder
 }
 
 type SchemaDefinition struct {
-	name        string
-	mode        string // "create" или "update"
-	columns     []*Column
-	commands    []Command
-	constraints Constraints
-	options     TableOptions
+	Name        string
+	Mode        string // "create" или "update"
+	Columns     []*Column
+	Commands    []Command
+	Constraints Constraints
+	Options     TableOptions
 }
 
 type SchemaBuilder interface {
@@ -28,18 +28,18 @@ type SchemaBuilder interface {
 }
 
 type Constraints struct {
-	primaryKey  []string
-	uniqueKeys  map[string][]string
-	indexes     map[string][]string
-	foreignKeys map[string]*Foreign
+	PrimaryKey  []string
+	UniqueKeys  map[string][]string
+	Indexes     map[string][]string
+	ForeignKeys map[string]*Foreign
 }
 
 type TableOptions struct {
-	engine      string
-	charset     string
-	collate     string
-	comment     string
-	ifNotExists bool
+	Engine      string
+	Charset     string
+	Collate     string
+	Comment     string
+	IfNotExists bool
 }
 
 // Constraint представляет ограничение таблицы
@@ -70,7 +70,7 @@ func (s *Schema) BuildAlter() string {
 
 // Добавляем методы для обновления
 func (s *Schema) RenameColumn(from, to string) *Schema {
-	if s.definition.mode == "update" {
+	if s.Definition.Mode == "update" {
 		s.builder.AddConstraint(Constraint{
 			Type:    "RENAME COLUMN",
 			Columns: []string{from},
@@ -88,7 +88,7 @@ func (s *Schema) UniqueIndex(name string, columns ...string) *Schema {
 // FullText добавляет полнотекстовый индекс
 func (s *Schema) FullText(name string, columns ...string) *Schema {
 	if s.dbl.DB.DriverName() == "mysql" {
-		s.definition.constraints.indexes[name] = columns
+		s.Definition.Constraints.Indexes[name] = columns
 		return s
 	}
 	return s
@@ -96,43 +96,43 @@ func (s *Schema) FullText(name string, columns ...string) *Schema {
 
 // PrimaryKey устанавливает первичный ключ
 func (s *Schema) PrimaryKey(columns ...string) *Schema {
-	s.definition.constraints.primaryKey = columns
+	s.Definition.Constraints.PrimaryKey = columns
 	return s
 }
 
 // UniqueKey добавляет уникальный ключ
 func (s *Schema) UniqueKey(name string, columns ...string) *Schema {
-	s.definition.constraints.uniqueKeys[name] = columns
+	s.Definition.Constraints.UniqueKeys[name] = columns
 	return s
 }
 
 // Engine устанавливает движок таблицы
-func (s *Schema) Engine(engine string) *Schema {
-	s.definition.options.engine = engine
+func (s *Schema) Engine(Engine string) *Schema {
+	s.Definition.Options.Engine = Engine
 	return s
 }
 
 // Charset устанавливает кодировку
-func (s *Schema) Charset(charset string) *Schema {
-	s.definition.options.charset = charset
+func (s *Schema) Charset(Charset string) *Schema {
+	s.Definition.Options.Charset = Charset
 	return s
 }
 
 // Collate устанавливает сравнение
-func (s *Schema) Collate(collate string) *Schema {
-	s.definition.options.collate = collate
+func (s *Schema) Collate(Collate string) *Schema {
+	s.Definition.Options.Collate = Collate
 	return s
 }
 
 // Comment добавляет комментарий
-func (s *Schema) Comment(comment string) *Schema {
-	s.definition.options.comment = comment
+func (s *Schema) Comment(Comment string) *Schema {
+	s.Definition.Options.Comment = Comment
 	return s
 }
 
 // IfNotExists добавляет проверку существования
 func (s *Schema) IfNotExists() *Schema {
-	s.definition.options.ifNotExists = true
+	s.Definition.Options.IfNotExists = true
 	return s
 }
 
@@ -148,8 +148,8 @@ func (s *Schema) IfNotExists() *Schema {
 //
 // DropColumn удаляет колонку
 func (s *Schema) DropColumn(name string) *Schema {
-	if s.definition.mode == "update" {
-		s.definition.commands = append(s.definition.commands, Command{
+	if s.Definition.Mode == "update" {
+		s.Definition.Commands = append(s.Definition.Commands, Command{
 			Type: "DROP COLUMN",
 			Name: name,
 			Cmd:  fmt.Sprintf("DROP COLUMN %s", name),
@@ -188,15 +188,15 @@ func (s *Schema) RenameTable(newName string) *Schema {
 }
 
 // ChangeEngine меняет движок таблицы
-func (s *Schema) ChangeEngine(engine string) *Schema {
-	s.builder.SetOption("ENGINE", engine)
+func (s *Schema) ChangeEngine(Engine string) *Schema {
+	s.builder.SetOption("Engine", Engine)
 	return s
 }
 
 // ChangeCharset меняет кодировку
-func (s *Schema) ChangeCharset(charset, collate string) *Schema {
-	s.definition.options.charset = charset
-	s.definition.options.collate = collate
+func (s *Schema) ChangeCharset(Charset, Collate string) *Schema {
+	s.Definition.Options.Charset = Charset
+	s.Definition.Options.Collate = Collate
 	return s
 }
 
@@ -208,7 +208,7 @@ func (s *Schema) buildColumn(col *Column) string {
 // Добавляем новые методы для индексов
 func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 	if s.dbl.Dialect.SupportsSpatialIndex() {
-		if s.definition.mode == "create" {
+		if s.Definition.Mode == "create" {
 			s.builder.AddConstraint(Constraint{
 				Type:    "ADD SPATIAL INDEX",
 				Name:    name,
@@ -227,7 +227,7 @@ func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 
 func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
 	if s.dbl.Dialect.SupportsFullTextIndex() {
-		if s.definition.mode == "create" {
+		if s.Definition.Mode == "create" {
 			s.builder.AddConstraint(Constraint{
 				Type:    "ADD FULLTEXT INDEX",
 				Name:    name,

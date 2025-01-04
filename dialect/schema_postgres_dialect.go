@@ -12,38 +12,38 @@ func (g *PostgresDialect) BuildCreateTable(s *schema.Schema) string {
 	sql.WriteString("CREATE ")
 
 	sql.WriteString("TABLE ")
-	if s.definition.options.ifNotExists {
+	if s.Definition.Options.IfNotExists {
 		sql.WriteString("IF NOT EXISTS ")
 	}
-	sql.WriteString(s.definition.name)
+	sql.WriteString(s.Definition.Name)
 	sql.WriteString(" (\n")
 
 	// Колонки
 	var columns []string
-	for _, col := range s.definition.columns {
+	for _, col := range s.Definition.Columns {
 		columns = append(columns, g.BuildColumnDefinition(col))
 	}
 
 	// Первичный ключ
-	if len(s.definition.constraints.primaryKey) > 0 {
+	if len(s.Definition.Constraints.PrimaryKey) > 0 {
 		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.definition.constraints.primaryKey, ", ")))
+			strings.Join(s.Definition.Constraints.PrimaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for name, cols := range s.definition.constraints.uniqueKeys {
+	for Name, cols := range s.Definition.Constraints.UniqueKeys {
 		columns = append(columns, fmt.Sprintf("UNIQUE KEY %s (%s)",
-			name, strings.Join(cols, ", ")))
+			Name, strings.Join(cols, ", ")))
 	}
 
 	// Индексы
-	for name, cols := range s.definition.constraints.indexes {
+	for Name, cols := range s.Definition.Constraints.Indexes {
 		columns = append(columns, fmt.Sprintf("INDEX %s (%s)",
-			name, strings.Join(cols, ", ")))
+			Name, strings.Join(cols, ", ")))
 	}
 
 	// Внешние ключи
-	for col, fk := range s.definition.constraints.foreignKeys {
+	for col, fk := range s.Definition.Constraints.ForeignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
@@ -63,13 +63,13 @@ func (g *PostgresDialect) BuildCreateTable(s *schema.Schema) string {
 
 func (g *PostgresDialect) BuildAlterTable(s *schema.Schema) string {
 	var commands []string
-	for _, cmd := range s.definition.commands {
+	for _, cmd := range s.Definition.Commands {
 		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
 	}
 
 	return fmt.Sprintf(
 		"ALTER TABLE %s\n%s",
-		s.definition.name,
+		s.Definition.Name,
 		strings.Join(commands, ",\n"),
 	)
 }
@@ -78,26 +78,26 @@ func (g *PostgresDialect) BuildDropTable(dt *schema.DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
-	if dt.options.Temporary {
+	if dt.Options.Temporary {
 		sql.WriteString("TEMPORARY ")
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent {
+	if dt.Options.Concurrent {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
-	if dt.options.IfExists {
+	if dt.Options.IfExists {
 		sql.WriteString("IF EXISTS ")
 	}
 
-	sql.WriteString(strings.Join(dt.tables, ", "))
+	sql.WriteString(strings.Join(dt.Tables, ", "))
 
-	if dt.options.Cascade {
+	if dt.Options.Cascade {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict {
+	if dt.Options.Restrict {
 		sql.WriteString(" RESTRICT")
 	}
 
@@ -145,13 +145,13 @@ func (g *PostgresDialect) BuildColumnDefinition(col *schema.Column) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, unique bool, opts *IndexOptions) string {
+func (g *PostgresDialect) BuildIndexDefinition(Name string, columns []string, unique bool, opts *IndexOptions) string {
 	var sql strings.Builder
 	if unique {
 		sql.WriteString("UNIQUE ")
 	}
 	sql.WriteString("INDEX ")
-	sql.WriteString(g.QuoteIdentifier(name))
+	sql.WriteString(g.QuoteIdentifier(Name))
 	sql.WriteString(" ON ")
 
 	sql.WriteString(" USING btree (")
@@ -190,13 +190,13 @@ func (g *PostgresDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
 func (g *PostgresDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
 	var sql strings.Builder
 	sql.WriteString("TRUNCATE TABLE ")
-	sql.WriteString(strings.Join(tt.tables, ", "))
+	sql.WriteString(strings.Join(tt.Tables, ", "))
 
-	if tt.options.Restart {
+	if tt.Options.Restart {
 		sql.WriteString(" RESTART IDENTITY")
 	}
 
-	if tt.options.Cascade {
+	if tt.Options.Cascade {
 		sql.WriteString(" CASCADE")
 	}
 
@@ -283,8 +283,8 @@ func (g *PostgresDialect) GetCurrentTimestampExpression() string {
 	return "CURRENT_TIMESTAMP"
 }
 
-func (g *PostgresDialect) QuoteIdentifier(name string) string {
-	return "\"" + strings.Replace(name, "\"", "\"\"", -1) + "\""
+func (g *PostgresDialect) QuoteIdentifier(Name string) string {
+	return "\"" + strings.Replace(Name, "\"", "\"\"", -1) + "\""
 }
 
 func (g *PostgresDialect) QuoteString(value string) string {
@@ -315,14 +315,14 @@ func (g *PostgresDialect) SupportsFullTextIndex() bool {
 	return true
 }
 
-func (g *PostgresDialect) BuildSpatialIndexDefinition(name string, columns []string) string {
+func (g *PostgresDialect) BuildSpatialIndexDefinition(Name string, columns []string) string {
 	return fmt.Sprintf("CREATE INDEX %s ON %s USING GIST (%s)",
-		name, "%s", strings.Join(columns, ", "))
+		Name, "%s", strings.Join(columns, ", "))
 }
 
-func (g *PostgresDialect) BuildFullTextIndexDefinition(name string, columns []string) string {
+func (g *PostgresDialect) BuildFullTextIndexDefinition(Name string, columns []string) string {
 	return fmt.Sprintf("CREATE INDEX %s ON %s USING GIN (to_tsvector('english', %s))",
-		name, "%s", strings.Join(columns, " || ' ' || "))
+		Name, "%s", strings.Join(columns, " || ' ' || "))
 }
 
 func (g *PostgresDialect) GetSmallIntegerType() string {
@@ -388,11 +388,11 @@ func (g *PostgresDialect) GetUnsignedType() string {
 func (g *PostgresDialect) CheckColumnExists(table, column string) string {
 	return `SELECT COUNT(*) > 0 FROM information_schema.columns 
 			WHERE table_schema = 'public' 
-			AND table_name = $1 AND column_name = $2`
+			AND table_Name = $1 AND column_Name = $2`
 }
 
 func (g *PostgresDialect) CheckTableExists(table string) string {
 	return `SELECT COUNT(*) > 0 FROM information_schema.tables 
 			WHERE table_schema = 'public' 
-			AND table_name = $1`
+			AND table_Name = $1`
 }

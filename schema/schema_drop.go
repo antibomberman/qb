@@ -17,44 +17,44 @@ type DropOptions struct {
 
 // DropTable удаляет таблицу
 type DropTable struct {
-	dbl     *DBL
-	tables  []string
-	options DropOptions
+	DBL     *DBL
+	Tables  []string
+	Options DropOptions
 }
 
 // IfExists добавляет проверку существования
 func (dt *DropTable) IfExists() *DropTable {
-	dt.options.IfExists = true
+	dt.Options.IfExists = true
 	return dt
 }
 
 // Cascade включает каскадное удаление
 func (dt *DropTable) Cascade() *DropTable {
-	dt.options.Cascade = true
+	dt.Options.Cascade = true
 	return dt
 }
 
 // Temporary указывает на временную таблицу
 func (dt *DropTable) Temporary() *DropTable {
-	dt.options.Temporary = true
+	dt.Options.Temporary = true
 	return dt
 }
 
 // Restrict запрещает удаление при зависимостях
 func (dt *DropTable) Restrict() *DropTable {
-	dt.options.Restrict = true
+	dt.Options.Restrict = true
 	return dt
 }
 
 // Concurrent включает неблокирующее удаление (PostgreSQL)
 func (dt *DropTable) Concurrent() *DropTable {
-	dt.options.Concurrent = true
+	dt.Options.Concurrent = true
 	return dt
 }
 
 // Force принудительное удаление (MySQL)
 func (dt *DropTable) Force() *DropTable {
-	dt.options.Force = true
+	dt.Options.Force = true
 	return dt
 }
 
@@ -63,30 +63,30 @@ func (dt *DropTable) Build() string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
-	if dt.options.Temporary {
+	if dt.Options.Temporary {
 		sql.WriteString("TEMPORARY ")
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent && dt.dbl.Dialect.SupportsDropConcurrently() {
+	if dt.Options.Concurrent && dt.DBL.Dialect.SupportsDropConcurrently() {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
-	if dt.options.IfExists {
+	if dt.Options.IfExists {
 		sql.WriteString("IF EXISTS ")
 	}
 
-	sql.WriteString(strings.Join(dt.tables, ", "))
+	sql.WriteString(strings.Join(dt.Tables, ", "))
 
-	if dt.options.Cascade && dt.dbl.Dialect.SupportsCascade() {
+	if dt.Options.Cascade && dt.DBL.Dialect.SupportsCascade() {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict && dt.dbl.Dialect.SupportsCascade() {
+	if dt.Options.Restrict && dt.DBL.Dialect.SupportsCascade() {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.options.Force && dt.dbl.Dialect.SupportsForce() {
+	if dt.Options.Force && dt.DBL.Dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 

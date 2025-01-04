@@ -34,7 +34,7 @@ func (s *Schema) foreign(column, refTable, refColumn string) *ForeignBuilder {
 		Table:  refTable,
 		Column: refColumn,
 	}
-	s.definition.constraints.foreignKeys[column] = fk
+	s.Definition.Constraints.ForeignKeys[column] = fk
 	return &ForeignBuilder{
 		schema: s,
 		fk:     fk,
@@ -43,7 +43,7 @@ func (s *Schema) foreign(column, refTable, refColumn string) *ForeignBuilder {
 }
 func (s *Schema) Foreign(column string) *ForeignBuilder {
 	fk := &Foreign{}
-	s.definition.constraints.foreignKeys[column] = fk
+	s.Definition.Constraints.ForeignKeys[column] = fk
 	return &ForeignBuilder{
 		schema: s,
 		fk:     fk,
@@ -57,7 +57,7 @@ func (c *ColumnBuilder) Foreign(name string) *ForeignBuilder {
 		refTable += "s"
 	}
 
-	return c.schema.foreign(c.column.Name, refTable, "id")
+	return c.Schema.foreign(c.Column.Name, refTable, "id")
 }
 func (c *ForeignBuilder) References(table string, column string) *ForeignBuilder {
 	c.fk.Table = table
@@ -127,7 +127,7 @@ func (fkb *ForeignBuilder) SetDefaultOnUpdate() *ForeignBuilder {
 
 // DropForeignKey удаляет внешний ключ
 func (s *Schema) DropForeignKey(name string) *Schema {
-	s.definition.commands = append(s.definition.commands, Command{
+	s.Definition.Commands = append(s.Definition.Commands, Command{
 		Type: "DROP CONSTRAINT",
 		Name: name,
 		Cmd:  fmt.Sprintf("DROP FOREIGN KEY %s", name),

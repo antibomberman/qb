@@ -25,13 +25,13 @@ func (g *SqliteDialect) BuildCreateTable(s *schema.Schema) string {
 	}
 
 	// Первичный ключ
-	if len(s.definition.constraints.primaryKey) > 0 {
+	if len(s.definition.constraints.PrimaryKey) > 0 {
 		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.definition.constraints.primaryKey, ", ")))
+			strings.Join(s.definition.constraints.PrimaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for _, cols := range s.definition.constraints.uniqueKeys {
+	for _, cols := range s.definition.constraints.UniqueKeys {
 		columns = append(columns, fmt.Sprintf("UNIQUE (%s)",
 			strings.Join(cols, ", ")))
 	}

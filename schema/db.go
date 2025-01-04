@@ -25,33 +25,33 @@ func (dbl *DBL) setDialect() {
 
 func (dbl *DBL) Truncate(tables ...string) *TruncateTable {
 	return &TruncateTable{
-		dbl:    dbl,
-		tables: tables,
+		DBL:    dbl,
+		Tables: tables,
 	}
 }
 
 func (dbl *DBL) Drop(tables ...string) *DropTable {
 	return &DropTable{
-		dbl:    dbl,
-		tables: tables,
+		DBL:    dbl,
+		Tables: tables,
 	}
 }
 
 func (dbl *DBL) CreateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
-		definition: SchemaDefinition{
-			name: name,
-			mode: "create",
-			options: TableOptions{
-				ifNotExists: false,
+		Definition: SchemaDefinition{
+			Name: name,
+			Mode: "create",
+			Options: TableOptions{
+				IfNotExists: false,
 			},
 			// Инициализируем все maps в constraints
-			constraints: Constraints{
-				primaryKey:  make([]string, 0),
-				uniqueKeys:  make(map[string][]string),
-				indexes:     make(map[string][]string),
-				foreignKeys: make(map[string]*Foreign),
+			Constraints: Constraints{
+				PrimaryKey:  make([]string, 0),
+				UniqueKeys:  make(map[string][]string),
+				Indexes:     make(map[string][]string),
+				ForeignKeys: make(map[string]*Foreign),
 			},
 		},
 	}
@@ -64,17 +64,17 @@ func (dbl *DBL) CreateTable(name string, fn func(*Schema)) error {
 func (dbl *DBL) CreateTableIfNotExists(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
-		definition: SchemaDefinition{
-			name: name,
-			options: TableOptions{
-				ifNotExists: true,
+		Definition: SchemaDefinition{
+			Name: name,
+			Options: TableOptions{
+				IfNotExists: true,
 			},
-			mode: "create",
-			constraints: Constraints{
-				primaryKey:  make([]string, 0),
-				uniqueKeys:  make(map[string][]string),
-				indexes:     make(map[string][]string),
-				foreignKeys: make(map[string]*Foreign),
+			Mode: "create",
+			Constraints: Constraints{
+				PrimaryKey:  make([]string, 0),
+				UniqueKeys:  make(map[string][]string),
+				Indexes:     make(map[string][]string),
+				ForeignKeys: make(map[string]*Foreign),
 			},
 		},
 	}
@@ -88,9 +88,9 @@ func (dbl *DBL) CreateTableIfNotExists(name string, fn func(*Schema)) error {
 func (dbl *DBL) UpdateTable(name string, fn func(*Schema)) error {
 	schema := &Schema{
 		dbl: dbl,
-		definition: SchemaDefinition{
-			name: name,
-			mode: "update",
+		Definition: SchemaDefinition{
+			Name: name,
+			Mode: "update",
 		},
 	}
 
