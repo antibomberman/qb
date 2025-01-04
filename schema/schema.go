@@ -28,20 +28,23 @@ func NewSchemaBuilder(db *sqlx.DB, driverName string) *Schema {
 
 }
 
-func (s *Schema) TruncateTable(tables ...string) *TruncateTable {
+func (s *Schema) TruncateTable(tables ...string) error {
 	tb := &TruncateTable{
 		Schema: s,
 		Tables: tables,
 	}
 
-	return tb
+	_, err := s.DB.Exec(tb.Build())
+	return err
 }
 
-func (s *Schema) DropTable(tables ...string) *DropTable {
-	return &DropTable{
+func (s *Schema) DropTable(tables ...string) error {
+	dt := &DropTable{
 		Schema: s,
 		Tables: tables,
 	}
+	_, err := s.DB.Exec(dt.Build())
+	return err
 }
 
 func (s *Schema) CreateTable(name string, fn func(builder *Builder)) error {
