@@ -6,41 +6,41 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type DBL struct {
+type Schema struct {
 	DB         *sqlx.DB
 	DriverName string
 	Dialect    dialect.Dialect
 }
 
-func (dbl *DBL) setDialect() {
-	switch dbl.DriverName {
+func (s *Schema) setDialect() {
+	switch s.DriverName {
 	case "mysql":
-		dbl.Dialect = &dialect.MysqlDialect{}
+		s.Dialect = &dialect.MysqlDialect{}
 	case "postgres":
-		dbl.Dialect = &dialect.PostgresDialect{}
+		s.Dialect = &dialect.PostgresDialect{}
 	case "sqlite":
-		dbl.Dialect = &dialect.SqliteDialect{}
+		s.Dialect = &dialect.SqliteDialect{}
 	}
 }
 
-func (dbl *DBL) Truncate(tables ...string) *TruncateTable {
+func (s *Schema) Truncate(tables ...string) *TruncateTable {
 	return &TruncateTable{
-		DBL:    dbl,
+		Schema: s,
 		Tables: tables,
 	}
 }
 
-func (dbl *DBL) Drop(tables ...string) *DropTable {
+func (s *Schema) Drop(tables ...string) *DropTable {
 	return &DropTable{
-		DBL:    dbl,
+		Schema: s,
 		Tables: tables,
 	}
 }
 
-func (dbl *DBL) CreateTable(name string, fn func(*Schema)) error {
-	schema := &Schema{
-		dbl: dbl,
-		Definition: SchemaDefinition{
+func (s *Schema) CreateTable(name string, fn func(builder *Builder)) error {
+	builder := &Builder{
+		Schema: s,
+		Definition: Definition{
 			Name: name,
 			Mode: "create",
 			Options: TableOptions{
@@ -56,15 +56,15 @@ func (dbl *DBL) CreateTable(name string, fn func(*Schema)) error {
 		},
 	}
 
-	fn(schema)
-	_, err := dbl.DB.Exec(schema.BuildCreate())
+	fn(builder)
+	_, err := s.DB.Exec(builder.BuildCreate())
 	return err
 }
 
-func (dbl *DBL) CreateTableIfNotExists(name string, fn func(*Schema)) error {
-	schema := &Schema{
-		dbl: dbl,
-		Definition: SchemaDefinition{
+func (s *Schema) CreateTableIfNotExists(name string, fn func(builder *Builder)) error {
+	schema := &Builder{
+		Schema: s,
+		Definition: Definition{
 			Name: name,
 			Options: TableOptions{
 				IfNotExists: true,
@@ -81,14 +81,14 @@ func (dbl *DBL) CreateTableIfNotExists(name string, fn func(*Schema)) error {
 
 	fn(schema)
 	fmt.Println(schema.BuildCreate())
-	_, err := dbl.DB.Exec(schema.BuildCreate())
+	_, err := s.DB.Exec(schema.BuildCreate())
 	return err
 }
 
-func (dbl *DBL) UpdateTable(name string, fn func(*Schema)) error {
-	schema := &Schema{
-		dbl: dbl,
-		Definition: SchemaDefinition{
+func (s *Schema) UpdateTable(name string, fn func(builder *Builder)) error {
+	schema := &Builder{
+		Schema: s,
+		Definition: Definition{
 			Name: name,
 			Mode: "update",
 		},
@@ -96,7 +96,7 @@ func (dbl *DBL) UpdateTable(name string, fn func(*Schema)) error {
 
 	fn(schema)
 
-	_, err := dbl.DB.Exec(schema.BuildAlter())
+	_, err := s.DB.Exec(schema.BuildAlter())
 	return err
 }
 

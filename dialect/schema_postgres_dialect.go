@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func (g *PostgresDialect) BuildCreateTable(s *schema.Schema) string {
+func (g *PostgresDialect) BuildCreateTable(s *schema.Builder) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -61,7 +61,7 @@ func (g *PostgresDialect) BuildCreateTable(s *schema.Schema) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildAlterTable(s *schema.Schema) string {
+func (g *PostgresDialect) BuildAlterTable(s *schema.Builder) string {
 	var commands []string
 	for _, cmd := range s.Definition.Commands {
 		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))

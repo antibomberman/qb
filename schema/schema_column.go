@@ -43,48 +43,48 @@ type ColumnMeta struct {
 
 // ColumnBuilder построитель колонок
 type ColumnBuilder struct {
-	Schema *Schema
-	Column *Column
+	Builder *Builder
+	Column  *Column
 }
 
 // Column добавляет колонку
-func (s *Schema) Column(Name string) *ColumnBuilder {
+func (b *Builder) Column(Name string) *ColumnBuilder {
 	return &ColumnBuilder{
-		Schema: s,
-		Column: &Column{Name: Name},
+		Builder: b,
+		Column:  &Column{Name: Name},
 	}
 }
 
-func (s *Schema) addColumn(col *Column) *ColumnBuilder {
-	if s.Definition.Mode == "create" {
-		s.Definition.Columns = append(s.Definition.Columns, col)
+func (b *Builder) addColumn(col *Column) *ColumnBuilder {
+	if b.Definition.Mode == "create" {
+		b.Definition.Columns = append(b.Definition.Columns, col)
 	} else {
 		var exists bool
-		query := s.dbl.Dialect.CheckColumnExists(s.Definition.Name, col.Name)
-		err := s.dbl.DB.QueryRow(query, s.Definition.Name, col.Name).Scan(&exists)
+		query := b.Schema.Dialect.CheckColumnExists(b.Definition.Name, col.Name)
+		err := b.Schema.DB.QueryRow(query, b.Definition.Name, col.Name).Scan(&exists)
 		if err != nil {
 			// Обработка ошибки
-			return &ColumnBuilder{Schema: s, Column: col}
+			return &ColumnBuilder{Builder: b, Column: col}
 		}
 
 		cmd := ""
 		if exists {
-			cmd = fmt.Sprintf("MODIFY Column %s", s.dbl.Dialect.BuildColumnDefinition(col))
+			cmd = fmt.Sprintf("MODIFY Column %s", b.Schema.Dialect.BuildColumnDefinition(col))
 		} else {
-			cmd = fmt.Sprintf("ADD Column %s", s.dbl.Dialect.BuildColumnDefinition(col))
+			cmd = fmt.Sprintf("ADD Column %s", b.Schema.Dialect.BuildColumnDefinition(col))
 		}
 
-		s.Definition.Commands = append(s.Definition.Commands, &Command{
+		b.Definition.Commands = append(b.Definition.Commands, &Command{
 			Type: cmd,
 			Name: col.Name,
 			Cmd:  cmd,
 		})
 	}
-	return &ColumnBuilder{Schema: s, Column: col}
+	return &ColumnBuilder{Builder: b, Column: col}
 }
 
 // AddColumn добавляет колонку
-func (s *Schema) AddColumn(Column *Column) *ColumnBuilder {
+func (b *Builder) AddColumn(Column *Column) *ColumnBuilder {
 	position := ""
 	if Column.Position.After != "" {
 		position = fmt.Sprintf(" AFTER %s", Column.Position.After)
@@ -92,321 +92,321 @@ func (s *Schema) AddColumn(Column *Column) *ColumnBuilder {
 		position = " FIRST"
 	}
 
-	s.Definition.Commands = append(s.Definition.Commands, &Command{
+	b.Definition.Commands = append(b.Definition.Commands, &Command{
 		Type: "ADD Column",
 		Name: Column.Name,
 		Cmd: fmt.Sprintf(
 			"%s%s",
-			s.dbl.Dialect.BuildColumnDefinition(Column),
+			b.Schema.Dialect.BuildColumnDefinition(Column),
 			position,
 		),
 	})
-	return &ColumnBuilder{Schema: s, Column: Column}
+	return &ColumnBuilder{Builder: b, Column: Column}
 }
 
 // BASE TYPES
 // String добавляет строковое поле
-func (s *Schema) String(Name string, length int) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) String(Name string, length int) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "VARCHAR", Length: length},
 	})
 }
 
 // Enum добавляет поле с перечислением
-func (s *Schema) Enum(Name string, values []string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Enum(Name string, values []string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: fmt.Sprintf("ENUM('%s')", strings.Join(values, "','"))},
 	})
 }
 
 // Timestamp добавляет поле метки времени
-func (s *Schema) Timestamp(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Timestamp(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "TIMESTAMP"},
 	})
 }
 
 // Index добавляет индекс
-func (s *Schema) Index(Name string, Columns ...string) *Schema {
-	s.Definition.KeyIndex.Indexes[Name] = Columns
-	return s
+func (b *Builder) Index(Name string, Columns ...string) *Builder {
+	b.Definition.KeyIndex.Indexes[Name] = Columns
+	return b
 }
 
 // TinyInteger добавляет малое целое
-func (s *Schema) TinyInteger(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) TinyInteger(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "TINYINT"},
 	})
 }
 
 // SmallInteger добавляет малое целое
-func (s *Schema) SmallInteger(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) SmallInteger(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
-		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetSmallIntegerType()},
+		Definition: ColumnDefinition{Type: b.Schema.Dialect.GetSmallIntegerType()},
 	})
 }
 
 // MediumInteger добавляет среднее целое
-func (s *Schema) MediumInteger(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) MediumInteger(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
-		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetMediumIntegerType()},
+		Definition: ColumnDefinition{Type: b.Schema.Dialect.GetMediumIntegerType()},
 	})
 }
 
 // Integer добавляет целочисленное поле
-func (s *Schema) Integer(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Integer(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "INT"},
 	})
 }
 
 // BigInteger добавляет большое целое
-func (s *Schema) BigInteger(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) BigInteger(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
-		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetBigIntegerType()},
+		Definition: ColumnDefinition{Type: b.Schema.Dialect.GetBigIntegerType()},
 	})
 }
 
 // Boolean добавляет логическое поле
-func (s *Schema) Boolean(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Boolean(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
-		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetBooleanType()},
+		Definition: ColumnDefinition{Type: b.Schema.Dialect.GetBooleanType()},
 	})
 }
 
 // Text добавляет текстовое поле
-func (s *Schema) Text(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Text(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "TEXT"},
 	})
 }
 
 // Date добавляет поле даты
-func (s *Schema) Date(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Date(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "DATE"},
 	})
 }
 
 // DateTime добавляет поле даты и времени
-func (s *Schema) DateTime(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) DateTime(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "DATETIME"},
 	})
 }
 
 // Decimal добавляет десятичное поле
-func (s *Schema) Decimal(Name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Decimal(Name string, precision, scale int) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: fmt.Sprintf("DECIMAL(%d,%d)", precision, scale)},
 	})
 }
 
 // Json добавляет JSON поле
-func (s *Schema) Json(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Json(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "JSON"},
 	})
 }
 
 // Binary добавляет бинарное поле
-func (s *Schema) Binary(Name string, length int) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Binary(Name string, length int) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "BINARY", Length: length},
 	})
 }
 
 // Float добавляет поле с плавающей точкой
-func (s *Schema) Float(Name string, precision, scale int) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Float(Name string, precision, scale int) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: fmt.Sprintf("FLOAT(%d,%d)", precision, scale)},
 	})
 }
 
 // MediumText добавляет поле MEDIUMTEXT
-func (s *Schema) MediumText(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) MediumText(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetMediumTextType(),
+			Type: b.Schema.Dialect.GetMediumTextType(),
 		},
 	})
 }
 
 // LongText добавляет поле LONGTEXT
-func (s *Schema) LongText(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) LongText(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetLongTextType(),
+			Type: b.Schema.Dialect.GetLongTextType(),
 		},
 	})
 }
 
 // Char добавляет поле фиксированной длины
-func (s *Schema) Char(Name string, length int) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Char(Name string, length int) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "CHAR", Length: length},
 	})
 }
 
 // ForeignKey добавляет внешний ключ
-//func (s *Schema) ForeignKey(Name string, table string, Column string) *ColumnBuilder {
-//	return s.addColumn(&Column{Name: Name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: Column}})
+//func (b *Builder) ForeignKey(Name string, table string, Column string) *ColumnBuilder {
+//	return b.addColumn(&Column{Name: Name, Type: "BIGINT", References: &ForeignKey{Table: table, Column: Column}})
 //}
 
 // ADDITIONAL TYPES
 // Money добавляет денежное поле
-func (s *Schema) Money(Name string) *ColumnBuilder {
-	return s.Decimal(Name, 19, 4)
+func (b *Builder) Money(Name string) *ColumnBuilder {
+	return b.Decimal(Name, 19, 4)
 }
 
 // Price добавляет поле цены
-func (s *Schema) Price(Name string) *ColumnBuilder {
-	return s.Decimal(Name, 10, 2)
+func (b *Builder) Price(Name string) *ColumnBuilder {
+	return b.Decimal(Name, 10, 2)
 }
 
 // Percentage добавляет поле процентов
-func (s *Schema) Percentage(Name string) *ColumnBuilder {
-	return s.Decimal(Name, 5, 2)
+func (b *Builder) Percentage(Name string) *ColumnBuilder {
+	return b.Decimal(Name, 5, 2)
 }
 
 // Status добавляет поле статуса
-func (s *Schema) Status(Name string, statuses []string) *ColumnBuilder {
-	return s.Enum(Name, statuses).Default(statuses[0])
+func (b *Builder) Status(Name string, statuses []string) *ColumnBuilder {
+	return b.Enum(Name, statuses).Default(statuses[0])
 }
 
 // Slug добавляет поле для URL-совместимой строки
-func (s *Schema) Slug(Name string) *ColumnBuilder {
-	return s.String(Name, 255).Unique()
+func (b *Builder) Slug(Name string) *ColumnBuilder {
+	return b.String(Name, 255).Unique()
 }
 
 // Phone добавляет поле телефона
-func (s *Schema) Phone(Name string) *ColumnBuilder {
-	return s.String(Name, 20)
+func (b *Builder) Phone(Name string) *ColumnBuilder {
+	return b.String(Name, 20)
 }
 
 // Color добавляет поле цвета (HEX)
-func (s *Schema) Color(Name string) *ColumnBuilder {
-	return s.Char(Name, 7)
+func (b *Builder) Color(Name string) *ColumnBuilder {
+	return b.Char(Name, 7)
 }
 
 // Language добавляет поле языка
-func (s *Schema) Language() *ColumnBuilder {
-	return s.Char("lang", 2)
+func (b *Builder) Language() *ColumnBuilder {
+	return b.Char("lang", 2)
 }
 
 // Country добавляет поле страны
-func (s *Schema) Country() *ColumnBuilder {
-	return s.Char("country", 2)
+func (b *Builder) Country() *ColumnBuilder {
+	return b.Char("country", 2)
 }
 
 // Currency добавляет поле валюты
-func (s *Schema) Currency() *ColumnBuilder {
-	return s.Char("currency", 3)
+func (b *Builder) Currency() *ColumnBuilder {
+	return b.Char("currency", 3)
 }
 
 // Timezone добавляет поле часового пояса
-func (s *Schema) Timezone() *ColumnBuilder {
-	return s.String("timezone", 64)
+func (b *Builder) Timezone() *ColumnBuilder {
+	return b.String("timezone", 64)
 }
 
-//func (s *Schema) ID(Name string) *ColumnBuilder {
+//func (b *Builder) ID(Name string) *ColumnBuilder {
 //	Schema.BigInteger("id").Unsigned().AutoIncrement().Primary()
-//	return s.addColumn(&Column{
+//	return b.addColumn(&Column{
 //		Name:       Name,
-//		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetBigIntegerType()},
+//		Definition: ColumnDefinition{Type: b.Schema.Dialect.GetBigIntegerType()},
 //	})
 //}
 
 // Year добавляет поле года
-func (s *Schema) Year(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Year(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetYearType(),
+			Type: b.Schema.Dialect.GetYearType(),
 		},
 	})
 }
 
 // Time добавляет поле времени
-func (s *Schema) Time(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Time(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name:       Name,
 		Definition: ColumnDefinition{Type: "TIME"},
 	})
 }
 
 // Ip добавляет поле для IP-адреса
-func (s *Schema) Ip(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Ip(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetIpType(),
+			Type: b.Schema.Dialect.GetIpType(),
 		},
 	})
 }
 
 // MacAddress добавляет поле для MAC-адреса
-func (s *Schema) MacAddress(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) MacAddress(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetMacAddressType(),
+			Type: b.Schema.Dialect.GetMacAddressType(),
 		},
 	})
 }
 
 // Point добавляет геометрическое поле точки
-func (s *Schema) Point(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Point(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetPointType(),
+			Type: b.Schema.Dialect.GetPointType(),
 		},
 	})
 }
 
 // Polygon добавляет геометрическое поле полигона
-func (s *Schema) Polygon(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Polygon(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetPolygonType(),
+			Type: b.Schema.Dialect.GetPolygonType(),
 		},
 	})
 }
 
 // Set добавляет поле SET
-func (s *Schema) Set(Name string, values []string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Set(Name string, values []string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetSetType(values),
+			Type: b.Schema.Dialect.GetSetType(values),
 		},
 	})
 }
 
 // RememberToken добавляет поле для токена remember_token
-func (s *Schema) RememberToken() *ColumnBuilder {
-	return s.String("remember_token", 100).Nullable()
+func (b *Builder) RememberToken() *ColumnBuilder {
+	return b.String("remember_token", 100).Nullable()
 }
 
 func (cb *ColumnBuilder) Type(typ string, length ...int) *ColumnBuilder {
@@ -478,46 +478,46 @@ func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
 }
 
 // Geometry добавляет геометрическое поле
-func (s *Schema) Geometry(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Geometry(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetGeometryType(),
+			Type: b.Schema.Dialect.GetGeometryType(),
 		},
 	})
 }
 
 // UUID добавляет поле UUID
-func (s *Schema) UUID(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) UUID(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetUUIDType(),
+			Type: b.Schema.Dialect.GetUUIDType(),
 		},
 	})
 }
 
 // Double доба��ляет поле с двойной точностью
-func (s *Schema) Double(Name string) *ColumnBuilder {
-	return s.addColumn(&Column{
+func (b *Builder) Double(Name string) *ColumnBuilder {
+	return b.addColumn(&Column{
 		Name: Name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.Dialect.GetDoubleType(),
+			Type: b.Schema.Dialect.GetDoubleType(),
 		},
 	})
 }
 
 // Password добавляет поле для хранения хэша пароля
-func (s *Schema) Password(Name string) *ColumnBuilder {
-	return s.String(Name, 60) // Достаточно для bcrypt
+func (b *Builder) Password(Name string) *ColumnBuilder {
+	return b.String(Name, 60) // Достаточно для bcrypt
 }
 
 // Email добавляет поле email
-func (s *Schema) Email(Name string) *ColumnBuilder {
-	return s.String(Name, 255)
+func (b *Builder) Email(Name string) *ColumnBuilder {
+	return b.String(Name, 255)
 }
 
 // Url добавляет поле URL
-func (s *Schema) Url(Name string) *ColumnBuilder {
-	return s.String(Name, 2083) // Максимальная длина URL в IE
+func (b *Builder) Url(Name string) *ColumnBuilder {
+	return b.String(Name, 2083) // Максимальная длина URL в IE
 }

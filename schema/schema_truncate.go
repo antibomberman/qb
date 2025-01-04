@@ -16,7 +16,7 @@ type TruncateOptions struct {
 
 // TruncateTable очищает таблицу
 type TruncateTable struct {
-	DBL     *DBL
+	Schema  *Schema
 	Tables  []string
 	Options TruncateOptions
 }
@@ -58,7 +58,7 @@ func (tt *TruncateTable) Build() string {
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.Tables, ", "))
 
-	if tt.DBL.Dialect.SupportsRestartIdentity() {
+	if tt.Schema.Dialect.SupportsRestartIdentity() {
 		if tt.Options.Restart {
 			sql.WriteString(" RESTART IDENTITY")
 		} else if tt.Options.ContinueIdentity {
@@ -72,7 +72,7 @@ func (tt *TruncateTable) Build() string {
 		}
 	}
 
-	if tt.Options.Force && tt.DBL.Dialect.SupportsForce() {
+	if tt.Options.Force && tt.Schema.Dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 

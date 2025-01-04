@@ -6,38 +6,38 @@ import (
 	"strings"
 )
 
-func (g *SqliteDialect) BuildCreateTable(s *schema.Schema) string {
+func (g *SqliteDialect) BuildCreateTable(s *schema.Builder) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
 
 	sql.WriteString("TABLE ")
-	if s.definition.options.ifNotExists {
+	if s.Definition.Options.IfNotExists {
 		sql.WriteString("IF NOT EXISTS ")
 	}
-	sql.WriteString(s.definition.name)
+	sql.WriteString(s.Definition.Name)
 	sql.WriteString(" (\n")
 
 	// Колонки
 	var columns []string
-	for _, col := range s.definition.columns {
+	for _, col := range s.Definition.Columns {
 		columns = append(columns, g.BuildColumnDefinition(col))
 	}
 
 	// Первичный ключ
-	if len(s.definition.constraints.PrimaryKey) > 0 {
+	if len(s.Definition.KeyIndex.PrimaryKey) > 0 {
 		columns = append(columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.definition.constraints.PrimaryKey, ", ")))
+			strings.Join(s.Definition.KeyIndex.PrimaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for _, cols := range s.definition.constraints.UniqueKeys {
+	for _, cols := range s.Definition.KeyIndex.UniqueKeys {
 		columns = append(columns, fmt.Sprintf("UNIQUE (%s)",
 			strings.Join(cols, ", ")))
 	}
 
 	// Внешние ключи
-	for col, fk := range s.definition.constraints.foreignKeys {
+	for col, fk := range s.Definition.KeyIndex.ForeignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)",
 			col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
@@ -55,16 +55,16 @@ func (g *SqliteDialect) BuildCreateTable(s *schema.Schema) string {
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildAlterTable(s *schema.Schema) string {
+func (g *SqliteDialect) BuildAlterTable(s *schema.Builder) string {
 	var commands []string
-	for _, cmd := range s.definition.commands {
+	for _, cmd := range s.Definition.Commands {
 		commands = append(commands, cmd.Type+" "+cmd.Name)
 	}
 
 	return fmt.Sprintf(
 		"ALTER TABLE %s\n%s",
-		s.definition.name,
-		strings.Join(commands, ";\nALTER TABLE "+s.definition.name+" "),
+		s.Definition.Name,
+		strings.Join(commands, ";\nALTER TABLE "+s.Definition.Name+" "),
 	)
 }
 
@@ -72,30 +72,30 @@ func (g *SqliteDialect) BuildDropTable(dt *schema.DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
-	if dt.options.Temporary {
+	if dt.Options.Temporary {
 		sql.WriteString("TEMPORARY ")
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent && dt.dbl.db.DriverName() == "postgres" {
+	if dt.Options.Concurrent && dt.Schema.DB.DriverName() == "postgres" {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
-	if dt.options.IfExists {
+	if dt.Options.IfExists {
 		sql.WriteString("IF EXISTS ")
 	}
 
-	sql.WriteString(strings.Join(dt.tables, ", "))
+	sql.WriteString(strings.Join(dt.Tables, ", "))
 
-	if dt.options.Cascade && dt.dbl.db.DriverName() == "postgres" {
+	if dt.Options.Cascade && dt.Schema.DB.DriverName() == "postgres" {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict && dt.dbl.db.DriverName() == "postgres" {
+	if dt.Options.Restrict && dt.Schema.DB.DriverName() == "postgres" {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.options.Force && dt.dbl.db.DriverName() == "mysql" {
+	if dt.Options.Force && dt.Schema.DB.DriverName() == "mysql" {
 		sql.WriteString(" FORCE")
 	}
 
@@ -196,7 +196,7 @@ func (g *SqliteDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
 
 func (g *SqliteDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
 	// SQLite не поддерживает TRUNCATE, используем DELETE
-	return fmt.Sprintf("DELETE FROM %s", strings.Join(tt.tables, ", "))
+	return fmt.Sprintf("DELETE FROM %s", strings.Join(tt.Tables, ", "))
 }
 
 func (g *SqliteDialect) SupportsDropConcurrently() bool {

@@ -24,8 +24,8 @@ type QueryBuilderDialect interface {
 }
 
 type TableDialect interface {
-	BuildCreateTable(s *schema.Schema) string
-	BuildAlterTable(s *schema.Schema) string
+	BuildCreateTable(s *schema.Builder) string
+	BuildAlterTable(s *schema.Builder) string
 	BuildDropTable(dt *schema.DropTable) string
 	BuildTruncateTable(tt *schema.TruncateTable) string
 	SupportsDropConcurrently() bool

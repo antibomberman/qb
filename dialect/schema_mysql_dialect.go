@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func (d *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
+func (d *MysqlDialect) BuildCreateTable(s *schema.Builder) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -77,7 +77,7 @@ func defaultIfEmpty(value, defaultValue string) string {
 	return value
 }
 
-func (d *MysqlDialect) BuildAlterTable(s *schema.Schema) string {
+func (d *MysqlDialect) BuildAlterTable(s *schema.Builder) string {
 	var commands []string
 	for _, cmd := range s.Definition.Commands {
 		if cmd.Cmd != "" {

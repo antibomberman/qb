@@ -4,14 +4,13 @@ import (
 	"fmt"
 )
 
-// Schema с более четкой структурой и инкапсуляцией
-type Schema struct {
-	dbl        *DBL
-	Definition SchemaDefinition
-	//builder    SchemaBuilder
+// Builder с более четкой структурой и инкапсуляцией
+type Builder struct {
+	Schema     *Schema
+	Definition Definition
 }
 
-type SchemaDefinition struct {
+type Definition struct {
 	Name     string
 	Mode     string // "create" или "update"
 	Columns  []*Column
@@ -19,13 +18,6 @@ type SchemaDefinition struct {
 	KeyIndex KeyIndex
 	Options  TableOptions
 }
-
-//type SchemaBuilder interface {
-//	AddColumn(col Column)
-//	AddConstraint(constraint Constraint)
-//	SetOption(key string, value interface{})
-//	Build() string
-//}
 
 type KeyIndex struct {
 	PrimaryKey  []string
@@ -50,84 +42,84 @@ type TableOptions struct {
 	IfNotExists bool
 }
 
-func (s *Schema) BuildCreate() string {
-	return s.dbl.Dialect.BuildCreateTable(s)
+func (b *Builder) BuildCreate() string {
+	return b.Schema.Dialect.BuildCreateTable(b)
 }
-func (s *Schema) BuildAlter() string {
-	return s.dbl.Dialect.BuildAlterTable(s)
+func (b *Builder) BuildAlter() string {
+	return b.Schema.Dialect.BuildAlterTable(b)
 }
 
 // Добавляем методы для обновления
-func (s *Schema) RenameColumn(from, to string) *Schema {
-	if s.Definition.Mode == "update" {
-		s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) RenameColumn(from, to string) *Builder {
+	if b.Definition.Mode == "update" {
+		b.Definition.Commands = append(b.Definition.Commands, &Command{
 			Type: "RENAME COLUMN",
 			Name: from,
 			Cmd:  fmt.Sprintf("RENAME COLUMN %s TO %s", from, to),
 		})
 	}
-	return s
+	return b
 }
 
 // UniqueIndex добавляет уникальный индекс
-func (s *Schema) UniqueIndex(name string, columns ...string) *Schema {
-	return s.UniqueKey(name, columns...)
+func (b *Builder) UniqueIndex(name string, columns ...string) *Builder {
+	return b.UniqueKey(name, columns...)
 }
 
 // FullText добавляет полнотекстовый индекс
-func (s *Schema) FullText(name string, columns ...string) *Schema {
-	if s.dbl.DB.DriverName() == "mysql" {
-		s.Definition.KeyIndex.Indexes[name] = columns
-		return s
+func (b *Builder) FullText(name string, columns ...string) *Builder {
+	if b.Schema.DB.DriverName() == "mysql" {
+		b.Definition.KeyIndex.Indexes[name] = columns
+		return b
 	}
-	return s
+	return b
 }
 
 // PrimaryKey устанавливает первичный ключ
-func (s *Schema) PrimaryKey(columns ...string) *Schema {
-	s.Definition.KeyIndex.PrimaryKey = columns
-	return s
+func (b *Builder) PrimaryKey(columns ...string) *Builder {
+	b.Definition.KeyIndex.PrimaryKey = columns
+	return b
 }
 
 // UniqueKey добавляет уникальный ключ
-func (s *Schema) UniqueKey(name string, columns ...string) *Schema {
-	s.Definition.KeyIndex.UniqueKeys[name] = columns
-	return s
+func (b *Builder) UniqueKey(name string, columns ...string) *Builder {
+	b.Definition.KeyIndex.UniqueKeys[name] = columns
+	return b
 }
 
 // Engine устанавливает движок таблицы
-func (s *Schema) Engine(Engine string) *Schema {
-	s.Definition.Options.Engine = Engine
-	return s
+func (b *Builder) Engine(Engine string) *Builder {
+	b.Definition.Options.Engine = Engine
+	return b
 }
 
 // Charset устанавливает кодировку
-func (s *Schema) Charset(Charset string) *Schema {
-	s.Definition.Options.Charset = Charset
-	return s
+func (b *Builder) Charset(Charset string) *Builder {
+	b.Definition.Options.Charset = Charset
+	return b
 }
 
 // Collate устанавливает сравнение
-func (s *Schema) Collate(Collate string) *Schema {
-	s.Definition.Options.Collate = Collate
-	return s
+func (b *Builder) Collate(Collate string) *Builder {
+	b.Definition.Options.Collate = Collate
+	return b
 }
 
 // Comment добавляет комментарий
-func (s *Schema) Comment(Comment string) *Schema {
-	s.Definition.Options.Comment = Comment
-	return s
+func (b *Builder) Comment(Comment string) *Builder {
+	b.Definition.Options.Comment = Comment
+	return b
 }
 
 // IfNotExists добавляет проверку существования
-func (s *Schema) IfNotExists() *Schema {
-	s.Definition.Options.IfNotExists = true
-	return s
+func (b *Builder) IfNotExists() *Builder {
+	b.Definition.Options.IfNotExists = true
+	return b
 }
 
 // DropColumn удаляет колонку
 //
-//	func (s *Schema) DropColumn(name string) *Schema {
+//	func (s *Builder) DropColumn(name string) *Builder {
 //		s.builder.AddConstraint(Constraint{
 //			Type:    "DROP COLUMN",
 //			Columns: []string{name},
@@ -136,140 +128,140 @@ func (s *Schema) IfNotExists() *Schema {
 //	}
 //
 // DropColumn удаляет колонку
-func (s *Schema) DropColumn(name string) *Schema {
-	if s.Definition.Mode == "update" {
-		s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) DropColumn(name string) *Builder {
+	if b.Definition.Mode == "update" {
+		b.Definition.Commands = append(b.Definition.Commands, &Command{
 			Type: "DROP COLUMN",
 			Name: name,
 			Cmd:  fmt.Sprintf("DROP COLUMN %s", name),
 		})
 	}
-	return s
+	return b
 }
 
 // AddIndex добавляет индекс
-func (s *Schema) AddIndex(name string, columns []string, unique bool) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) AddIndex(name string, columns []string, unique bool) *Builder {
+	b.Definition.Commands = append(b.Definition.Commands, &Command{
 		Type:    "ADD INDEX",
 		Name:    name,
 		Columns: columns,
 		//Unique:  unique,
 	})
-	return s
+	return b
 }
 
 // DropIndex удаляет индекс
-func (s *Schema) DropIndex(name string) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) DropIndex(name string) *Builder {
+	b.Definition.Commands = append(b.Definition.Commands, &Command{
 		Type: "DROP INDEX",
 		Name: name,
 	})
-	return s
+	return b
 }
 
 // RenameTable переименует таблицу
-func (s *Schema) RenameTable(newName string) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) RenameTable(newName string) *Builder {
+	b.Definition.Commands = append(b.Definition.Commands, &Command{
 		Type: "RENAME TABlE",
 		Name: newName,
-		Cmd:  fmt.Sprintf("RENAME TABLE %s TO %s", s.Definition.Name, newName),
+		Cmd:  fmt.Sprintf("RENAME TABLE %s TO %s", b.Definition.Name, newName),
 	})
-	return s
+	return b
 }
 
 // ChangeEngine меняет движок таблицы
-func (s *Schema) ChangeEngine(Engine string) *Schema {
-	s.Definition.Options.Engine = Engine
-	return s
+func (b *Builder) ChangeEngine(Engine string) *Builder {
+	b.Definition.Options.Engine = Engine
+	return b
 }
 
 // ChangeCharset меняет кодировку
-func (s *Schema) ChangeCharset(Charset, Collate string) *Schema {
-	s.Definition.Options.Charset = Charset
-	s.Definition.Options.Collate = Collate
-	return s
+func (b *Builder) ChangeCharset(Charset, Collate string) *Builder {
+	b.Definition.Options.Charset = Charset
+	b.Definition.Options.Collate = Collate
+	return b
 }
 
 // Изменяем метод buildColumn
-func (s *Schema) buildColumn(col *Column) string {
-	return s.dbl.Dialect.BuildColumnDefinition(col)
+func (b *Builder) buildColumn(col *Column) string {
+	return b.Schema.Dialect.BuildColumnDefinition(col)
 }
 
 // Добавляем новые методы для индексов
-func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
-	if s.dbl.Dialect.SupportsSpatialIndex() {
-		if s.Definition.Mode == "create" {
-			s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) SpatialIndex(name string, columns ...string) *Builder {
+	if b.Schema.Dialect.SupportsSpatialIndex() {
+		if b.Definition.Mode == "create" {
+			b.Definition.Commands = append(b.Definition.Commands, &Command{
 				Type:    "ADD SPATIAL INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		} else {
-			s.Definition.Commands = append(s.Definition.Commands, &Command{
+			b.Definition.Commands = append(b.Definition.Commands, &Command{
 				Type:    "ADD SPATIAL INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		}
 	}
-	return s
+	return b
 }
 
-func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
-	if s.dbl.Dialect.SupportsFullTextIndex() {
-		if s.Definition.Mode == "create" {
-			s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) FullTextIndex(name string, columns ...string) *Builder {
+	if b.Schema.Dialect.SupportsFullTextIndex() {
+		if b.Definition.Mode == "create" {
+			b.Definition.Commands = append(b.Definition.Commands, &Command{
 				Type:    "ADD FULLTEXT INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		} else {
-			s.Definition.Commands = append(s.Definition.Commands, &Command{
+			b.Definition.Commands = append(b.Definition.Commands, &Command{
 				Type:    "ADD FULLTEXT INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		}
 	}
-	return s
+	return b
 }
 
 // Timestamps добавляет поля created_at и updated_at
-func (s *Schema) Timestamps() *Schema {
-	s.Timestamp("created_at").Nullable().Default(s.dbl.Dialect.GetCurrentTimestampExpression())
-	s.Timestamp("updated_at").Nullable().Default(s.dbl.Dialect.GetCurrentTimestampExpression()).OnUpdate(s.dbl.Dialect.GetCurrentTimestampExpression()).Nullable()
-	return s
+func (b *Builder) Timestamps() *Builder {
+	b.Timestamp("created_at").Nullable().Default(b.Schema.Dialect.GetCurrentTimestampExpression())
+	b.Timestamp("updated_at").Nullable().Default(b.Schema.Dialect.GetCurrentTimestampExpression()).OnUpdate(b.Schema.Dialect.GetCurrentTimestampExpression()).Nullable()
+	return b
 }
 
 // SoftDeletes добавляет поле deleted_at для мягкого удаления
-func (s *Schema) SoftDeletes() *Schema {
-	s.Timestamp("deleted_at").Nullable()
-	return s
+func (b *Builder) SoftDeletes() *Builder {
+	b.Timestamp("deleted_at").Nullable()
+	return b
 }
 
 // Morphs добавляет поля для полиморфных отношений
-func (s *Schema) Morphs(name string) *Schema {
-	s.BigInteger(name + "_id")
-	s.String(name+"_type", 255)
-	s.Index(name+"_index", name+"_id", name+"_type")
-	return s
+func (b *Builder) Morphs(name string) *Builder {
+	b.BigInteger(name + "_id")
+	b.String(name+"_type", 255)
+	b.Index(name+"_index", name+"_id", name+"_type")
+	return b
 }
 
 // NullableMorphs добавляет nullable поля для полиморфных отношений
-func (s *Schema) NullableMorphs(name string) *Schema {
-	s.BigInteger(name + "_id").Nullable()
-	s.String(name+"_type", 255).Nullable()
-	s.Index(name+"_index", name+"_id", name+"_type")
-	return s
+func (b *Builder) NullableMorphs(name string) *Builder {
+	b.BigInteger(name + "_id").Nullable()
+	b.String(name+"_type", 255).Nullable()
+	b.Index(name+"_index", name+"_id", name+"_type")
+	return b
 }
 
 // Version добавляет поле для версионирования
-func (s *Schema) Version() *Schema {
-	s.Integer("version").Default(1)
-	return s
+func (b *Builder) Version() *Builder {
+	b.Integer("version").Default(1)
+	return b
 }
 
 // ID добавляет поле ID с автоинкрементом и первичным ключом
-func (s *Schema) ID() *ColumnBuilder {
-	return s.BigInteger("id").Unsigned().AutoIncrement().Primary()
+func (b *Builder) ID() *ColumnBuilder {
+	return b.BigInteger("id").Unsigned().AutoIncrement().Primary()
 }

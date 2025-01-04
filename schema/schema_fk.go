@@ -24,28 +24,28 @@ type Foreign struct {
 // ForeignBuilder построитель внешних ключей
 
 type ForeignBuilder struct {
-	schema *Schema
+	schema *Builder
 	fk     *Foreign
 	column string
 }
 
-func (s *Schema) foreign(column, refTable, refColumn string) *ForeignBuilder {
+func (b *Builder) foreign(column, refTable, refColumn string) *ForeignBuilder {
 	fk := &Foreign{
 		Table:  refTable,
 		Column: refColumn,
 	}
-	s.Definition.KeyIndex.ForeignKeys[column] = fk
+	b.Definition.KeyIndex.ForeignKeys[column] = fk
 	return &ForeignBuilder{
-		schema: s,
+		schema: b,
 		fk:     fk,
 		column: column,
 	}
 }
-func (s *Schema) Foreign(column string) *ForeignBuilder {
+func (b *Builder) Foreign(column string) *ForeignBuilder {
 	fk := &Foreign{}
-	s.Definition.KeyIndex.ForeignKeys[column] = fk
+	b.Definition.KeyIndex.ForeignKeys[column] = fk
 	return &ForeignBuilder{
-		schema: s,
+		schema: b,
 		fk:     fk,
 		column: column,
 	}
@@ -57,7 +57,7 @@ func (c *ColumnBuilder) Foreign(name string) *ForeignBuilder {
 		refTable += "s"
 	}
 
-	return c.Schema.foreign(c.Column.Name, refTable, "id")
+	return c.Builder.foreign(c.Column.Name, refTable, "id")
 }
 func (c *ForeignBuilder) References(table string, column string) *ForeignBuilder {
 	c.fk.Table = table
@@ -65,15 +65,15 @@ func (c *ForeignBuilder) References(table string, column string) *ForeignBuilder
 	return c
 }
 
-func (s *Schema) ForeignId(name string) *ForeignBuilder {
-	s.BigInteger(name).Unsigned()
+func (b *Builder) ForeignId(name string) *ForeignBuilder {
+	b.BigInteger(name).Unsigned()
 
 	refTable := strings.TrimSuffix(name, "_id")
 	if !strings.HasSuffix(refTable, "s") {
 		refTable += "s"
 	}
 
-	return s.foreign(name, refTable, "id")
+	return b.foreign(name, refTable, "id")
 }
 
 func (fkb *ForeignBuilder) CascadeOnDelete() *ForeignBuilder {
@@ -126,11 +126,11 @@ func (fkb *ForeignBuilder) SetDefaultOnUpdate() *ForeignBuilder {
 }
 
 // DropForeignKey удаляет внешний ключ
-func (s *Schema) DropForeignKey(name string) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, &Command{
+func (b *Builder) DropForeignKey(name string) *Builder {
+	b.Definition.Commands = append(b.Definition.Commands, &Command{
 		Type: "DROP CONSTRAINT",
 		Name: name,
 		Cmd:  fmt.Sprintf("DROP FOREIGN KEY %s", name),
 	})
-	return s
+	return b
 }
