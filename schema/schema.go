@@ -15,7 +15,7 @@ type SchemaDefinition struct {
 	Name     string
 	Mode     string // "create" или "update"
 	Columns  []*Column
-	Commands []Command
+	Commands []*Command
 	KeyIndex KeyIndex
 	Options  TableOptions
 }
@@ -34,7 +34,7 @@ type KeyIndex struct {
 	ForeignKeys map[string]*Foreign
 }
 
-// Command представляет команду изменения схемы
+// &Command представляет команду изменения схемы
 type Command struct {
 	Type    string
 	Name    string
@@ -61,7 +61,7 @@ func (s *Schema) BuildAlter() string {
 // Добавляем методы для обновления
 func (s *Schema) RenameColumn(from, to string) *Schema {
 	if s.Definition.Mode == "update" {
-		s.Definition.Commands = append(s.Definition.Commands, Command{
+		s.Definition.Commands = append(s.Definition.Commands, &Command{
 			Type: "RENAME COLUMN",
 			Name: from,
 			Cmd:  fmt.Sprintf("RENAME COLUMN %s TO %s", from, to),
@@ -139,7 +139,7 @@ func (s *Schema) IfNotExists() *Schema {
 // DropColumn удаляет колонку
 func (s *Schema) DropColumn(name string) *Schema {
 	if s.Definition.Mode == "update" {
-		s.Definition.Commands = append(s.Definition.Commands, Command{
+		s.Definition.Commands = append(s.Definition.Commands, &Command{
 			Type: "DROP COLUMN",
 			Name: name,
 			Cmd:  fmt.Sprintf("DROP COLUMN %s", name),
@@ -150,7 +150,7 @@ func (s *Schema) DropColumn(name string) *Schema {
 
 // AddIndex добавляет индекс
 func (s *Schema) AddIndex(name string, columns []string, unique bool) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, Command{
+	s.Definition.Commands = append(s.Definition.Commands, &Command{
 		Type:    "ADD INDEX",
 		Name:    name,
 		Columns: columns,
@@ -161,7 +161,7 @@ func (s *Schema) AddIndex(name string, columns []string, unique bool) *Schema {
 
 // DropIndex удаляет индекс
 func (s *Schema) DropIndex(name string) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, Command{
+	s.Definition.Commands = append(s.Definition.Commands, &Command{
 		Type: "DROP INDEX",
 		Name: name,
 	})
@@ -170,7 +170,7 @@ func (s *Schema) DropIndex(name string) *Schema {
 
 // RenameTable переименует таблицу
 func (s *Schema) RenameTable(newName string) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, Command{
+	s.Definition.Commands = append(s.Definition.Commands, &Command{
 		Type:    "RENAME TO",
 		NewName: newName,
 	})
@@ -199,13 +199,13 @@ func (s *Schema) buildColumn(col *Column) string {
 func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 	if s.dbl.Dialect.SupportsSpatialIndex() {
 		if s.Definition.Mode == "create" {
-			s.Definition.Commands = append(s.Definition.Commands, Command{
+			s.Definition.Commands = append(s.Definition.Commands, &Command{
 				Type:    "ADD SPATIAL INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		} else {
-			s.Definition.Commands = append(s.Definition.Commands, Command{
+			s.Definition.Commands = append(s.Definition.Commands, &Command{
 				Type:    "ADD SPATIAL INDEX",
 				Name:    name,
 				Columns: columns,
@@ -218,13 +218,13 @@ func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
 	if s.dbl.Dialect.SupportsFullTextIndex() {
 		if s.Definition.Mode == "create" {
-			s.Definition.Commands = append(s.Definition.Commands, Command{
+			s.Definition.Commands = append(s.Definition.Commands, &Command{
 				Type:    "ADD FULLTEXT INDEX",
 				Name:    name,
 				Columns: columns,
 			})
 		} else {
-			s.Definition.Commands = append(s.Definition.Commands, Command{
+			s.Definition.Commands = append(s.Definition.Commands, &Command{
 				Type:    "ADD FULLTEXT INDEX",
 				Name:    name,
 				Columns: columns,

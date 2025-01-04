@@ -74,7 +74,7 @@ func (s *Schema) addColumn(col *Column) *ColumnBuilder {
 			cmd = fmt.Sprintf("ADD Column %s", s.dbl.Dialect.BuildColumnDefinition(col))
 		}
 
-		s.Definition.Commands = append(s.Definition.Commands, Command{
+		s.Definition.Commands = append(s.Definition.Commands, &Command{
 			Type: cmd,
 			Name: col.Name,
 			Cmd:  cmd,
@@ -92,7 +92,7 @@ func (s *Schema) AddColumn(Column *Column) *ColumnBuilder {
 		position = " FIRST"
 	}
 
-	s.Definition.Commands = append(s.Definition.Commands, Command{
+	s.Definition.Commands = append(s.Definition.Commands, &Command{
 		Type: "ADD Column",
 		Name: Column.Name,
 		Cmd: fmt.Sprintf(

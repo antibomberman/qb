@@ -127,7 +127,7 @@ func (fkb *ForeignBuilder) SetDefaultOnUpdate() *ForeignBuilder {
 
 // DropForeignKey удаляет внешний ключ
 func (s *Schema) DropForeignKey(name string) *Schema {
-	s.Definition.Commands = append(s.Definition.Commands, Command{
+	s.Definition.Commands = append(s.Definition.Commands, &Command{
 		Type: "DROP CONSTRAINT",
 		Name: name,
 		Cmd:  fmt.Sprintf("DROP FOREIGN KEY %s", name),
