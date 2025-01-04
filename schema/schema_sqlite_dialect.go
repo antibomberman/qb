@@ -1,12 +1,11 @@
-package dialect
+package schema
 
 import (
 	"fmt"
-	"github.com/antibomberman/dbl/schema"
 	"strings"
 )
 
-func (g *SqliteDialect) BuildCreateTable(s *schema.Builder) string {
+func (g *SqliteDialect) BuildCreateTable(s *Builder) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -55,7 +54,7 @@ func (g *SqliteDialect) BuildCreateTable(s *schema.Builder) string {
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildAlterTable(s *schema.Builder) string {
+func (g *SqliteDialect) BuildAlterTable(s *Builder) string {
 	var commands []string
 	for _, cmd := range s.Definition.Commands {
 		commands = append(commands, cmd.Type+" "+cmd.Name)
@@ -68,7 +67,7 @@ func (g *SqliteDialect) BuildAlterTable(s *schema.Builder) string {
 	)
 }
 
-func (g *SqliteDialect) BuildDropTable(dt *schema.DropTable) string {
+func (g *SqliteDialect) BuildDropTable(dt *DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -102,7 +101,7 @@ func (g *SqliteDialect) BuildDropTable(dt *schema.DropTable) string {
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildColumnDefinition(col *schema.Column) string {
+func (g *SqliteDialect) BuildColumnDefinition(col *Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -172,7 +171,7 @@ func (g *SqliteDialect) BuildIndexDefinition(name string, columns []string, uniq
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
+func (g *SqliteDialect) BuildForeignKeyDefinition(fk *Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
@@ -194,7 +193,7 @@ func (g *SqliteDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
 	return sql.String()
 }
 
-func (g *SqliteDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
+func (g *SqliteDialect) BuildTruncateTable(tt *TruncateTable) string {
 	// SQLite не поддерживает TRUNCATE, используем DELETE
 	return fmt.Sprintf("DELETE FROM %s", strings.Join(tt.Tables, ", "))
 }

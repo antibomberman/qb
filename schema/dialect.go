@@ -1,8 +1,7 @@
-package dialect
+package schema
 
 import (
 	"context"
-	"github.com/antibomberman/dbl/schema"
 	"strings"
 )
 
@@ -24,10 +23,10 @@ type QueryBuilderDialect interface {
 }
 
 type TableDialect interface {
-	BuildCreateTable(s *schema.Builder) string
-	BuildAlterTable(s *schema.Builder) string
-	BuildDropTable(dt *schema.DropTable) string
-	BuildTruncateTable(tt *schema.TruncateTable) string
+	BuildCreateTable(s *Builder) string
+	BuildAlterTable(s *Builder) string
+	BuildDropTable(dt *DropTable) string
+	BuildTruncateTable(tt *TruncateTable) string
 	SupportsDropConcurrently() bool
 	SupportsRestartIdentity() bool
 	SupportsCascade() bool
@@ -35,14 +34,14 @@ type TableDialect interface {
 }
 
 type ColumnDialect interface {
-	BuildColumnDefinition(col *schema.Column) string
+	BuildColumnDefinition(col *Column) string
 	SupportsColumnPositioning() bool
 	SupportsColumnComments() bool
 	CheckColumnExists(table, column string) string
 }
 
 type ConstraintDialect interface {
-	BuildForeignKeyDefinition(fk *schema.Foreign) string
+	BuildForeignKeyDefinition(fk *Foreign) string
 	BuildSpatialIndexDefinition(name string, columns []string) string
 	BuildFullTextIndexDefinition(name string, columns []string) string
 }

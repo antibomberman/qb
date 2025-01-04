@@ -1,13 +1,12 @@
-package dialect
+package schema
 
 import (
 	"context"
 	"fmt"
-	"github.com/antibomberman/dbl/schema"
 	"strings"
 )
 
-func (d *MysqlDialect) BuildCreateTable(s *schema.Builder) string {
+func (d *MysqlDialect) BuildCreateTable(s *Builder) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -77,7 +76,7 @@ func defaultIfEmpty(value, defaultValue string) string {
 	return value
 }
 
-func (d *MysqlDialect) BuildAlterTable(s *schema.Builder) string {
+func (d *MysqlDialect) BuildAlterTable(s *Builder) string {
 	var commands []string
 	for _, cmd := range s.Definition.Commands {
 		if cmd.Cmd != "" {
@@ -103,7 +102,7 @@ func (d *MysqlDialect) BuildAlterTable(s *schema.Builder) string {
 	)
 }
 
-func (d *MysqlDialect) BuildDropTable(dt *schema.DropTable) string {
+func (d *MysqlDialect) BuildDropTable(dt *DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -129,7 +128,7 @@ func (d *MysqlDialect) BuildDropTable(dt *schema.DropTable) string {
 	return sql.String()
 }
 
-func (d *MysqlDialect) BuildColumnDefinition(col *schema.Column) string {
+func (d *MysqlDialect) BuildColumnDefinition(col *Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -182,7 +181,7 @@ func (d *MysqlDialect) BuildColumnDefinition(col *schema.Column) string {
 	return sql.String()
 }
 
-func (d *MysqlDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
+func (d *MysqlDialect) BuildTruncateTable(tt *TruncateTable) string {
 	var sql strings.Builder
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.Tables, ", "))
@@ -244,7 +243,7 @@ func (d *MysqlDialect) BuildIndexDefinition(Name string, Columns []string, uniqu
 	return sql.String()
 }
 
-func (d *MysqlDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
+func (d *MysqlDialect) BuildForeignKeyDefinition(fk *Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")

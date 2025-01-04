@@ -1,12 +1,11 @@
-package dialect
+package schema
 
 import (
 	"fmt"
-	"github.com/antibomberman/dbl/schema"
 	"strings"
 )
 
-func (g *PostgresDialect) BuildCreateTable(s *schema.Builder) string {
+func (g *PostgresDialect) BuildCreateTable(s *Builder) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -61,7 +60,7 @@ func (g *PostgresDialect) BuildCreateTable(s *schema.Builder) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildAlterTable(s *schema.Builder) string {
+func (g *PostgresDialect) BuildAlterTable(s *Builder) string {
 	var commands []string
 	for _, cmd := range s.Definition.Commands {
 		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
@@ -74,7 +73,7 @@ func (g *PostgresDialect) BuildAlterTable(s *schema.Builder) string {
 	)
 }
 
-func (g *PostgresDialect) BuildDropTable(dt *schema.DropTable) string {
+func (g *PostgresDialect) BuildDropTable(dt *DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -104,7 +103,7 @@ func (g *PostgresDialect) BuildDropTable(dt *schema.DropTable) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildColumnDefinition(col *schema.Column) string {
+func (g *PostgresDialect) BuildColumnDefinition(col *Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -165,7 +164,7 @@ func (g *PostgresDialect) BuildIndexDefinition(Name string, columns []string, un
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
+func (g *PostgresDialect) BuildForeignKeyDefinition(fk *Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
@@ -187,7 +186,7 @@ func (g *PostgresDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
+func (g *PostgresDialect) BuildTruncateTable(tt *TruncateTable) string {
 	var sql strings.Builder
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.Tables, ", "))

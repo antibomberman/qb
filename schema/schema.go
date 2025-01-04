@@ -2,14 +2,13 @@ package schema
 
 import (
 	"fmt"
-	"github.com/antibomberman/dbl/dialect"
 	"github.com/jmoiron/sqlx"
 )
 
 type Schema struct {
 	DB         *sqlx.DB
 	DriverName string
-	Dialect    dialect.Dialect
+	Dialect    Dialect
 }
 
 func NewSchemaBuilder(db *sqlx.DB, driverName string) *Schema {
@@ -19,11 +18,11 @@ func NewSchemaBuilder(db *sqlx.DB, driverName string) *Schema {
 	}
 	switch driverName {
 	case "mysql":
-		schema.Dialect = &dialect.MysqlDialect{}
+		schema.Dialect = &MysqlDialect{}
 	case "postgres":
-		schema.Dialect = &dialect.PostgresDialect{}
+		schema.Dialect = &PostgresDialect{}
 	case "sqlite":
-		schema.Dialect = &dialect.SqliteDialect{}
+		schema.Dialect = &SqliteDialect{}
 	}
 	return schema
 
