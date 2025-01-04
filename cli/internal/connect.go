@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/antibomberman/dblayer"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"time"
 )
 
@@ -20,6 +21,7 @@ func ConnectDB() (*dblayer.DBLayer, error) {
 	cfg := Load()
 	timeDuration := time.Duration(cfg.Timeout) * time.Second
 	fmt.Println(cfg.Driver, cfg.DSN)
+	dbl := dblayer.Connect(driver, dsn)
 	dbl, err := dblayer.Connection(ctx, cfg.Driver, cfg.DSN, cfg.MaxAttempts, timeDuration)
 	if err != nil {
 		return nil, err
@@ -31,4 +33,11 @@ func ConnectDB() (*dblayer.DBLayer, error) {
 
 	return dbl, nil
 
+}
+func ConnectDB2() (*dblayer.DBLayer, error) {
+	db, err := sqlx.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	return dblayer.NewX(driver, db), nil
 }

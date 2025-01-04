@@ -24,7 +24,7 @@ func New(driverName string, db *sql.DB) *DBLayer {
 }
 func NewX(driverName string, dbx *sqlx.DB) *DBLayer {
 	if dbx == nil {
-		panic("Couldn't create dataBBLayer newX method")
+		panic("Couldn't create dataDBLayer newX method")
 	}
 	d := &DBLayer{
 		DB:         dbx,
@@ -64,7 +64,7 @@ func Connection(ctx context.Context, driverName string, dataSourceName string, m
 		time.Sleep(connectionTimeout)
 	}
 
-	return nil, fmt.Errorf("failed to connect to dataBBLayer after %d attempts", maxAttempts)
+	return nil, fmt.Errorf("failed to connect to dataDBLayer after %d attempts", maxAttempts)
 }
 
 func (d *DBLayer) Close() error {

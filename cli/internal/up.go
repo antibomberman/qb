@@ -34,7 +34,10 @@ var UpCmd = &cobra.Command{
 			if err != nil {
 				log.Fatal(err)
 			}
-			dbl.Raw(upSQL)
+			err = dbl.Raw(upSQL).Exec()
+			if err != nil {
+				panic(err)
+			}
 
 		}
 		//create table migrations

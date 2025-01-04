@@ -9,8 +9,8 @@ import (
 type Config struct {
 	Driver      string `env:"DRIVER"`
 	DSN         string `env:"DSN"`
-	MaxAttempts int    `env:"maxAttempts"`
-	Timeout     int    `env:"timeout"`
+	MaxAttempts int    `env:"MAX_ATTEMPTS"`
+	Timeout     int    `env:"TIMEOUT"`
 }
 
 func Load() *Config {
