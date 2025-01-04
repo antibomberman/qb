@@ -2,7 +2,7 @@ package internal
 
 import (
 	"context"
-	DBL "github.com/antibomberman/dbl/schema"
+	dblayer "github.com/antibomberman/dbl"
 	"time"
 )
 
@@ -14,9 +14,9 @@ const (
 	driver = "mysql"
 )
 
-func ConnectDB() (*DBL.DBL, error) {
+func ConnectDB() (*dblayer.DBLayer, error) {
 	ctx := context.Background()
-	dbl, err := DBL.Connection(ctx, driver, dsn, maxAttempts, timeout)
+	dbl, err := dblayer.Connection(ctx, driver, dsn, maxAttempts, timeout)
 	if err != nil {
 		return nil, err
 	}
