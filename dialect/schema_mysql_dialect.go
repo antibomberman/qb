@@ -26,25 +26,25 @@ func (d *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
 	}
 
 	// Первичный ключ
-	if len(s.Definition.Constraints.PrimaryKey) > 0 {
+	if len(s.Definition.KeyIndex.PrimaryKey) > 0 {
 		Columns = append(Columns, fmt.Sprintf("PRIMARY KEY (%s)",
-			strings.Join(s.Definition.Constraints.PrimaryKey, ", ")))
+			strings.Join(s.Definition.KeyIndex.PrimaryKey, ", ")))
 	}
 
 	// Уникальные ключи
-	for Name, cols := range s.Definition.Constraints.UniqueKeys {
+	for Name, cols := range s.Definition.KeyIndex.UniqueKeys {
 		Columns = append(Columns, fmt.Sprintf("UNIQUE KEY %s (%s)",
 			Name, strings.Join(cols, ", ")))
 	}
 
 	// Индексы
-	for Name, cols := range s.Definition.Constraints.Indexes {
+	for Name, cols := range s.Definition.KeyIndex.Indexes {
 		Columns = append(Columns, fmt.Sprintf("INDEX %s (%s)",
 			Name, strings.Join(cols, ", ")))
 	}
 
 	// Внешние ключи
-	for col, fk := range s.Definition.Constraints.ForeignKeys {
+	for col, fk := range s.Definition.KeyIndex.ForeignKeys {
 		constraint := fmt.Sprintf("FOREIGN KEY (%s) REFERENCES %s(%s)", col, fk.Table, fk.Column)
 		if fk.OnDelete != "" {
 			constraint += " ON DELETE " + fk.OnDelete
