@@ -2,8 +2,8 @@ package dblayer
 
 import (
 	"context"
-	q "github.com/antibomberman/dbl/query"
-	s "github.com/antibomberman/dbl/schema"
+	q "github.com/antibomberman/dblayer/query"
+	s "github.com/antibomberman/dblayer/schema"
 )
 
 func (d *DBLayer) Table(name string) *q.Builder {
