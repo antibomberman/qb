@@ -2,7 +2,7 @@ package internal
 
 import (
 	"context"
-	dblayer "github.com/antibomberman/dblayer"
+	"github.com/antibomberman/dblayer"
 	"time"
 )
 
