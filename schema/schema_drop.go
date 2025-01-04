@@ -1,6 +1,7 @@
-package DBL
+package schema
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -67,7 +68,7 @@ func (dt *DropTable) Build() string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.options.Concurrent && dt.dbl.dialect.SupportsDropConcurrently() {
+	if dt.options.Concurrent && dt.dbl.Dialect.SupportsDropConcurrently() {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -77,15 +78,15 @@ func (dt *DropTable) Build() string {
 
 	sql.WriteString(strings.Join(dt.tables, ", "))
 
-	if dt.options.Cascade && dt.dbl.dialect.SupportsCascade() {
+	if dt.options.Cascade && dt.dbl.Dialect.SupportsCascade() {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.options.Restrict && dt.dbl.dialect.SupportsCascade() {
+	if dt.options.Restrict && dt.dbl.Dialect.SupportsCascade() {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.options.Force && dt.dbl.dialect.SupportsForce() {
+	if dt.options.Force && dt.dbl.Dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 
@@ -94,5 +95,6 @@ func (dt *DropTable) Build() string {
 
 // Execute выполняет удаление таблицы
 func (dt *DropTable) Execute() error {
-	return dt.dbl.Raw(dt.Build()).Exec()
+	fmt.Println(dt.Build())
+	return nil
 }

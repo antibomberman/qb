@@ -1,6 +1,8 @@
-package DBL
+package schema
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Schema с более четкой структурой и инкапсуляцией
 type Schema struct {
@@ -60,10 +62,10 @@ type Command struct {
 }
 
 func (s *Schema) BuildCreate() string {
-	return s.dbl.dialect.BuildCreateTable(s)
+	return s.dbl.Dialect.BuildCreateTable(s)
 }
 func (s *Schema) BuildAlter() string {
-	return s.dbl.dialect.BuildAlterTable(s)
+	return s.dbl.Dialect.BuildAlterTable(s)
 }
 
 // Добавляем методы для обновления
@@ -85,7 +87,7 @@ func (s *Schema) UniqueIndex(name string, columns ...string) *Schema {
 
 // FullText добавляет полнотекстовый индекс
 func (s *Schema) FullText(name string, columns ...string) *Schema {
-	if s.dbl.db.DriverName() == "mysql" {
+	if s.dbl.DB.DriverName() == "mysql" {
 		s.definition.constraints.indexes[name] = columns
 		return s
 	}
@@ -200,12 +202,12 @@ func (s *Schema) ChangeCharset(charset, collate string) *Schema {
 
 // Изменяем метод buildColumn
 func (s *Schema) buildColumn(col *Column) string {
-	return s.dbl.dialect.BuildColumnDefinition(col)
+	return s.dbl.Dialect.BuildColumnDefinition(col)
 }
 
 // Добавляем новые методы для индексов
 func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
-	if s.dbl.dialect.SupportsSpatialIndex() {
+	if s.dbl.Dialect.SupportsSpatialIndex() {
 		if s.definition.mode == "create" {
 			s.builder.AddConstraint(Constraint{
 				Type:    "ADD SPATIAL INDEX",
@@ -224,7 +226,7 @@ func (s *Schema) SpatialIndex(name string, columns ...string) *Schema {
 }
 
 func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
-	if s.dbl.dialect.SupportsFullTextIndex() {
+	if s.dbl.Dialect.SupportsFullTextIndex() {
 		if s.definition.mode == "create" {
 			s.builder.AddConstraint(Constraint{
 				Type:    "ADD FULLTEXT INDEX",
@@ -244,8 +246,8 @@ func (s *Schema) FullTextIndex(name string, columns ...string) *Schema {
 
 // Timestamps добавляет поля created_at и updated_at
 func (s *Schema) Timestamps() *Schema {
-	s.Timestamp("created_at").Nullable().Default(s.dbl.dialect.GetCurrentTimestampExpression())
-	s.Timestamp("updated_at").Nullable().Default(s.dbl.dialect.GetCurrentTimestampExpression()).OnUpdate(s.dbl.dialect.GetCurrentTimestampExpression()).Nullable()
+	s.Timestamp("created_at").Nullable().Default(s.dbl.Dialect.GetCurrentTimestampExpression())
+	s.Timestamp("updated_at").Nullable().Default(s.dbl.Dialect.GetCurrentTimestampExpression()).OnUpdate(s.dbl.Dialect.GetCurrentTimestampExpression()).Nullable()
 	return s
 }
 

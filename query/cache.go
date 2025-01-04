@@ -1,4 +1,4 @@
-package DBL
+package query
 
 import (
 	"context"
@@ -19,18 +19,18 @@ type CacheDriver interface {
 }
 
 // Remember включает кеширование для запроса
-func (qb *QueryBuilder) Remember(key string, duration time.Duration) *QueryBuilder {
+func (qb *Builder) Remember(key string, duration time.Duration) *Builder {
 	qb.cacheKey = key
 	qb.cacheDuration = duration
 	return qb
 }
 
 // GetCached получает данные с учетом кеша
-func (qb *QueryBuilder) GetCached(dest interface{}) (bool, error) {
+func (qb *Builder) GetCached(dest interface{}) (bool, error) {
 	// Проверяем наличие ключа кеша
 	if qb.cacheKey != "" {
 		// Пытаемся получить из кеша
-		if cached, ok := qb.dbl.cache.Get(qb.cacheKey); ok {
+		if cached, ok := qb.Query.Cache.Get(qb.cacheKey); ok {
 			// Копируем закешированные данные
 			if data, ok := cached.([]byte); ok {
 				return true, json.Unmarshal(data, dest)
@@ -51,7 +51,7 @@ func (qb *QueryBuilder) GetCached(dest interface{}) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		qb.dbl.cache.Set(qb.cacheKey, data, qb.cacheDuration)
+		qb.Query.Cache.Set(qb.cacheKey, data, qb.cacheDuration)
 	}
 
 	return found, nil

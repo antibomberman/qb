@@ -1,4 +1,4 @@
-package DBL
+package schema
 
 import (
 	"fmt"
@@ -60,8 +60,8 @@ func (s *Schema) addColumn(col *Column) *ColumnBuilder {
 		s.definition.columns = append(s.definition.columns, col)
 	} else {
 		var exists bool
-		query := s.dbl.dialect.CheckColumnExists(s.definition.name, col.Name)
-		err := s.dbl.db.QueryRow(query, s.definition.name, col.Name).Scan(&exists)
+		query := s.dbl.Dialect.CheckColumnExists(s.definition.name, col.Name)
+		err := s.dbl.DB.QueryRow(query, s.definition.name, col.Name).Scan(&exists)
 		if err != nil {
 			// Обработка ошибки
 			return &ColumnBuilder{schema: s, column: col}
@@ -69,9 +69,9 @@ func (s *Schema) addColumn(col *Column) *ColumnBuilder {
 
 		cmd := ""
 		if exists {
-			cmd = fmt.Sprintf("MODIFY COLUMN %s", s.dbl.dialect.BuildColumnDefinition(col))
+			cmd = fmt.Sprintf("MODIFY COLUMN %s", s.dbl.Dialect.BuildColumnDefinition(col))
 		} else {
-			cmd = fmt.Sprintf("ADD COLUMN %s", s.dbl.dialect.BuildColumnDefinition(col))
+			cmd = fmt.Sprintf("ADD COLUMN %s", s.dbl.Dialect.BuildColumnDefinition(col))
 		}
 
 		s.definition.commands = append(s.definition.commands, Command{
@@ -97,7 +97,7 @@ func (s *Schema) AddColumn(column *Column) *ColumnBuilder {
 		Name: column.Name,
 		Cmd: fmt.Sprintf(
 			"%s%s",
-			s.dbl.dialect.BuildColumnDefinition(column),
+			s.dbl.Dialect.BuildColumnDefinition(column),
 			position,
 		),
 	})
@@ -147,7 +147,7 @@ func (s *Schema) TinyInteger(name string) *ColumnBuilder {
 func (s *Schema) SmallInteger(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: s.dbl.dialect.GetSmallIntegerType()},
+		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetSmallIntegerType()},
 	})
 }
 
@@ -155,7 +155,7 @@ func (s *Schema) SmallInteger(name string) *ColumnBuilder {
 func (s *Schema) MediumInteger(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: s.dbl.dialect.GetMediumIntegerType()},
+		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetMediumIntegerType()},
 	})
 }
 
@@ -171,7 +171,7 @@ func (s *Schema) Integer(name string) *ColumnBuilder {
 func (s *Schema) BigInteger(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBigIntegerType()},
+		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetBigIntegerType()},
 	})
 }
 
@@ -179,7 +179,7 @@ func (s *Schema) BigInteger(name string) *ColumnBuilder {
 func (s *Schema) Boolean(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name:       name,
-		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBooleanType()},
+		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetBooleanType()},
 	})
 }
 
@@ -244,7 +244,7 @@ func (s *Schema) MediumText(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetMediumTextType(),
+			Type: s.dbl.Dialect.GetMediumTextType(),
 		},
 	})
 }
@@ -254,7 +254,7 @@ func (s *Schema) LongText(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetLongTextType(),
+			Type: s.dbl.Dialect.GetLongTextType(),
 		},
 	})
 }
@@ -332,7 +332,7 @@ func (s *Schema) Timezone() *ColumnBuilder {
 //	schema.BigInteger("id").Unsigned().AutoIncrement().Primary()
 //	return s.addColumn(&Column{
 //		Name:       name,
-//		Definition: ColumnDefinition{Type: s.dbl.dialect.GetBigIntegerType()},
+//		Definition: ColumnDefinition{Type: s.dbl.Dialect.GetBigIntegerType()},
 //	})
 //}
 
@@ -341,7 +341,7 @@ func (s *Schema) Year(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetYearType(),
+			Type: s.dbl.Dialect.GetYearType(),
 		},
 	})
 }
@@ -359,7 +359,7 @@ func (s *Schema) Ip(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetIpType(),
+			Type: s.dbl.Dialect.GetIpType(),
 		},
 	})
 }
@@ -369,7 +369,7 @@ func (s *Schema) MacAddress(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetMacAddressType(),
+			Type: s.dbl.Dialect.GetMacAddressType(),
 		},
 	})
 }
@@ -379,7 +379,7 @@ func (s *Schema) Point(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetPointType(),
+			Type: s.dbl.Dialect.GetPointType(),
 		},
 	})
 }
@@ -389,7 +389,7 @@ func (s *Schema) Polygon(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetPolygonType(),
+			Type: s.dbl.Dialect.GetPolygonType(),
 		},
 	})
 }
@@ -399,7 +399,7 @@ func (s *Schema) Set(name string, values []string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetSetType(values),
+			Type: s.dbl.Dialect.GetSetType(values),
 		},
 	})
 }
@@ -482,7 +482,7 @@ func (s *Schema) Geometry(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetGeometryType(),
+			Type: s.dbl.Dialect.GetGeometryType(),
 		},
 	})
 }
@@ -492,7 +492,7 @@ func (s *Schema) UUID(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetUUIDType(),
+			Type: s.dbl.Dialect.GetUUIDType(),
 		},
 	})
 }
@@ -502,7 +502,7 @@ func (s *Schema) Double(name string) *ColumnBuilder {
 	return s.addColumn(&Column{
 		Name: name,
 		Definition: ColumnDefinition{
-			Type: s.dbl.dialect.GetDoubleType(),
+			Type: s.dbl.Dialect.GetDoubleType(),
 		},
 	})
 }

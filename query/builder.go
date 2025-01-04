@@ -1,16 +1,15 @@
-package DBL
+package query
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"log"
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type Condition struct {
@@ -20,10 +19,11 @@ type Condition struct {
 	args     []interface{}
 }
 
-type QueryBuilder struct {
-	db            interface{} // может быть *sqlx.DB или *sqlx.Tx
-	dbl           *DBL
-	table         string
+type Builder struct {
+	DB    interface{} // может быть *sqlx.DB или *sqlx.Tx
+	Table string
+	Query *Query
+
 	conditions    []Condition
 	columns       []string
 	orderBy       []string
@@ -51,7 +51,7 @@ type Executor interface {
 }
 
 // execGet выполняет запрос и получает одну запись
-func (qb *QueryBuilder) execGet(dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execGet(dest interface{}, query string, args ...interface{}) (bool, error) {
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Get(dest, query, args...)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -61,7 +61,7 @@ func (qb *QueryBuilder) execGet(dest interface{}, query string, args ...interfac
 }
 
 // execSelect выполняет запрос и получает множество записей
-func (qb *QueryBuilder) execSelect(dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execSelect(dest interface{}, query string, args ...interface{}) (bool, error) {
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Select(dest, query, args...)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -71,14 +71,14 @@ func (qb *QueryBuilder) execSelect(dest interface{}, query string, args ...inter
 }
 
 // execExec выполняет запрос без возврата данных
-func (qb *QueryBuilder) execExec(query string, args ...interface{}) error {
+func (qb *Builder) execExec(query string, args ...interface{}) error {
 	query = qb.rebindQuery(query)
 	_, err := qb.getExecutor().Exec(query, args...)
 	return err
 }
 
 // execGetContext выполняет запрос с контекстом и получает одну запись
-func (qb *QueryBuilder) execGetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execGetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) (bool, error) {
 	query = qb.rebindQuery(query)
 	if ex, ok := qb.getExecutor().(interface {
 		GetContext(context.Context, interface{}, string, ...interface{}) error
@@ -93,7 +93,7 @@ func (qb *QueryBuilder) execGetContext(ctx context.Context, dest interface{}, qu
 }
 
 // execSelectContext выполняет запрос с контекстом и получает множество записей
-func (qb *QueryBuilder) execSelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execSelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) (bool, error) {
 	query = qb.rebindQuery(query)
 	if ex, ok := qb.getExecutor().(interface {
 		SelectContext(context.Context, interface{}, string, ...interface{}) error
@@ -108,7 +108,7 @@ func (qb *QueryBuilder) execSelectContext(ctx context.Context, dest interface{},
 }
 
 // execExecContext выполняет запрос с контекстом
-func (qb *QueryBuilder) execExecContext(ctx context.Context, query string, args ...interface{}) error {
+func (qb *Builder) execExecContext(ctx context.Context, query string, args ...interface{}) error {
 	query = qb.rebindQuery(query)
 	if ex, ok := qb.getExecutor().(interface {
 		ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
@@ -120,13 +120,13 @@ func (qb *QueryBuilder) execExecContext(ctx context.Context, query string, args 
 }
 
 // On регистрирует обработчик события
-func (qb *QueryBuilder) On(event EventType, handler EventHandler) {
+func (qb *Builder) On(event EventType, handler EventHandler) {
 	if qb.events == nil {
 		qb.events = make(map[EventType][]EventHandler)
 	}
 	qb.events[event] = append(qb.events[event], handler)
 }
-func (qb *QueryBuilder) Trigger(event EventType, data interface{}) {
+func (qb *Builder) Trigger(event EventType, data interface{}) {
 	if handlers, ok := qb.events[event]; ok {
 		for _, handler := range handlers {
 			if err := handler(data); err != nil {
@@ -137,8 +137,8 @@ func (qb *QueryBuilder) Trigger(event EventType, data interface{}) {
 }
 
 // getExecutor возвращает исполнитель запросов
-func (qb *QueryBuilder) getExecutor() Executor {
-	switch db := qb.db.(type) {
+func (qb *Builder) getExecutor() Executor {
+	switch db := qb.DB.(type) {
 	case *sqlx.Tx:
 		return db
 	case *sqlx.DB:
@@ -149,7 +149,7 @@ func (qb *QueryBuilder) getExecutor() Executor {
 }
 
 // rebindQuery преобразует плейсхолдеры под нужный диалект SQL
-func (qb *QueryBuilder) rebindQuery(query string) string {
+func (qb *Builder) rebindQuery(query string) string {
 	return qb.getExecutor().Rebind(query)
 }
 
@@ -177,7 +177,7 @@ func buildConditions(conditions []Condition) string {
 	return strings.Join(parts, " ")
 }
 
-func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeholders []string, values map[string]interface{}) {
+func (qb *Builder) getStructInfo(data interface{}) (fields []string, placeholders []string, values map[string]interface{}) {
 	values = make(map[string]interface{})
 	v := reflect.ValueOf(data)
 	if v.Kind() == reflect.Ptr {
@@ -196,18 +196,11 @@ func (qb *QueryBuilder) getStructInfo(data interface{}) (fields []string, placeh
 }
 
 // getDriverName возвращает имя драйвера базы данных
-func (qb *QueryBuilder) getDriverName() string {
-	return qb.dbl.db.DriverName()
-	// if db, ok := qb.db.(*sqlx.DB); ok {
-	// 	return db.DriverName()
-	// }
-	// if tx, ok := qb.db.(*sqlx.Tx); ok {
-	// 	return tx.DriverName()
-	// }
-	// return ""
+func (qb *Builder) getDriverName() string {
+	return qb.Query.DriverName
 }
 
-func (qb *QueryBuilder) buildBodyQuery() (string, []interface{}) {
+func (qb *Builder) buildBodyQuery() (string, []interface{}) {
 	var args []interface{}
 	var sql strings.Builder
 
@@ -252,12 +245,12 @@ func (qb *QueryBuilder) buildBodyQuery() (string, []interface{}) {
 }
 
 // buildQuery собирает полный SQL запрос
-func (qb *QueryBuilder) buildSelectQuery() (string, []interface{}) {
+func (qb *Builder) buildSelectQuery() (string, []interface{}) {
 	selectClause := "*"
 	if len(qb.columns) > 0 {
 		selectClause = strings.Join(qb.columns, ", ")
 	}
-	tableName := qb.table
+	tableName := qb.Table
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
@@ -268,7 +261,7 @@ func (qb *QueryBuilder) buildSelectQuery() (string, []interface{}) {
 }
 
 // buildUpdateQuery собирает SQL запрос для UPDATE
-func (qb *QueryBuilder) buildUpdateQuery(data interface{}, fields []string) (string, []interface{}) {
+func (qb *Builder) buildUpdateQuery(data interface{}, fields []string) (string, []interface{}) {
 
 	var sets []string
 	var args []interface{}
@@ -292,12 +285,12 @@ func (qb *QueryBuilder) buildUpdateQuery(data interface{}, fields []string) (str
 			args = append(args, values[field])
 		}
 	}
-	tableName := qb.table
+	tableName := qb.Table
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
 
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.Table, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
@@ -306,7 +299,7 @@ func (qb *QueryBuilder) buildUpdateQuery(data interface{}, fields []string) (str
 }
 
 // buildInsertQuery собирает SQL запрос для INSERT
-func (qb *QueryBuilder) buildUpdateMapQuery(data map[string]interface{}) (string, []interface{}) {
+func (qb *Builder) buildUpdateMapQuery(data map[string]interface{}) (string, []interface{}) {
 
 	var sets []string
 	var args []interface{}
@@ -316,11 +309,11 @@ func (qb *QueryBuilder) buildUpdateMapQuery(data map[string]interface{}) (string
 		args = append(args, val)
 	}
 
-	tableName := qb.table
+	tableName := qb.Table
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.table, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.Table, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)

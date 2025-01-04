@@ -2,7 +2,7 @@ package internal
 
 import (
 	"context"
-	DBL "github.com/antibomberman/dbl"
+	DBL "github.com/antibomberman/dbl/schema"
 	"time"
 )
 

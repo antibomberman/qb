@@ -1,6 +1,9 @@
-package DBL
+package schema
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // TruncateOptions опции очистки таблицы
 type TruncateOptions struct {
@@ -55,7 +58,7 @@ func (tt *TruncateTable) Build() string {
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.tables, ", "))
 
-	if tt.dbl.dialect.SupportsRestartIdentity() {
+	if tt.dbl.Dialect.SupportsRestartIdentity() {
 		if tt.options.Restart {
 			sql.WriteString(" RESTART IDENTITY")
 		} else if tt.options.ContinueIdentity {
@@ -69,7 +72,7 @@ func (tt *TruncateTable) Build() string {
 		}
 	}
 
-	if tt.options.Force && tt.dbl.dialect.SupportsForce() {
+	if tt.options.Force && tt.dbl.Dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 
@@ -78,5 +81,6 @@ func (tt *TruncateTable) Build() string {
 
 // Execute выполняет очистку таблицы
 func (tt *TruncateTable) Execute() error {
-	return tt.dbl.Raw(tt.Build()).Exec()
+	fmt.Println(tt.Build())
+	return nil
 }

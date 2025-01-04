@@ -1,13 +1,15 @@
-package DBL
+package query
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+)
 
 // Raw выполняет сырой SQL-запрос
-func (d *DBL) Raw(query string, args ...interface{}) *RawQuery {
+func (q *Query) Raw(query string, args ...interface{}) *RawQuery {
 	return &RawQuery{
 		query: query,
 		args:  args,
-		db:    d.db,
+		db:    q.DB,
 	}
 }
 

@@ -1,4 +1,4 @@
-package DBL
+package schema
 
 import (
 	"fmt"

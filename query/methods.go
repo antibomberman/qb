@@ -1,4 +1,4 @@
-package DBL
+package query
 
 import (
 	"context"
@@ -27,13 +27,13 @@ type DateFunctions struct {
 }
 
 // Select указывает колонки для выборки
-func (qb *QueryBuilder) Select(columns ...string) *QueryBuilder {
+func (qb *Builder) Select(columns ...string) *Builder {
 	qb.columns = columns
 	return qb
 }
 
 // Where добавляет условие AND
-func (qb *QueryBuilder) Where(condition string, args ...interface{}) *QueryBuilder {
+func (qb *Builder) Where(condition string, args ...interface{}) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   condition,
@@ -43,13 +43,13 @@ func (qb *QueryBuilder) Where(condition string, args ...interface{}) *QueryBuild
 }
 
 // WhereId добавляет условие WHERE id = ?
-func (qb *QueryBuilder) WhereId(id interface{}) *QueryBuilder {
+func (qb *Builder) WhereId(id interface{}) *Builder {
 	qb.Where("id = ?", id)
 	return qb
 }
 
 // OrWhere добавляет условие OR
-func (qb *QueryBuilder) OrWhere(condition string, args ...interface{}) *QueryBuilder {
+func (qb *Builder) OrWhere(condition string, args ...interface{}) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "OR",
 		clause:   condition,
@@ -59,7 +59,7 @@ func (qb *QueryBuilder) OrWhere(condition string, args ...interface{}) *QueryBui
 }
 
 // WhereIn добавляет условие IN
-func (qb *QueryBuilder) WhereIn(column string, values ...interface{}) *QueryBuilder {
+func (qb *Builder) WhereIn(column string, values ...interface{}) *Builder {
 	placeholders := make([]string, len(values))
 	for i := range values {
 		placeholders[i] = "?"
@@ -74,8 +74,8 @@ func (qb *QueryBuilder) WhereIn(column string, values ...interface{}) *QueryBuil
 }
 
 // WhereGroup добавляет группу условий
-func (qb *QueryBuilder) WhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
-	group := &QueryBuilder{}
+func (qb *Builder) WhereGroup(fn func(*Builder)) *Builder {
+	group := &Builder{}
 	fn(group)
 
 	var args []interface{}
@@ -92,8 +92,8 @@ func (qb *QueryBuilder) WhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
 }
 
 // OrWhereGroup добавляет группу условий через OR
-func (qb *QueryBuilder) OrWhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
-	group := &QueryBuilder{}
+func (qb *Builder) OrWhereGroup(fn func(*Builder)) *Builder {
+	group := &Builder{}
 	fn(group)
 	var args []interface{}
 	for _, cond := range group.conditions {
@@ -108,7 +108,7 @@ func (qb *QueryBuilder) OrWhereGroup(fn func(*QueryBuilder)) *QueryBuilder {
 }
 
 // WhereExists добавляет условие EXISTS
-func (qb *QueryBuilder) WhereExists(subQuery *QueryBuilder) *QueryBuilder {
+func (qb *Builder) WhereExists(subQuery *Builder) *Builder {
 	sql, args := subQuery.buildSelectQuery()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
@@ -119,7 +119,7 @@ func (qb *QueryBuilder) WhereExists(subQuery *QueryBuilder) *QueryBuilder {
 }
 
 // WhereNotExists добавляет условие NOT EXISTS
-func (qb *QueryBuilder) WhereNotExists(subQuery *QueryBuilder) *QueryBuilder {
+func (qb *Builder) WhereNotExists(subQuery *Builder) *Builder {
 	sql, args := subQuery.buildSelectQuery()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
@@ -130,56 +130,56 @@ func (qb *QueryBuilder) WhereNotExists(subQuery *QueryBuilder) *QueryBuilder {
 }
 
 // OrderBy добавляет сортировку
-func (qb *QueryBuilder) OrderBy(column string, direction string) *QueryBuilder {
+func (qb *Builder) OrderBy(column string, direction string) *Builder {
 	qb.orderBy = append(qb.orderBy, fmt.Sprintf("%s %s", column, direction))
 	return qb
 }
 
 // GroupBy добавляет группировку
-func (qb *QueryBuilder) GroupBy(columns ...string) *QueryBuilder {
+func (qb *Builder) GroupBy(columns ...string) *Builder {
 	qb.groupBy = columns
 	return qb
 }
 
 // Having добавляет условие для группировки
-func (qb *QueryBuilder) Having(condition string) *QueryBuilder {
+func (qb *Builder) Having(condition string) *Builder {
 	qb.having = condition
 	return qb
 }
 
 // Limit устанавливает ограничение на количество записей
-func (qb *QueryBuilder) Limit(limit int) *QueryBuilder {
+func (qb *Builder) Limit(limit int) *Builder {
 	qb.limit = limit
 	return qb
 }
 
 // Offset устанавливает смещение
-func (qb *QueryBuilder) Offset(offset int) *QueryBuilder {
+func (qb *Builder) Offset(offset int) *Builder {
 	qb.offset = offset
 	return qb
 }
 
 // As устанавливает алиас для таблицы
-func (qb *QueryBuilder) As(alias string) *QueryBuilder {
+func (qb *Builder) As(alias string) *Builder {
 	qb.alias = alias
 	return qb
 }
 
 // Find ищет запись по id
-func (qb *QueryBuilder) Find(id interface{}, dest interface{}) (bool, error) {
+func (qb *Builder) Find(id interface{}, dest interface{}) (bool, error) {
 	qb.Where("id = ?", id)
 	return qb.First(dest)
 }
 
 // FindContext ищет запись по id с контекстом
-func (qb *QueryBuilder) FindContext(ctx context.Context, id interface{}, dest interface{}) (bool, error) {
+func (qb *Builder) FindContext(ctx context.Context, id interface{}, dest interface{}) (bool, error) {
 	qb.Where("id = ?", id)
 	return qb.FirstContext(ctx, dest)
 }
 
 // Increment увеличивает значение поля
-func (qb *QueryBuilder) Increment(column string, value interface{}) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.table, column, column)
+func (qb *Builder) Increment(column string, value interface{}) error {
+	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.Table, column, column)
 
 	body, args := qb.buildBodyQuery()
 
@@ -189,8 +189,8 @@ func (qb *QueryBuilder) Increment(column string, value interface{}) error {
 }
 
 // Decrement уменьшает значение поля
-func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.table, column, column)
+func (qb *Builder) Decrement(column string, value interface{}) error {
+	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.Table, column, column)
 
 	body, args := qb.buildBodyQuery()
 	args = append(args, value)
@@ -199,51 +199,51 @@ func (qb *QueryBuilder) Decrement(column string, value interface{}) error {
 }
 
 // Get получает все записи
-func (qb *QueryBuilder) Get(dest interface{}) (bool, error) {
+func (qb *Builder) Get(dest interface{}) (bool, error) {
 	return qb.GetContext(context.Background(), dest)
 }
 
 // GetContext получает все записи с контекстом
-func (qb *QueryBuilder) GetContext(ctx context.Context, dest interface{}) (bool, error) {
+func (qb *Builder) GetContext(ctx context.Context, dest interface{}) (bool, error) {
 	query, args := qb.buildSelectQuery()
 	return qb.execSelectContext(ctx, dest, query, args...)
 }
 
 // First получает первую запись
-func (qb *QueryBuilder) First(dest interface{}) (bool, error) {
+func (qb *Builder) First(dest interface{}) (bool, error) {
 	return qb.FirstContext(context.Background(), dest)
 }
 
 // FirstContext получает первую запись с контекстом
-func (qb *QueryBuilder) FirstContext(ctx context.Context, dest interface{}) (bool, error) {
+func (qb *Builder) FirstContext(ctx context.Context, dest interface{}) (bool, error) {
 	qb.Limit(1)
 	query, args := qb.buildSelectQuery()
 	return qb.execGetContext(ctx, dest, query, args...)
 }
 
 // Delete удаляет записи
-func (qb *QueryBuilder) Delete() error {
+func (qb *Builder) Delete() error {
 	return qb.DeleteContext(context.Background())
 }
 
 // DeleteContext удаляет записи с контекстом
-func (qb *QueryBuilder) DeleteContext(ctx context.Context) error {
+func (qb *Builder) DeleteContext(ctx context.Context) error {
 	if len(qb.conditions) == 0 {
 		return errors.New("delete without conditions is not allowed")
 	}
 
-	head := fmt.Sprintf("DELETE FROM %s", qb.table)
+	head := fmt.Sprintf("DELETE FROM %s", qb.Table)
 	body, args := qb.buildBodyQuery()
 
 	return qb.execExecContext(ctx, head+body, args...)
 }
 
 // SubQuery создает подзапрос
-func (qb *QueryBuilder) SubQuery(alias string) *QueryBuilder {
+func (qb *Builder) SubQuery(alias string) *Builder {
 	sql, args := qb.buildSelectQuery()
-	return &QueryBuilder{
+	return &Builder{
 		columns: []string{fmt.Sprintf("(%s) AS %s", sql, alias)},
-		db:      qb.db,
+		DB:      qb.DB,
 		conditions: []Condition{{
 			args: args,
 		}},
@@ -251,7 +251,7 @@ func (qb *QueryBuilder) SubQuery(alias string) *QueryBuilder {
 }
 
 // WhereSubQuery добавляет условие подзапросом
-func (qb *QueryBuilder) WhereSubQuery(column string, operator string, subQuery *QueryBuilder) *QueryBuilder {
+func (qb *Builder) WhereSubQuery(column string, operator string, subQuery *Builder) *Builder {
 	sql, args := subQuery.buildSelectQuery()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
@@ -262,12 +262,12 @@ func (qb *QueryBuilder) WhereSubQuery(column string, operator string, subQuery *
 }
 
 // Union объединяет запросы через UNION
-func (qb *QueryBuilder) Union(other *QueryBuilder) *QueryBuilder {
+func (qb *Builder) Union(other *Builder) *Builder {
 	sql1, args1 := qb.buildSelectQuery()
 	sql2, args2 := other.buildSelectQuery()
 
-	return &QueryBuilder{
-		db:      qb.db,
+	return &Builder{
+		DB:      qb.DB,
 		columns: []string{fmt.Sprintf("(%s) UNION (%s)", sql1, sql2)},
 		conditions: []Condition{{
 			args: append(args1, args2...),
@@ -276,12 +276,12 @@ func (qb *QueryBuilder) Union(other *QueryBuilder) *QueryBuilder {
 }
 
 // UnionAll объединяет запросы через UNION ALL
-func (qb *QueryBuilder) UnionAll(other *QueryBuilder) *QueryBuilder {
+func (qb *Builder) UnionAll(other *Builder) *Builder {
 	sql1, args1 := qb.buildSelectQuery()
 	sql2, args2 := other.buildSelectQuery()
 
-	return &QueryBuilder{
-		db:      qb.db,
+	return &Builder{
+		DB:      qb.DB,
 		columns: []string{fmt.Sprintf("(%s) UNION ALL (%s)", sql1, sql2)},
 		conditions: []Condition{{
 			args: append(args1, args2...),
@@ -290,7 +290,7 @@ func (qb *QueryBuilder) UnionAll(other *QueryBuilder) *QueryBuilder {
 }
 
 // WhereNull добавляет проверку на NULL
-func (qb *QueryBuilder) WhereNull(column string) *QueryBuilder {
+func (qb *Builder) WhereNull(column string) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s IS NULL", column),
@@ -299,7 +299,7 @@ func (qb *QueryBuilder) WhereNull(column string) *QueryBuilder {
 }
 
 // WhereNotNull добавляет проверку на NOT NULL
-func (qb *QueryBuilder) WhereNotNull(column string) *QueryBuilder {
+func (qb *Builder) WhereNotNull(column string) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s IS NOT NULL", column),
@@ -308,7 +308,7 @@ func (qb *QueryBuilder) WhereNotNull(column string) *QueryBuilder {
 }
 
 // WhereBetween добавляет условие BETWEEN
-func (qb *QueryBuilder) WhereBetween(column string, start, end interface{}) *QueryBuilder {
+func (qb *Builder) WhereBetween(column string, start, end interface{}) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s BETWEEN ? AND ?", column),
@@ -318,7 +318,7 @@ func (qb *QueryBuilder) WhereBetween(column string, start, end interface{}) *Que
 }
 
 // WhereNotBetween добавляет условие NOT BETWEEN
-func (qb *QueryBuilder) WhereNotBetween(column string, start, end interface{}) *QueryBuilder {
+func (qb *Builder) WhereNotBetween(column string, start, end interface{}) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s NOT BETWEEN ? AND ?", column),
@@ -328,7 +328,7 @@ func (qb *QueryBuilder) WhereNotBetween(column string, start, end interface{}) *
 }
 
 // HavingRaw добавляет сырое условие HAVING
-func (qb *QueryBuilder) HavingRaw(sql string, args ...interface{}) *QueryBuilder {
+func (qb *Builder) HavingRaw(sql string, args ...interface{}) *Builder {
 	if qb.having != "" {
 		qb.having += " AND "
 	}
@@ -338,39 +338,39 @@ func (qb *QueryBuilder) HavingRaw(sql string, args ...interface{}) *QueryBuilder
 }
 
 // WithTransaction выполняет запрос в существующей транзакции
-func (qb *QueryBuilder) WithTransaction(tx *Transaction) *QueryBuilder {
-	qb.db = tx.tx
+func (qb *Builder) WithTransaction(tx *Transaction) *Builder {
+	qb.DB = tx.Tx
 	return qb
 }
 
 // LockForUpdate блокирует записи для обновления
-func (qb *QueryBuilder) LockForUpdate() *QueryBuilder {
+func (qb *Builder) LockForUpdate() *Builder {
 	return qb.Lock("FOR UPDATE")
 }
 
 // LockForShare блокирует записи для чтения
-func (qb *QueryBuilder) LockForShare() *QueryBuilder {
+func (qb *Builder) LockForShare() *Builder {
 	return qb.Lock("FOR SHARE")
 }
 
 // SkipLocked пропускает заблокированные записи
-func (qb *QueryBuilder) SkipLocked() *QueryBuilder {
+func (qb *Builder) SkipLocked() *Builder {
 	return qb.Lock("SKIP LOCKED")
 }
 
 // NoWait не ждет разблокировки записей
-func (qb *QueryBuilder) NoWait() *QueryBuilder {
+func (qb *Builder) NoWait() *Builder {
 	return qb.Lock("NOWAIT")
 }
 
 // Lock блокирует записи для обновления
-func (qb *QueryBuilder) Lock(mode string) *QueryBuilder {
+func (qb *Builder) Lock(mode string) *Builder {
 	qb.columns = append(qb.columns, mode)
 	return qb
 }
 
 // Window добавляет оконную функцию
-func (qb *QueryBuilder) Window(column string, partition string, orderBy string) *QueryBuilder {
+func (qb *Builder) Window(column string, partition string, orderBy string) *Builder {
 	windowFunc := fmt.Sprintf("%s OVER (PARTITION BY %s ORDER BY %s)",
 		column, partition, orderBy)
 	qb.columns = append(qb.columns, windowFunc)
@@ -378,7 +378,7 @@ func (qb *QueryBuilder) Window(column string, partition string, orderBy string) 
 }
 
 // RowNumber добавляет ROW_NUMBER()
-func (qb *QueryBuilder) RowNumber(partition string, orderBy string, alias string) *QueryBuilder {
+func (qb *Builder) RowNumber(partition string, orderBy string, alias string) *Builder {
 	windowFunc := fmt.Sprintf("ROW_NUMBER() OVER (PARTITION BY %s ORDER BY %s) AS %s",
 		partition, orderBy, alias)
 	qb.columns = append(qb.columns, windowFunc)
@@ -386,7 +386,7 @@ func (qb *QueryBuilder) RowNumber(partition string, orderBy string, alias string
 }
 
 // Rank добавляет RANK()
-func (qb *QueryBuilder) Rank(partition string, orderBy string, alias string) *QueryBuilder {
+func (qb *Builder) Rank(partition string, orderBy string, alias string) *Builder {
 	windowFunc := fmt.Sprintf("RANK() OVER (PARTITION BY %s ORDER BY %s) AS %s",
 		partition, orderBy, alias)
 	qb.columns = append(qb.columns, windowFunc)
@@ -394,7 +394,7 @@ func (qb *QueryBuilder) Rank(partition string, orderBy string, alias string) *Qu
 }
 
 // DenseRank добавляет DENSE_RANK()
-func (qb *QueryBuilder) DenseRank(partition string, orderBy string, alias string) *QueryBuilder {
+func (qb *Builder) DenseRank(partition string, orderBy string, alias string) *Builder {
 	windowFunc := fmt.Sprintf("DENSE_RANK() OVER (PARTITION BY %s ORDER BY %s) AS %s",
 		partition, orderBy, alias)
 	qb.columns = append(qb.columns, windowFunc)
@@ -402,7 +402,7 @@ func (qb *QueryBuilder) DenseRank(partition string, orderBy string, alias string
 }
 
 // WhereRaw добавляет сырое условие WHERE
-func (qb *QueryBuilder) WhereRaw(sql string, args ...interface{}) *QueryBuilder {
+func (qb *Builder) WhereRaw(sql string, args ...interface{}) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   sql,
@@ -412,7 +412,7 @@ func (qb *QueryBuilder) WhereRaw(sql string, args ...interface{}) *QueryBuilder 
 }
 
 // OrWhereRaw добавляет сырое условие через OR
-func (qb *QueryBuilder) OrWhereRaw(sql string, args ...interface{}) *QueryBuilder {
+func (qb *Builder) OrWhereRaw(sql string, args ...interface{}) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "OR",
 		clause:   sql,
@@ -422,8 +422,8 @@ func (qb *QueryBuilder) OrWhereRaw(sql string, args ...interface{}) *QueryBuilde
 }
 
 // Pluck получает значения одной колонки
-func (qb *QueryBuilder) Pluck(column string, dest interface{}) error {
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+func (qb *Builder) Pluck(column string, dest interface{}) error {
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.Table)
 
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execSelect(dest, head+body, args...)
@@ -431,7 +431,7 @@ func (qb *QueryBuilder) Pluck(column string, dest interface{}) error {
 }
 
 // Chunk обрабатывает записи чанками
-func (qb *QueryBuilder) Chunk(size int, fn func(items interface{}) error) error {
+func (qb *Builder) Chunk(size int, fn func(items interface{}) error) error {
 	offset := 0
 	for {
 		dest := make([]map[string]interface{}, 0, size)
@@ -458,7 +458,7 @@ func (qb *QueryBuilder) Chunk(size int, fn func(items interface{}) error) error 
 }
 
 // ChunkContext обрабатывает записи чанками с контекстом
-func (qb *QueryBuilder) ChunkContext(ctx context.Context, size int, fn func(context.Context, interface{}) error) error {
+func (qb *Builder) ChunkContext(ctx context.Context, size int, fn func(context.Context, interface{}) error) error {
 	offset := 0
 	for {
 		if err := ctx.Err(); err != nil {
@@ -489,13 +489,13 @@ func (qb *QueryBuilder) ChunkContext(ctx context.Context, size int, fn func(cont
 }
 
 // WithinGroup выполняет оконную функцию
-func (qb *QueryBuilder) WithinGroup(column string, window string) *QueryBuilder {
+func (qb *Builder) WithinGroup(column string, window string) *Builder {
 	qb.columns = append(qb.columns, fmt.Sprintf("%s WITHIN GROUP (%s)", column, window))
 	return qb
 }
 
 // Distinct добавляет DISTINCT к запросу
-func (qb *QueryBuilder) Distinct(columns ...string) *QueryBuilder {
+func (qb *Builder) Distinct(columns ...string) *Builder {
 	if len(columns) == 0 {
 		qb.columns = append(qb.columns, "DISTINCT *")
 	} else {
@@ -505,20 +505,20 @@ func (qb *QueryBuilder) Distinct(columns ...string) *QueryBuilder {
 }
 
 // Raw выполняет сырой SQL запрос
-func (qb *QueryBuilder) Raw(query string, args ...interface{}) error {
+func (qb *Builder) Raw(query string, args ...interface{}) error {
 	return qb.execExec(query, args...)
 }
 
 // RawQuery выполняет сырой SQL запрос с возвратом данных
-func (qb *QueryBuilder) RawQuery(dest interface{}, query string, args ...interface{}) error {
+func (qb *Builder) RawQuery(dest interface{}, query string, args ...interface{}) error {
 	_, err := qb.execSelect(dest, query, args...)
 	return err
 }
 
 // Value получает значение одного поля
-func (qb *QueryBuilder) Value(column string) (interface{}, error) {
+func (qb *Builder) Value(column string) (interface{}, error) {
 	var result interface{}
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.Table)
 	qb.Limit(1)
 
 	body, args := qb.buildBodyQuery()
@@ -528,9 +528,9 @@ func (qb *QueryBuilder) Value(column string) (interface{}, error) {
 }
 
 // Values получает значения одного поля для всех записей
-func (qb *QueryBuilder) Values(column string) ([]interface{}, error) {
+func (qb *Builder) Values(column string) ([]interface{}, error) {
 	var result []interface{}
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.table)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.Table)
 
 	body, args := qb.buildBodyQuery()
 
@@ -544,24 +544,24 @@ type SoftDelete struct {
 }
 
 // WithTrashed включает удаленные записи в выборку
-func (qb *QueryBuilder) WithTrashed() *QueryBuilder {
+func (qb *Builder) WithTrashed() *Builder {
 	return qb
 }
 
 // OnlyTrashed выбирает только удаленные записи
-func (qb *QueryBuilder) OnlyTrashed() *QueryBuilder {
+func (qb *Builder) OnlyTrashed() *Builder {
 	return qb.WhereNotNull("deleted_at")
 }
 
 // SoftDelete помечает записи как удаленные
-func (qb *QueryBuilder) SoftDelete() error {
+func (qb *Builder) SoftDelete() error {
 	return qb.UpdateMap(map[string]interface{}{
 		"deleted_at": time.Now(),
 	})
 }
 
 // Restore восстанавливает удаленные записи
-func (qb *QueryBuilder) Restore() error {
+func (qb *Builder) Restore() error {
 	return qb.UpdateMap(map[string]interface{}{
 		"deleted_at": nil,
 	})
@@ -569,12 +569,12 @@ func (qb *QueryBuilder) Restore() error {
 
 // Create add new record to database and return id
 // Create создает новую запись из структуры и возвращает её id
-func (qb *QueryBuilder) Create(data interface{}, fields ...string) (int64, error) {
+func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
 	return qb.CreateContext(context.Background(), data, fields...)
 }
 
 // CreateContext создает новую запись из структуры и возвращает её id
-func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
+func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
 	go qb.Trigger(BeforeCreate, data)
 	defer func() {
 		go qb.Trigger(AfterCreate, data)
@@ -594,7 +594,7 @@ func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fie
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.table,
+		qb.Table,
 		strings.Join(insertFields, ", "),
 		strings.Join(placeholders, ", "))
 
@@ -613,12 +613,12 @@ func (qb *QueryBuilder) CreateContext(ctx context.Context, data interface{}, fie
 }
 
 // CreateMap создает новую запись из map и возвращает её id
-func (qb *QueryBuilder) CreateMap(data map[string]interface{}) (int64, error) {
+func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
 	return qb.CreateMapContext(context.Background(), data)
 }
 
 // CreateMapContext создает новую запись из map с контекстом и возвращает её id
-func (qb *QueryBuilder) CreateMapContext(ctx context.Context, data map[string]interface{}) (int64, error) {
+func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interface{}) (int64, error) {
 	go qb.Trigger(BeforeCreate, data)
 	columns := make([]string, 0, len(data))
 	placeholders := make([]string, 0, len(data))
@@ -631,7 +631,7 @@ func (qb *QueryBuilder) CreateMapContext(ctx context.Context, data map[string]in
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.table,
+		qb.Table,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "))
 
@@ -651,12 +651,12 @@ func (qb *QueryBuilder) CreateMapContext(ctx context.Context, data map[string]in
 }
 
 // BatchInsert вставляет множество записей
-func (qb *QueryBuilder) BatchInsert(records []map[string]interface{}) error {
+func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
 	return qb.BatchInsertContext(context.Background(), records)
 }
 
 // BatchInsertContext вставляет множество записей с контекстом
-func (qb *QueryBuilder) BatchInsertContext(ctx context.Context, records []map[string]interface{}) error {
+func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]interface{}) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -682,7 +682,7 @@ func (qb *QueryBuilder) BatchInsertContext(ctx context.Context, records []map[st
 
 	query := fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES %s",
-		qb.table,
+		qb.Table,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
@@ -691,12 +691,12 @@ func (qb *QueryBuilder) BatchInsertContext(ctx context.Context, records []map[st
 }
 
 // BulkInsert выполняет массовую вставку записей с возвратом ID
-func (qb *QueryBuilder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
+func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
 	return qb.BulkInsertContext(context.Background(), records)
 }
 
 // BulkInsertContext выполняет массовую вставку записей с возвратом ID и поддержкой контекста
-func (qb *QueryBuilder) BulkInsertContext(ctx context.Context, records []map[string]interface{}) ([]int64, error) {
+func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]interface{}) ([]int64, error) {
 	if len(records) == 0 {
 		return nil, nil
 	}
@@ -724,7 +724,7 @@ func (qb *QueryBuilder) BulkInsertContext(ctx context.Context, records []map[str
 	if qb.getDriverName() == "postgres" {
 		query = fmt.Sprintf(
 			"INSERT INTO %s (%s) VALUES %s RETURNING id",
-			qb.table,
+			qb.Table,
 			strings.Join(columns, ", "),
 			strings.Join(placeholders, ", "),
 		)
@@ -735,7 +735,7 @@ func (qb *QueryBuilder) BulkInsertContext(ctx context.Context, records []map[str
 
 	query = fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES %s",
-		qb.table,
+		qb.Table,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
@@ -764,12 +764,12 @@ func (qb *QueryBuilder) BulkInsertContext(ctx context.Context, records []map[str
 }
 
 // Update обновляет записи используя структуру
-func (qb *QueryBuilder) Update(data interface{}, fields ...string) error {
+func (qb *Builder) Update(data interface{}, fields ...string) error {
 	return qb.UpdateContext(context.Background(), data, fields...)
 }
 
 // UpdateContext обновляет записи с контекстом
-func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
+func (qb *Builder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
@@ -779,11 +779,11 @@ func (qb *QueryBuilder) UpdateContext(ctx context.Context, data interface{}, fie
 }
 
 // UpdateMap обновляет записи используя map
-func (qb *QueryBuilder) UpdateMap(data map[string]interface{}) error {
+func (qb *Builder) UpdateMap(data map[string]interface{}) error {
 	return qb.UpdateMapContext(context.Background(), data)
 }
 
-func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
+func (qb *Builder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
@@ -794,12 +794,12 @@ func (qb *QueryBuilder) UpdateMapContext(ctx context.Context, data map[string]in
 }
 
 // BulkUpdate выполняет массовое обновление записей
-func (qb *QueryBuilder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
+func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
 	return qb.BulkUpdateContext(context.Background(), records, keyColumn)
 }
 
 // BulkUpdateContext выполняет массовое обновление записей с контекстом
-func (qb *QueryBuilder) BulkUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string) error {
+func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -836,7 +836,7 @@ func (qb *QueryBuilder) BulkUpdateContext(ctx context.Context, records []map[str
 
 	query := fmt.Sprintf(
 		"UPDATE %s SET %s WHERE %s IN (%s)",
-		qb.table,
+		qb.Table,
 		strings.Join(cases, ", "),
 		keyColumn,
 		strings.Repeat("?,", len(records)-1)+"?",
@@ -851,12 +851,12 @@ func (qb *QueryBuilder) BulkUpdateContext(ctx context.Context, records []map[str
 }
 
 // BatchUpdate обновляет записи пакетами указанного размера
-func (qb *QueryBuilder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
+func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
 	return qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
 }
 
 // BatchUpdateContext обновляет записи пакетами с поддержкой контекста
-func (qb *QueryBuilder) BatchUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) error {
+func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -899,7 +899,7 @@ type Join struct {
 }
 
 // Join добавляет INNER JOIN
-func (qb *QueryBuilder) Join(table string, condition string) *QueryBuilder {
+func (qb *Builder) Join(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      InnerJoin,
 		Table:     table,
@@ -909,7 +909,7 @@ func (qb *QueryBuilder) Join(table string, condition string) *QueryBuilder {
 }
 
 // LeftJoin добавляет LEFT JOIN
-func (qb *QueryBuilder) LeftJoin(table string, condition string) *QueryBuilder {
+func (qb *Builder) LeftJoin(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      LeftJoin,
 		Table:     table,
@@ -919,7 +919,7 @@ func (qb *QueryBuilder) LeftJoin(table string, condition string) *QueryBuilder {
 }
 
 // RightJoin добавляет RIGHT JOIN
-func (qb *QueryBuilder) RightJoin(table string, condition string) *QueryBuilder {
+func (qb *Builder) RightJoin(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      RightJoin,
 		Table:     table,
@@ -929,7 +929,7 @@ func (qb *QueryBuilder) RightJoin(table string, condition string) *QueryBuilder 
 }
 
 // CrossJoin добавляет CROSS JOIN
-func (qb *QueryBuilder) CrossJoin(table string) *QueryBuilder {
+func (qb *Builder) CrossJoin(table string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:  CrossJoin,
 		Table: table,
@@ -943,7 +943,7 @@ type Versioning struct {
 }
 
 // WithVersion добавляет оптимистичную блокировку
-func (qb *QueryBuilder) WithVersion(version int) *QueryBuilder {
+func (qb *Builder) WithVersion(version int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   "version = ?",
@@ -953,7 +953,7 @@ func (qb *QueryBuilder) WithVersion(version int) *QueryBuilder {
 }
 
 // IncrementVersion увеличивает версию записи
-func (qb *QueryBuilder) IncrementVersion() error {
+func (qb *Builder) IncrementVersion() error {
 	return qb.UpdateMap(map[string]interface{}{
 		"version": qb.Raw("version + 1"),
 	})
@@ -966,7 +966,7 @@ type Point struct {
 }
 
 // GeoSearch добавляет геопространственные запросы
-func (qb *QueryBuilder) GeoSearch(column string, point Point, radius float64) *QueryBuilder {
+func (qb *Builder) GeoSearch(column string, point Point, radius float64) *Builder {
 	if qb.getDriverName() == "postgres" {
 		// Для PostgreSQL с PostGIS
 		qb.conditions = append(qb.conditions, Condition{
@@ -995,7 +995,7 @@ type FullTextSearch struct {
 }
 
 // Search выполняет полнотекстовый поиск
-func (qb *QueryBuilder) Search(columns []string, query string) *QueryBuilder {
+func (qb *Builder) Search(columns []string, query string) *Builder {
 	if qb.getDriverName() == "postgres" {
 		// Для PostgreSQL используем ts_vector и ts_query
 		vectorExpr := make([]string, len(columns))
@@ -1035,7 +1035,7 @@ func (qb *QueryBuilder) Search(columns []string, query string) *QueryBuilder {
 }
 
 // getDateFunctions возвращает функции для текущей СУБД
-func (qb *QueryBuilder) getDateFunctions() DateFunctions {
+func (qb *Builder) getDateFunctions() DateFunctions {
 	if qb.getDriverName() == "postgres" {
 		return DateFunctions{
 			DateDiff:    "DATE_PART('day', %s::timestamp - %s::timestamp)",
@@ -1090,7 +1090,7 @@ func getMySQLDateFormat(part string) string {
 }
 
 // WhereDate добавляет условие по дате
-func (qb *QueryBuilder) WhereDate(column string, operator string, value time.Time) *QueryBuilder {
+func (qb *Builder) WhereDate(column string, operator string, value time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) %s ?", column, operator),
@@ -1100,7 +1100,7 @@ func (qb *QueryBuilder) WhereDate(column string, operator string, value time.Tim
 }
 
 // WhereBetweenDates добавляет условие между датами
-func (qb *QueryBuilder) WhereBetweenDates(column string, start time.Time, end time.Time) *QueryBuilder {
+func (qb *Builder) WhereBetweenDates(column string, start time.Time, end time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) BETWEEN ? AND ?", column),
@@ -1110,7 +1110,7 @@ func (qb *QueryBuilder) WhereBetweenDates(column string, start time.Time, end ti
 }
 
 // WhereDateTime добавляет условие по дате и времени
-func (qb *QueryBuilder) WhereDateTime(column string, operator string, value time.Time) *QueryBuilder {
+func (qb *Builder) WhereDateTime(column string, operator string, value time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s %s ?", column, operator),
@@ -1120,7 +1120,7 @@ func (qb *QueryBuilder) WhereDateTime(column string, operator string, value time
 }
 
 // WhereBetweenDateTime добавляет условие между датами и временем
-func (qb *QueryBuilder) WhereBetweenDateTime(column string, start time.Time, end time.Time) *QueryBuilder {
+func (qb *Builder) WhereBetweenDateTime(column string, start time.Time, end time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s BETWEEN ? AND ?", column),
@@ -1133,7 +1133,7 @@ func (qb *QueryBuilder) WhereBetweenDateTime(column string, start time.Time, end
 }
 
 // WhereYear добавляет условие по году
-func (qb *QueryBuilder) WhereYear(column string, operator string, year int) *QueryBuilder {
+func (qb *Builder) WhereYear(column string, operator string, year int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(YEAR FROM %s) %s ?", column, operator),
@@ -1143,7 +1143,7 @@ func (qb *QueryBuilder) WhereYear(column string, operator string, year int) *Que
 }
 
 // WhereMonth добавляет условие по месяцу
-func (qb *QueryBuilder) WhereMonth(column string, operator string, month int) *QueryBuilder {
+func (qb *Builder) WhereMonth(column string, operator string, month int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(MONTH FROM %s) %s ?", column, operator),
@@ -1153,7 +1153,7 @@ func (qb *QueryBuilder) WhereMonth(column string, operator string, month int) *Q
 }
 
 // WhereDay добавляет условие по дню
-func (qb *QueryBuilder) WhereDay(column string, operator string, day int) *QueryBuilder {
+func (qb *Builder) WhereDay(column string, operator string, day int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(DAY FROM %s) %s ?", column, operator),
@@ -1163,7 +1163,7 @@ func (qb *QueryBuilder) WhereDay(column string, operator string, day int) *Query
 }
 
 // WhereTime добавляет условие по времени (без учета даты)
-func (qb *QueryBuilder) WhereTime(column string, operator string, value time.Time) *QueryBuilder {
+func (qb *Builder) WhereTime(column string, operator string, value time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("TIME(%s) %s ?", column, operator),
@@ -1173,17 +1173,17 @@ func (qb *QueryBuilder) WhereTime(column string, operator string, value time.Tim
 }
 
 // WhereDateIsNull проверяет является ли дата NULL
-func (qb *QueryBuilder) WhereDateIsNull(column string) *QueryBuilder {
+func (qb *Builder) WhereDateIsNull(column string) *Builder {
 	return qb.WhereNull(column)
 }
 
 // WhereDateIsNotNull проверяет является ли дата NOT NULL
-func (qb *QueryBuilder) WhereDateIsNotNull(column string) *QueryBuilder {
+func (qb *Builder) WhereDateIsNotNull(column string) *Builder {
 	return qb.WhereNotNull(column)
 }
 
 // WhereCurrentDate добавляет условие на текущую дату
-func (qb *QueryBuilder) WhereCurrentDate(column string, operator string) *QueryBuilder {
+func (qb *Builder) WhereCurrentDate(column string, operator string) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) %s CURRENT_DATE", column, operator),
@@ -1192,7 +1192,7 @@ func (qb *QueryBuilder) WhereCurrentDate(column string, operator string) *QueryB
 }
 
 // WhereLastDays добавляет условие за последние n дней
-func (qb *QueryBuilder) WhereLastDays(column string, days int) *QueryBuilder {
+func (qb *Builder) WhereLastDays(column string, days int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) >= CURRENT_DATE - INTERVAL ? DAY", column),
@@ -1202,7 +1202,7 @@ func (qb *QueryBuilder) WhereLastDays(column string, days int) *QueryBuilder {
 }
 
 // WhereWeekday добавляет условие по дню недели (1 = Понедельник, 7 = Воскресенье)
-func (qb *QueryBuilder) WhereWeekday(column string, operator string, weekday int) *QueryBuilder {
+func (qb *Builder) WhereWeekday(column string, operator string, weekday int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(DOW FROM %s) %s ?", column, operator),
@@ -1212,7 +1212,7 @@ func (qb *QueryBuilder) WhereWeekday(column string, operator string, weekday int
 }
 
 // WhereQuarter добавляет условие по кварталу (1-4)
-func (qb *QueryBuilder) WhereQuarter(column string, operator string, quarter int) *QueryBuilder {
+func (qb *Builder) WhereQuarter(column string, operator string, quarter int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(QUARTER FROM %s) %s ?", column, operator),
@@ -1222,7 +1222,7 @@ func (qb *QueryBuilder) WhereQuarter(column string, operator string, quarter int
 }
 
 // WhereWeek добавляет условие по номеру недели в году (1-53)
-func (qb *QueryBuilder) WhereWeek(column string, operator string, week int) *QueryBuilder {
+func (qb *Builder) WhereWeek(column string, operator string, week int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(WEEK FROM %s) %s ?", column, operator),
@@ -1232,7 +1232,7 @@ func (qb *QueryBuilder) WhereWeek(column string, operator string, week int) *Que
 }
 
 // WhereDateRange добавляет условие по диапазону дат с включением/исключением границ
-func (qb *QueryBuilder) WhereDateRange(column string, start time.Time, end time.Time, inclusive bool) *QueryBuilder {
+func (qb *Builder) WhereDateRange(column string, start time.Time, end time.Time, inclusive bool) *Builder {
 	if inclusive {
 		return qb.WhereBetweenDates(column, start, end)
 	}
@@ -1246,7 +1246,7 @@ func (qb *QueryBuilder) WhereDateRange(column string, start time.Time, end time.
 }
 
 // WhereNextDays добавляет условие на следующие n дней
-func (qb *QueryBuilder) WhereNextDays(column string, days int) *QueryBuilder {
+func (qb *Builder) WhereNextDays(column string, days int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) <= CURRENT_DATE + INTERVAL ? DAY AND DATE(%s) >= CURRENT_DATE", column, column),
@@ -1256,7 +1256,7 @@ func (qb *QueryBuilder) WhereNextDays(column string, days int) *QueryBuilder {
 }
 
 // WhereDateBetweenColumns проверяет, что дата находится между значениями двух других колонок
-func (qb *QueryBuilder) WhereDateBetweenColumns(dateColumn string, startColumn string, endColumn string) *QueryBuilder {
+func (qb *Builder) WhereDateBetweenColumns(dateColumn string, startColumn string, endColumn string) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) BETWEEN DATE(%s) AND DATE(%s)", dateColumn, startColumn, endColumn),
@@ -1265,7 +1265,7 @@ func (qb *QueryBuilder) WhereDateBetweenColumns(dateColumn string, startColumn s
 }
 
 // WhereAge добавляет условие по возрасту (для дат рождения)
-func (qb *QueryBuilder) WhereAge(column string, operator string, age int) *QueryBuilder {
+func (qb *Builder) WhereAge(column string, operator string, age int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(YEAR FROM AGE(%s)) %s ?", column, operator),
@@ -1275,7 +1275,7 @@ func (qb *QueryBuilder) WhereAge(column string, operator string, age int) *Query
 }
 
 // WhereDateDiff добавляет условие по разнице между датами
-func (qb *QueryBuilder) WhereDateDiff(column1 string, column2 string, operator string, days int) *QueryBuilder {
+func (qb *Builder) WhereDateDiff(column1 string, column2 string, operator string, days int) *Builder {
 	df := qb.getDateFunctions()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
@@ -1286,7 +1286,7 @@ func (qb *QueryBuilder) WhereDateDiff(column1 string, column2 string, operator s
 }
 
 // WhereDateTrunc добавляет условие с усечением даты
-func (qb *QueryBuilder) WhereDateTrunc(part string, column string, operator string, value time.Time) *QueryBuilder {
+func (qb *Builder) WhereDateTrunc(part string, column string, operator string, value time.Time) *Builder {
 	df := qb.getDateFunctions()
 	var clause string
 	var args []interface{}
@@ -1310,7 +1310,7 @@ func (qb *QueryBuilder) WhereDateTrunc(part string, column string, operator stri
 }
 
 // WhereTimeWindow добавляет условие попадания времени в окно
-func (qb *QueryBuilder) WhereTimeWindow(column string, startTime, endTime time.Time) *QueryBuilder {
+func (qb *Builder) WhereTimeWindow(column string, startTime, endTime time.Time) *Builder {
 	if qb.getDriverName() == "postgres" {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
@@ -1334,7 +1334,7 @@ func (qb *QueryBuilder) WhereTimeWindow(column string, startTime, endTime time.T
 }
 
 // WhereBusinessDays добавляет условие только по рабочим дням
-func (qb *QueryBuilder) WhereBusinessDays(column string) *QueryBuilder {
+func (qb *Builder) WhereBusinessDays(column string) *Builder {
 	if qb.getDriverName() == "postgres" {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
@@ -1350,7 +1350,7 @@ func (qb *QueryBuilder) WhereBusinessDays(column string) *QueryBuilder {
 }
 
 // WhereDateFormat добавляет условие по отформатированной дате
-func (qb *QueryBuilder) WhereDateFormat(column string, format string, operator string, value string) *QueryBuilder {
+func (qb *Builder) WhereDateFormat(column string, format string, operator string, value string) *Builder {
 	df := qb.getDateFunctions()
 
 	if qb.getDriverName() == "postgres" {
@@ -1372,7 +1372,7 @@ func (qb *QueryBuilder) WhereDateFormat(column string, format string, operator s
 }
 
 // WhereTimeZone добавляет условие с учетом временной зоны
-func (qb *QueryBuilder) WhereTimeZone(column string, operator string, value time.Time, timezone string) *QueryBuilder {
+func (qb *Builder) WhereTimeZone(column string, operator string, value time.Time, timezone string) *Builder {
 	df := qb.getDateFunctions()
 
 	if qb.getDriverName() == "postgres" {
@@ -1400,7 +1400,7 @@ type PaginationResult struct {
 }
 
 // Paginate выполняет пагинацию результатов
-func (qb *QueryBuilder) Paginate(page int, perPage int, dest interface{}) (*PaginationResult, error) {
+func (qb *Builder) Paginate(page int, perPage int, dest interface{}) (*PaginationResult, error) {
 	total, err := qb.Count()
 	if err != nil {
 		return nil, err
@@ -1426,9 +1426,9 @@ func (qb *QueryBuilder) Paginate(page int, perPage int, dest interface{}) (*Pagi
 }
 
 // Avg вычисляет среднее значение колонки
-func (qb *QueryBuilder) Avg(column string) (float64, error) {
+func (qb *Builder) Avg(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.table)
+	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.Table)
 
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
@@ -1436,36 +1436,36 @@ func (qb *QueryBuilder) Avg(column string) (float64, error) {
 }
 
 // Sum вычисляет сумму значений колонки
-func (qb *QueryBuilder) Sum(column string) (float64, error) {
+func (qb *Builder) Sum(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.table)
+	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.Table)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 
 // Min находит минимальное значение колонки
-func (qb *QueryBuilder) Min(column string) (float64, error) {
+func (qb *Builder) Min(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.table)
+	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.Table)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 
 // Max находит максимальное значение колонки
-func (qb *QueryBuilder) Max(column string) (float64, error) {
+func (qb *Builder) Max(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.table)
+	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.Table)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
 }
 
 // Count возвращает количество записей
-func (qb *QueryBuilder) Count() (int64, error) {
+func (qb *Builder) Count() (int64, error) {
 	var count int64
-	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.table)
+	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.Table)
 
 	body, args := qb.buildBodyQuery()
 	fmt.Println(head+body, args)
@@ -1474,7 +1474,7 @@ func (qb *QueryBuilder) Count() (int64, error) {
 }
 
 // Exists проверяет существование записей
-func (qb *QueryBuilder) Exists() (bool, error) {
+func (qb *Builder) Exists() (bool, error) {
 	count, err := qb.Count()
 	if err != nil {
 		return false, err
@@ -1495,7 +1495,7 @@ type AuditLog struct {
 }
 
 // WithAudit включает аудит для запроса
-func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
+func (qb *Builder) WithAudit(userID int64) *Builder {
 	qb.On(BeforeUpdate, func(data interface{}) error {
 		var oldData []byte
 		var recordID int64
@@ -1520,8 +1520,8 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.dbl.Table("audits").Create(&AuditLog{
-			TableName: qb.table,
+		_, err = qb.Query.Table("audits").Create(&AuditLog{
+			TableName: qb.Table,
 			RecordID:  recordID,
 			Action:    "update",
 			OldData:   oldData,
@@ -1555,8 +1555,8 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 			return err
 		}
 
-		return qb.dbl.Table("audits").
-			Where("table_name = ?", qb.table).
+		return qb.Query.Table("audits").
+			Where("table_name = ?", qb.Table).
 			Where("record_id = ?", recordID).
 			OrderBy("id", "DESC").
 			Limit(1).
@@ -1592,8 +1592,8 @@ func (qb *QueryBuilder) WithAudit(userID int64) *QueryBuilder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.dbl.Table("audits").Create(&AuditLog{
-			TableName: qb.table,
+		_, err = qb.Query.Table("audits").Create(&AuditLog{
+			TableName: qb.Table,
 			RecordID:  recordID,
 			Action:    "create",
 			NewData:   newData,
@@ -1616,7 +1616,7 @@ type QueuedOperation struct {
 }
 
 // Queue добавляет операцию в очередь
-func (qb *QueryBuilder) Queue(operation string, data interface{}, runAt time.Time) error {
+func (qb *Builder) Queue(operation string, data interface{}, runAt time.Time) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -1632,7 +1632,7 @@ func (qb *QueryBuilder) Queue(operation string, data interface{}, runAt time.Tim
 }
 
 // ProcessQueue обрабатывает очередь
-func (qb *QueryBuilder) ProcessQueue(handler func(QueuedOperation) error) error {
+func (qb *Builder) ProcessQueue(handler func(QueuedOperation) error) error {
 	var operations []QueuedOperation
 
 	_, err := qb.Where("status = ? AND run_at <= ?", "pending", time.Now()).
@@ -1702,7 +1702,7 @@ func (mc *MetricsCollector) Track(query string, duration time.Duration, err erro
 }
 
 // WithMetrics добавляет сбор метрик
-func (qb *QueryBuilder) WithMetrics(collector *MetricsCollector) *QueryBuilder {
+func (qb *Builder) WithMetrics(collector *MetricsCollector) *Builder {
 	qb.On(BeforeCreate, func(data interface{}) error {
 		start := time.Now()
 		collector.Track("CREATE", time.Since(start), nil)

@@ -1,4 +1,4 @@
-package DBL
+package query
 
 type EventType string
 

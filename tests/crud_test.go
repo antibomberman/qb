@@ -3,10 +3,9 @@ package tests
 import (
 	"context"
 	"fmt"
+	"github.com/antibomberman/dbl/query"
 	"testing"
 	"time"
-
-	"github.com/antibomberman/dbl"
 )
 
 func TestCrud(t *testing.T) {
@@ -169,7 +168,7 @@ func TestTransaction(t *testing.T) {
 
 	tx.Commit()
 
-	err = dbl.Transaction(func(tx *DBL.Transaction) error {
+	err = dbl.Transaction(func(tx *query.Transaction) error {
 		_, err := tx.Table("users").Create(user)
 		return err
 	})
@@ -188,7 +187,7 @@ func TestWhere(t *testing.T) {
 		t.Fatal(err)
 	}
 	var users []User
-	_, err = dbl.Table("users").Where("id > ?", 1).OrWhereGroup(func(builder *DBL.QueryBuilder) {
+	_, err = dbl.Table("users").Where("id > ?", 1).OrWhereGroup(func(builder *query.Builder) {
 		builder.Where("id > ?", 2).OrWhere("id < ?", 100)
 	}).Get(&users)
 	if err != nil {

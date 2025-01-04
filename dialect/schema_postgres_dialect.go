@@ -1,11 +1,12 @@
-package DBL
+package dialect
 
 import (
 	"fmt"
+	"github.com/antibomberman/dbl/schema"
 	"strings"
 )
 
-func (g *PostgresDialect) BuildCreateTable(s *Schema) string {
+func (g *PostgresDialect) BuildCreateTable(s *schema.Schema) string {
 	var sql strings.Builder
 
 	sql.WriteString("CREATE ")
@@ -60,7 +61,7 @@ func (g *PostgresDialect) BuildCreateTable(s *Schema) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildAlterTable(s *Schema) string {
+func (g *PostgresDialect) BuildAlterTable(s *schema.Schema) string {
 	var commands []string
 	for _, cmd := range s.definition.commands {
 		commands = append(commands, fmt.Sprintf("%s %s", cmd.Type, cmd.Name))
@@ -73,7 +74,7 @@ func (g *PostgresDialect) BuildAlterTable(s *Schema) string {
 	)
 }
 
-func (g *PostgresDialect) BuildDropTable(dt *DropTable) string {
+func (g *PostgresDialect) BuildDropTable(dt *schema.DropTable) string {
 	var sql strings.Builder
 
 	sql.WriteString("DROP ")
@@ -103,7 +104,7 @@ func (g *PostgresDialect) BuildDropTable(dt *DropTable) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildColumnDefinition(col *Column) string {
+func (g *PostgresDialect) BuildColumnDefinition(col *schema.Column) string {
 	var sql strings.Builder
 
 	sql.WriteString(col.Name)
@@ -164,7 +165,7 @@ func (g *PostgresDialect) BuildIndexDefinition(name string, columns []string, un
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildForeignKeyDefinition(fk *Foreign) string {
+func (g *PostgresDialect) BuildForeignKeyDefinition(fk *schema.Foreign) string {
 	var sql strings.Builder
 
 	sql.WriteString("REFERENCES ")
@@ -186,7 +187,7 @@ func (g *PostgresDialect) BuildForeignKeyDefinition(fk *Foreign) string {
 	return sql.String()
 }
 
-func (g *PostgresDialect) BuildTruncateTable(tt *TruncateTable) string {
+func (g *PostgresDialect) BuildTruncateTable(tt *schema.TruncateTable) string {
 	var sql strings.Builder
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.tables, ", "))
@@ -379,6 +380,7 @@ func (g *PostgresDialect) GetIpType() string {
 func (g *PostgresDialect) GetMacAddressType() string {
 	return "MACADDR"
 }
+
 func (g *PostgresDialect) GetUnsignedType() string {
 	return ""
 }

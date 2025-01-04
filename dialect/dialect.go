@@ -1,7 +1,8 @@
-package DBL
+package dialect
 
 import (
 	"context"
+	"github.com/antibomberman/dbl/schema"
 	"strings"
 )
 
@@ -16,7 +17,6 @@ type Dialect interface {
 	TypeDialect
 	QuotingDialect
 	IndexDialect
-	//QueryBuilderDialect
 }
 
 type QueryBuilderDialect interface {
@@ -24,10 +24,10 @@ type QueryBuilderDialect interface {
 }
 
 type TableDialect interface {
-	BuildCreateTable(s *Schema) string
-	BuildAlterTable(s *Schema) string
-	BuildDropTable(dt *DropTable) string
-	BuildTruncateTable(tt *TruncateTable) string
+	BuildCreateTable(s *schema.Schema) string
+	BuildAlterTable(s *schema.Schema) string
+	BuildDropTable(dt *schema.DropTable) string
+	BuildTruncateTable(tt *schema.TruncateTable) string
 	SupportsDropConcurrently() bool
 	SupportsRestartIdentity() bool
 	SupportsCascade() bool
@@ -35,14 +35,14 @@ type TableDialect interface {
 }
 
 type ColumnDialect interface {
-	BuildColumnDefinition(col *Column) string
+	BuildColumnDefinition(col *schema.Column) string
 	SupportsColumnPositioning() bool
 	SupportsColumnComments() bool
 	CheckColumnExists(table, column string) string
 }
 
 type ConstraintDialect interface {
-	BuildForeignKeyDefinition(fk *Foreign) string
+	BuildForeignKeyDefinition(fk *schema.Foreign) string
 	BuildSpatialIndexDefinition(name string, columns []string) string
 	BuildFullTextIndexDefinition(name string, columns []string) string
 }
