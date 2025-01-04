@@ -83,7 +83,6 @@ func (d *MysqlDialect) BuildAlterTable(s *schema.Schema) string {
 		if cmd.Cmd != "" {
 			commands = append(commands, cmd.Cmd)
 		} else {
-			// Добавляем дополнительные параметры если есть
 			cmdStr := fmt.Sprintf("%s %s", cmd.Type, cmd.Name)
 			if len(cmd.Columns) > 0 {
 				cmdStr += fmt.Sprintf(" (%s)", strings.Join(cmd.Columns, ", "))
