@@ -22,7 +22,7 @@ func (d *MysqlDialect) BuildCreateTable(s *schema.Schema) string {
 	// Колонки
 	var Columns []string
 	for _, col := range s.Definition.Columns {
-		Columns = append(Columns, g.BuildColumnDefinition(col))
+		Columns = append(Columns, d.BuildColumnDefinition(col))
 	}
 
 	// Первичный ключ
@@ -124,7 +124,7 @@ func (d *MysqlDialect) BuildDropTable(dt *schema.DropTable) string {
 		sql.WriteString("IF EXISTS ")
 	}
 
-	sql.WriteString(strings.Join(dt.tables, ", "))
+	sql.WriteString(strings.Join(dt.Tables, ", "))
 
 	if dt.Options.Force {
 		sql.WriteString(" FORCE")
