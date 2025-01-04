@@ -1,4 +1,4 @@
-module github.com/antibomberman/dbl
+module github.com/antibomberman/dblayer
 
 go 1.23.4
 
