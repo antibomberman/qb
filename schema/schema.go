@@ -38,7 +38,6 @@ type KeyIndex struct {
 type Command struct {
 	Type    string
 	Name    string
-	NewName string
 	Cmd     string
 	Columns []string
 	Options map[string]interface{}
@@ -171,8 +170,9 @@ func (s *Schema) DropIndex(name string) *Schema {
 // RenameTable переименует таблицу
 func (s *Schema) RenameTable(newName string) *Schema {
 	s.Definition.Commands = append(s.Definition.Commands, &Command{
-		Type:    "RENAME TO",
-		NewName: newName,
+		Type: "RENAME TABlE",
+		Name: newName,
+		Cmd:  fmt.Sprintf("RENAME TABLE %s TO %s", s.Definition.Name, newName),
 	})
 	return s
 }
