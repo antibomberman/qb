@@ -572,8 +572,6 @@ func (qb *Builder) Restore() error {
 func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
 	return qb.CreateContext(context.Background(), data, fields...)
 }
-
-// CreateContext создает новую запись из структуры и возвращает её id
 func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
 	go qb.Trigger(BeforeCreate, data)
 	defer func() {
@@ -616,8 +614,6 @@ func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields .
 func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
 	return qb.CreateMapContext(context.Background(), data)
 }
-
-// CreateMapContext создает новую запись из map с контекстом и возвращает её id
 func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interface{}) (int64, error) {
 	go qb.Trigger(BeforeCreate, data)
 	columns := make([]string, 0, len(data))
@@ -654,8 +650,6 @@ func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interfa
 func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
 	return qb.BatchInsertContext(context.Background(), records)
 }
-
-// BatchInsertContext вставляет множество записей с контекстом
 func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]interface{}) error {
 	if len(records) == 0 {
 		return nil
@@ -694,8 +688,6 @@ func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]
 func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
 	return qb.BulkInsertContext(context.Background(), records)
 }
-
-// BulkInsertContext выполняет массовую вставку записей с возвратом ID и поддержкой контекста
 func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]interface{}) ([]int64, error) {
 	if len(records) == 0 {
 		return nil, nil
@@ -767,8 +759,6 @@ func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]i
 func (qb *Builder) Update(data interface{}, fields ...string) error {
 	return qb.UpdateContext(context.Background(), data, fields...)
 }
-
-// UpdateContext обновляет записи с контекстом
 func (qb *Builder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
@@ -782,7 +772,6 @@ func (qb *Builder) UpdateContext(ctx context.Context, data interface{}, fields .
 func (qb *Builder) UpdateMap(data map[string]interface{}) error {
 	return qb.UpdateMapContext(context.Background(), data)
 }
-
 func (qb *Builder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
@@ -797,8 +786,6 @@ func (qb *Builder) UpdateMapContext(ctx context.Context, data map[string]interfa
 func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
 	return qb.BulkUpdateContext(context.Background(), records, keyColumn)
 }
-
-// BulkUpdateContext выполняет массовое обновление записей с контекстом
 func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string) error {
 	if len(records) == 0 {
 		return nil
@@ -854,8 +841,6 @@ func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]i
 func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
 	return qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
 }
-
-// BatchUpdateContext обновляет записи пакетами с поддержкой контекста
 func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) error {
 	if len(records) == 0 {
 		return nil
