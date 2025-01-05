@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/antibomberman/dblayer"
-	_ "github.com/base-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"time"
 )

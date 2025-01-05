@@ -8,7 +8,7 @@ import (
 
 	"github.com/antibomberman/dblayer"
 	QB "github.com/antibomberman/dblayer/query"
-	_ "github.com/base-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func main() {
