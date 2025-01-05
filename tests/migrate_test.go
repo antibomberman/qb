@@ -8,7 +8,7 @@ import (
 
 func TestMigrateCreate(t *testing.T) {
 
-	cmd := exec.Command("go", "run", "cli/main.go", "migrate", "create", "post")
+	cmd := exec.Command("base", "run", "cli/main.base", "migrate", "create", "post")
 	cmd.Dir = ".."
 	fmt.Println(cmd.String())
 	if err := cmd.Run(); err != nil {
