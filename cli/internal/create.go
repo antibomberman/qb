@@ -13,7 +13,6 @@ var defaultContent = `
 CREATE TABLE IF NOT EXISTS %s (
 	id bigint unsigned NOT NULL  PRIMARY KEY AUTO_INCREMENT COMMENT 'id',
 
-
     version int unsigned NOT NULL DEFAULT 0 COMMENT 'version',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'created_at',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'updated_at',
