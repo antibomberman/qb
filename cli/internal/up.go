@@ -103,10 +103,10 @@ func parseSqlFromFile(filename string) (string, string, error) {
 		trimmedLine := strings.TrimSpace(line)
 
 		// Определяем секцию UP или DOWN
-		if strings.HasPrefix(trimmedLine, "-- DBL UP") {
+		if strings.HasPrefix(trimmedLine, "-- UP") {
 			isUp = true
 			continue
-		} else if strings.HasPrefix(trimmedLine, "-- DNL DOWN") {
+		} else if strings.HasPrefix(trimmedLine, "-- DOWN") {
 			isUp = false
 			continue
 		}

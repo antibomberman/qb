@@ -9,7 +9,7 @@ import (
 )
 
 var defaultContent = `
--- DBL UP
+-- UP
 CREATE TABLE IF NOT EXISTS %s (
 	id bigint unsigned NOT NULL  PRIMARY KEY AUTO_INCREMENT COMMENT 'id',
 
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS %s (
     deleted_at TIMESTAMP NULL DEFAULT NULL COMMENT 'deleted_at'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- DNL DOWN
+-- DOWN
 DROP TABLE IF EXISTS %s;
 `
 
