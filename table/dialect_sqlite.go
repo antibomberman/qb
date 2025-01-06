@@ -1,4 +1,4 @@
-package schema
+package table
 
 import (
 	"fmt"
@@ -76,7 +76,7 @@ func (g *SqliteDialect) BuildDropTable(dt *DropTable) string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.Options.Concurrent && dt.SchemaBuilder.DB.DriverName() == "postgres" {
+	if dt.Options.Concurrent && dt.TableBuilder.DB.DriverName() == "postgres" {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -86,15 +86,15 @@ func (g *SqliteDialect) BuildDropTable(dt *DropTable) string {
 
 	sql.WriteString(strings.Join(dt.Tables, ", "))
 
-	if dt.Options.Cascade && dt.SchemaBuilder.DB.DriverName() == "postgres" {
+	if dt.Options.Cascade && dt.TableBuilder.DB.DriverName() == "postgres" {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.Options.Restrict && dt.SchemaBuilder.DB.DriverName() == "postgres" {
+	if dt.Options.Restrict && dt.TableBuilder.DB.DriverName() == "postgres" {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.Options.Force && dt.SchemaBuilder.DB.DriverName() == "mysql" {
+	if dt.Options.Force && dt.TableBuilder.DB.DriverName() == "mysql" {
 		sql.WriteString(" FORCE")
 	}
 

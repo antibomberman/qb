@@ -1,4 +1,4 @@
-package schema
+package table
 
 import (
 	"fmt"
@@ -6,8 +6,8 @@ import (
 
 // Builder с более четкой структурой и инкапсуляцией
 type Builder struct {
-	SchemaBuilder *SchemaBuilder
-	Definition    Definition
+	TableBuilder *TableBuilder
+	Definition   Definition
 }
 
 type Definition struct {
@@ -43,10 +43,10 @@ type TableOptions struct {
 }
 
 func (b *Builder) BuildCreate() string {
-	return b.SchemaBuilder.Dialect.BuildCreateTable(b)
+	return b.TableBuilder.Dialect.BuildCreateTable(b)
 }
 func (b *Builder) BuildAlter() string {
-	return b.SchemaBuilder.Dialect.BuildAlterTable(b)
+	return b.TableBuilder.Dialect.BuildAlterTable(b)
 }
 
 // Добавляем методы для обновления
@@ -68,7 +68,7 @@ func (b *Builder) UniqueIndex(name string, columns ...string) *Builder {
 
 // FullText добавляет полнотекстовый индекс
 func (b *Builder) FullText(name string, columns ...string) *Builder {
-	if b.SchemaBuilder.DB.DriverName() == "mysql" {
+	if b.TableBuilder.DB.DriverName() == "mysql" {
 		b.Definition.KeyIndex.Indexes[name] = columns
 		return b
 	}
@@ -184,12 +184,12 @@ func (b *Builder) ChangeCharset(Charset, Collate string) *Builder {
 
 // Изменяем метод buildColumn
 func (b *Builder) buildColumn(col *Column) string {
-	return b.SchemaBuilder.Dialect.BuildColumnDefinition(col)
+	return b.TableBuilder.Dialect.BuildColumnDefinition(col)
 }
 
 // Добавляем новые методы для индексов
 func (b *Builder) SpatialIndex(name string, columns ...string) *Builder {
-	if b.SchemaBuilder.Dialect.SupportsSpatialIndex() {
+	if b.TableBuilder.Dialect.SupportsSpatialIndex() {
 		if b.Definition.Mode == "create" {
 			b.Definition.Commands = append(b.Definition.Commands, &Command{
 				Type:    "ADD SPATIAL INDEX",
@@ -208,7 +208,7 @@ func (b *Builder) SpatialIndex(name string, columns ...string) *Builder {
 }
 
 func (b *Builder) FullTextIndex(name string, columns ...string) *Builder {
-	if b.SchemaBuilder.Dialect.SupportsFullTextIndex() {
+	if b.TableBuilder.Dialect.SupportsFullTextIndex() {
 		if b.Definition.Mode == "create" {
 			b.Definition.Commands = append(b.Definition.Commands, &Command{
 				Type:    "ADD FULLTEXT INDEX",
@@ -228,8 +228,8 @@ func (b *Builder) FullTextIndex(name string, columns ...string) *Builder {
 
 // Timestamps добавляет поля created_at и updated_at
 func (b *Builder) Timestamps() *Builder {
-	b.Timestamp("created_at").Nullable().Default(b.SchemaBuilder.Dialect.GetCurrentTimestampExpression())
-	b.Timestamp("updated_at").Nullable().Default(b.SchemaBuilder.Dialect.GetCurrentTimestampExpression()).OnUpdate(b.SchemaBuilder.Dialect.GetCurrentTimestampExpression()).Nullable()
+	b.Timestamp("created_at").Nullable().Default(b.TableBuilder.Dialect.GetCurrentTimestampExpression())
+	b.Timestamp("updated_at").Nullable().Default(b.TableBuilder.Dialect.GetCurrentTimestampExpression()).OnUpdate(b.TableBuilder.Dialect.GetCurrentTimestampExpression()).Nullable()
 	return b
 }
 

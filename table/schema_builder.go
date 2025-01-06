@@ -1,18 +1,18 @@
-package schema
+package table
 
 import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 )
 
-type SchemaBuilder struct {
+type TableBuilder struct {
 	DB         *sqlx.DB
 	DriverName string
 	Dialect    Dialect
 }
 
-func NewSchemaBuilder(db *sqlx.DB, driverName string) *SchemaBuilder {
-	schema := &SchemaBuilder{
+func NewSchemaBuilder(db *sqlx.DB, driverName string) *TableBuilder {
+	schema := &TableBuilder{
 		DB:         db,
 		DriverName: driverName,
 	}
@@ -28,28 +28,28 @@ func NewSchemaBuilder(db *sqlx.DB, driverName string) *SchemaBuilder {
 
 }
 
-func (s *SchemaBuilder) TruncateTable(tables ...string) error {
+func (s *TableBuilder) TruncateTable(tables ...string) error {
 	tb := &TruncateTable{
-		SchemaBuilder: s,
-		Tables:        tables,
+		TableBuilder: s,
+		Tables:       tables,
 	}
 
 	_, err := s.DB.Exec(tb.Build())
 	return err
 }
 
-func (s *SchemaBuilder) DropTable(tables ...string) error {
+func (s *TableBuilder) DropTable(tables ...string) error {
 	dt := &DropTable{
-		SchemaBuilder: s,
-		Tables:        tables,
+		TableBuilder: s,
+		Tables:       tables,
 	}
 	_, err := s.DB.Exec(dt.Build())
 	return err
 }
 
-func (s *SchemaBuilder) CreateTable(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) CreateTable(name string, fn func(builder *Builder)) error {
 	builder := &Builder{
-		SchemaBuilder: s,
+		TableBuilder: s,
 		Definition: Definition{
 			Name: name,
 			Mode: "create",
@@ -71,9 +71,9 @@ func (s *SchemaBuilder) CreateTable(name string, fn func(builder *Builder)) erro
 	return err
 }
 
-func (s *SchemaBuilder) CreateTableIfNotExists(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) CreateTableIfNotExists(name string, fn func(builder *Builder)) error {
 	schema := &Builder{
-		SchemaBuilder: s,
+		TableBuilder: s,
 		Definition: Definition{
 			Name: name,
 			Options: TableOptions{
@@ -95,9 +95,9 @@ func (s *SchemaBuilder) CreateTableIfNotExists(name string, fn func(builder *Bui
 	return err
 }
 
-func (s *SchemaBuilder) UpdateTable(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) UpdateTable(name string, fn func(builder *Builder)) error {
 	schema := &Builder{
-		SchemaBuilder: s,
+		TableBuilder: s,
 		Definition: Definition{
 			Name: name,
 			Mode: "update",
