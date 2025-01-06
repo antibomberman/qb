@@ -25,7 +25,7 @@ func NewQueryBuilder(db *sqlx.DB, driverName string) *Query {
 	}
 }
 
-func (q *Query) Table(name string) *Builder {
+func (q *Query) Query(name string) *Builder {
 	return &Builder{
 		Table: name,
 		DB:    q.DB,

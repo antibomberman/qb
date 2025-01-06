@@ -6,9 +6,9 @@ import (
 	s "github.com/antibomberman/dblayer/schema"
 )
 
-func (d *DBLayer) Table(name string) *q.Builder {
+func (d *DBLayer) Query(name string) *q.Builder {
 	qb := q.NewQueryBuilder(d.DB, d.DriverName)
-	return qb.Table(name)
+	return qb.Query(name)
 }
 
 func (d *DBLayer) Begin() (*q.Transaction, error) {
