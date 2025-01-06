@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/antibomberman/dblayer"
-	"github.com/antibomberman/dblayer/cli/internal"
 	"github.com/antibomberman/dblayer/migrate"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/cobra"
@@ -34,7 +33,7 @@ var initCmd = &cobra.Command{
 	Short: "generate default files",
 	Run: func(cmd *cobra.Command, args []string) {
 		migrate.InitDir()
-		internal.GenerateEnv()
+		GenerateEnv()
 	},
 }
 var CreateCmd = &cobra.Command{
@@ -46,7 +45,7 @@ var CreateCmd = &cobra.Command{
 			return
 		}
 		migrate.InitDir()
-		internal.GenerateEnv()
+		GenerateEnv()
 
 		dbl, err := dblayer.ConnectEnv()
 		path, err := dbl.Migrate().CreateGo(args[0])

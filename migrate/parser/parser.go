@@ -70,7 +70,7 @@ func Files() ([]MigrationsFiles, error) {
 
 	for _, f := range files {
 		extType := filepath.Ext(f.Name())[1:]
-		if extType == "go" || extType == "sql" {
+		if extType == "sql" {
 			newFiles = append(newFiles, MigrationsFiles{
 				Path:    filepath.Join(utils.MigrationDir, "/", f.Name()),
 				ExtType: extType,
