@@ -17,7 +17,7 @@ func (q *QueryBuilder) CacheMemoryDriver() {
 	q.Cache = NewCacheMemory()
 }
 
-func NewQueryBuilder(db *sqlx.DB, driverName string) *QueryBuilder {
+func New(db *sqlx.DB, driverName string) *QueryBuilder {
 	return &QueryBuilder{
 		DB:         db,
 		DriverName: driverName,
