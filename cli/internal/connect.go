@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"github.com/antibomberman/dblayer"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"time"
 )

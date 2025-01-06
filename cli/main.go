@@ -46,7 +46,7 @@ var CreateCmd = &cobra.Command{
 		internal.GenerateEnv()
 
 		dbl, err := internal.ConnectDB()
-		path, err := dbl.Migrate().Create(args[0])
+		path, err := dbl.Migrate().CreateGo(args[0])
 		if err != nil {
 			fmt.Println(err)
 			return
