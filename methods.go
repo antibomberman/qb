@@ -2,6 +2,7 @@ package dblayer
 
 import (
 	"context"
+	m "github.com/antibomberman/dblayer/migrate"
 	q "github.com/antibomberman/dblayer/query"
 	t "github.com/antibomberman/dblayer/table"
 )
@@ -38,4 +39,9 @@ func (d *DBLayer) Raw(query string, args ...interface{}) *q.RawQuery {
 func (d *DBLayer) Table(name string) *t.Table {
 	qb := t.New(d.DB, d.DriverName)
 	return qb.Table(name)
+}
+
+func (d *DBLayer) Migrate() *m.MigrateBuilder {
+	qb := m.New(d.DB, d.DriverName)
+	return qb
 }

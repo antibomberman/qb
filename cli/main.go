@@ -5,6 +5,7 @@ import (
 	"github.com/antibomberman/dblayer/cli/internal"
 	"github.com/antibomberman/dblayer/migrate"
 	"github.com/spf13/cobra"
+	"log"
 	"os"
 )
 
@@ -44,7 +45,8 @@ var CreateCmd = &cobra.Command{
 		migrate.InitDir()
 		internal.GenerateEnv()
 
-		path, err := migrate.Create(args[0])
+		dbl, err := internal.ConnectDB()
+		path, err := dbl.Migrate().Create(args[0])
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -58,7 +60,14 @@ var UpCmd = &cobra.Command{
 	Short: "Применить все миграции",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Применение миграций...")
-		migrate.Up()
+		dbl, err := internal.ConnectDB()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = dbl.Migrate().Up()
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 

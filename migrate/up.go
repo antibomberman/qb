@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-func (m *MigrateBuilder) Up() {
+func (m *MigrateBuilder) Up() error {
 	//check exist dir migrations
 	if _, err := os.Stat("migrations"); os.IsNotExist(err) {
 		err := os.Mkdir("migrations", 0755)
@@ -21,15 +21,17 @@ func (m *MigrateBuilder) Up() {
 	for _, file := range files {
 		upSQL, _, err := parser.SqlFile("migrations/" + file)
 		if err != nil {
-			log.Fatal(err)
+
+			return err
 		}
 
 		err = m.queryBuilder.Raw(upSQL).Exec()
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 	}
+	return nil
 
 	//dbl, err := ConnectDB()
 	//if err != nil {
