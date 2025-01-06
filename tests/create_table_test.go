@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"github.com/antibomberman/dblayer/table"
 	"testing"
 )
 
@@ -9,11 +10,11 @@ func TestCreateTable(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dbl.Raw("DROP TABLE users").Exec()
-	dbl.Raw("DROP TABLE posts").Exec()
+	dbl.Table("users").Drop()
+	dbl.Table("posts").Drop()
 
 	// Тест создания таблицы
-	err = dbl.CreateTableIfNotExists("users", func(schema *table.Builder) {
+	err = dbl.Table("users").CreateIfNotExists(func(schema *table.Builder) {
 		schema.ID()
 		schema.String("username", 50)
 		schema.String("email", 100)
@@ -25,7 +26,7 @@ func TestCreateTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Тест создания таблицы
-	err = dbl.CreateTableIfNotExists("posts", func(schema *table.Builder) {
+	err = dbl.Table("posts").CreateIfNotExists(func(schema *table.Builder) {
 		schema.ID()
 		schema.BigInteger("user_id").Unsigned().Nullable().Foreign("users").References("users", "id").CascadeOnDelete()
 

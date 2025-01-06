@@ -58,11 +58,11 @@ func (s *TableBuilder) Drop() error {
 	return err
 }
 
-func (s *TableBuilder) Create(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) Create(fn func(builder *Builder)) error {
 	builder := &Builder{
 		TableBuilder: s,
 		Definition: Definition{
-			Name: name,
+			Name: s.Name,
 			Mode: "create",
 			Options: TableOptions{
 				IfNotExists: false,
@@ -82,11 +82,11 @@ func (s *TableBuilder) Create(name string, fn func(builder *Builder)) error {
 	return err
 }
 
-func (s *TableBuilder) CreateIfNotExists(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) CreateIfNotExists(fn func(builder *Builder)) error {
 	schema := &Builder{
 		TableBuilder: s,
 		Definition: Definition{
-			Name: name,
+			Name: s.Name,
 			Options: TableOptions{
 				IfNotExists: true,
 			},
