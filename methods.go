@@ -6,6 +6,7 @@ import (
 	s "github.com/antibomberman/dblayer/schema"
 )
 
+// Query Builder
 func (d *DBLayer) Query(table string) *q.Builder {
 	qb := q.NewQueryBuilder(d.DB, d.DriverName)
 	return qb.Query(table)
@@ -28,15 +29,12 @@ func (d *DBLayer) TransactionContext(ctx context.Context, fn func(*q.Transaction
 	qb := q.NewQueryBuilder(d.DB, d.DriverName)
 	return qb.TransactionContext(ctx, fn)
 }
-
-func (d *DBLayer) Cache() q.CacheDriver {
-	qb := q.NewQueryBuilder(d.DB, d.DriverName)
-	return qb.Cache
-}
 func (d *DBLayer) Raw(query string, args ...interface{}) *q.RawQuery {
 	qb := q.NewQueryBuilder(d.DB, d.DriverName)
 	return qb.Raw(query, args...)
 }
+
+// Schema Builder
 
 func (d *DBLayer) CreateTable(name string, fn func(builder *s.Builder)) error {
 	qb := s.NewSchemaBuilder(d.DB, d.DriverName)

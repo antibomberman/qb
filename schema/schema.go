@@ -5,14 +5,14 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type Schema struct {
+type SchemaBuilder struct {
 	DB         *sqlx.DB
 	DriverName string
 	Dialect    Dialect
 }
 
-func NewSchemaBuilder(db *sqlx.DB, driverName string) *Schema {
-	schema := &Schema{
+func NewSchemaBuilder(db *sqlx.DB, driverName string) *SchemaBuilder {
+	schema := &SchemaBuilder{
 		DB:         db,
 		DriverName: driverName,
 	}
@@ -28,28 +28,28 @@ func NewSchemaBuilder(db *sqlx.DB, driverName string) *Schema {
 
 }
 
-func (s *Schema) TruncateTable(tables ...string) error {
+func (s *SchemaBuilder) TruncateTable(tables ...string) error {
 	tb := &TruncateTable{
-		Schema: s,
-		Tables: tables,
+		SchemaBuilder: s,
+		Tables:        tables,
 	}
 
 	_, err := s.DB.Exec(tb.Build())
 	return err
 }
 
-func (s *Schema) DropTable(tables ...string) error {
+func (s *SchemaBuilder) DropTable(tables ...string) error {
 	dt := &DropTable{
-		Schema: s,
-		Tables: tables,
+		SchemaBuilder: s,
+		Tables:        tables,
 	}
 	_, err := s.DB.Exec(dt.Build())
 	return err
 }
 
-func (s *Schema) CreateTable(name string, fn func(builder *Builder)) error {
+func (s *SchemaBuilder) CreateTable(name string, fn func(builder *Builder)) error {
 	builder := &Builder{
-		Schema: s,
+		SchemaBuilder: s,
 		Definition: Definition{
 			Name: name,
 			Mode: "create",
@@ -71,9 +71,9 @@ func (s *Schema) CreateTable(name string, fn func(builder *Builder)) error {
 	return err
 }
 
-func (s *Schema) CreateTableIfNotExists(name string, fn func(builder *Builder)) error {
+func (s *SchemaBuilder) CreateTableIfNotExists(name string, fn func(builder *Builder)) error {
 	schema := &Builder{
-		Schema: s,
+		SchemaBuilder: s,
 		Definition: Definition{
 			Name: name,
 			Options: TableOptions{
@@ -95,9 +95,9 @@ func (s *Schema) CreateTableIfNotExists(name string, fn func(builder *Builder)) 
 	return err
 }
 
-func (s *Schema) UpdateTable(name string, fn func(builder *Builder)) error {
+func (s *SchemaBuilder) UpdateTable(name string, fn func(builder *Builder)) error {
 	schema := &Builder{
-		Schema: s,
+		SchemaBuilder: s,
 		Definition: Definition{
 			Name: name,
 			Mode: "update",

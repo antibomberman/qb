@@ -16,9 +16,9 @@ type DropOptions struct {
 
 // DropTable удаляет таблицу
 type DropTable struct {
-	Schema  *Schema
-	Tables  []string
-	Options DropOptions
+	SchemaBuilder *SchemaBuilder
+	Tables        []string
+	Options       DropOptions
 }
 
 // IfExists добавляет проверку существования
@@ -67,7 +67,7 @@ func (dt *DropTable) Build() string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.Options.Concurrent && dt.Schema.Dialect.SupportsDropConcurrently() {
+	if dt.Options.Concurrent && dt.SchemaBuilder.Dialect.SupportsDropConcurrently() {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -77,15 +77,15 @@ func (dt *DropTable) Build() string {
 
 	sql.WriteString(strings.Join(dt.Tables, ", "))
 
-	if dt.Options.Cascade && dt.Schema.Dialect.SupportsCascade() {
+	if dt.Options.Cascade && dt.SchemaBuilder.Dialect.SupportsCascade() {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.Options.Restrict && dt.Schema.Dialect.SupportsCascade() {
+	if dt.Options.Restrict && dt.SchemaBuilder.Dialect.SupportsCascade() {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.Options.Force && dt.Schema.Dialect.SupportsForce() {
+	if dt.Options.Force && dt.SchemaBuilder.Dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 
