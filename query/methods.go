@@ -528,6 +528,22 @@ func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]
 
 	return nil
 }
+func (qb *Builder) BatchUpdateAsync(records []map[string]interface{}, keyColumn string, batchSize int) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
+		ch <- err
+	}()
+	return ch
+}
+func (qb *Builder) BatchUpdateContextAsync(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.BatchUpdateContext(ctx, records, keyColumn, batchSize)
+		ch <- err
+	}()
+	return ch
+}
 
 // Delete удаляет записи
 func (qb *Builder) Delete() error {
@@ -914,29 +930,9 @@ func (qb *Builder) Pluck(column string, dest interface{}) error {
 
 // Chunk обрабатывает записи чанками
 func (qb *Builder) Chunk(size int, fn func(items interface{}) error) error {
-	offset := 0
-	for {
-		dest := make([]map[string]interface{}, 0, size)
-
-		query, args := qb.buildSelectQuery()
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
-
-		found, err := qb.execSelect(&dest, query, args...)
-		if err != nil {
-			return err
-		}
-
-		if !found || len(dest) == 0 {
-			break
-		}
-
-		if err := fn(dest); err != nil {
-			return err
-		}
-
-		offset += size
-	}
-	return nil
+	return qb.ChunkContext(context.Background(), size, func(_ context.Context, items interface{}) error {
+		return fn(items)
+	})
 }
 
 // ChunkContext обрабатывает записи чанками с контекстом
