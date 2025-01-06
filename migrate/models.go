@@ -1,10 +1,8 @@
 package migrate
 
-import (
-	"time"
-)
+import "time"
 
-type Migrations struct {
+type migrations struct {
 	ID      int64  `db:"id"`
 	Name    string `db:"name"`
 	Up      string `db:"up"`
