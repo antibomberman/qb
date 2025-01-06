@@ -35,13 +35,20 @@ func (q *QueryBuilder) Query(table string) *Builder {
 	}
 }
 
-// Table начинает построение запроса в транзакции
 func (t *Transaction) Query(table string) *Builder {
 	return &Builder{
 		tableName:    table,
 		db:           t.Tx,
 		queryBuilder: t.QueryBuilder,
 		ctx:          context.TODO(),
+	}
+}
+
+func (t *Transaction) Raw(query string, args ...interface{}) *RawQuery {
+	return &RawQuery{
+		query: query,
+		args:  args,
+		db:    t.Tx,
 	}
 }
 
