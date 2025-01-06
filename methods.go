@@ -3,7 +3,7 @@ package dblayer
 import (
 	"context"
 	q "github.com/antibomberman/dblayer/query"
-	s "github.com/antibomberman/dblayer/schema"
+	t "github.com/antibomberman/dblayer/table"
 )
 
 // Query Builder
@@ -34,31 +34,11 @@ func (d *DBLayer) Raw(query string, args ...interface{}) *q.RawQuery {
 	return qb.Raw(query, args...)
 }
 
-// Schema Builder
+// Table Builder
 
-func (d *DBLayer) CreateTable(name string, fn func(builder *s.Builder)) error {
-	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
+func (d *DBLayer) Table(name string) *t.TableBuilder {
+	qb := t.New(d.DB, d.DriverName)
 
-	return qb.CreateTable(name, fn)
+	return qb.Table(name)
 
-}
-func (d *DBLayer) CreateTableIfNotExists(name string, fn func(builder *s.Builder)) error {
-	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
-
-	return qb.CreateTableIfNotExists(name, fn)
-
-}
-func (d *DBLayer) UpdateTable(name string, fn func(builder *s.Builder)) error {
-	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
-	return qb.UpdateTable(name, fn)
-}
-
-func (d *DBLayer) DropTable(name string) error {
-	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
-	return qb.DropTable(name)
-}
-
-func (d *DBLayer) TruncateTable(name string) error {
-	qb := s.NewSchemaBuilder(d.DB, d.DriverName)
-	return qb.TruncateTable(name)
 }
