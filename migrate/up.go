@@ -35,7 +35,6 @@ type Migration struct {
 	UpFunc   *MigrationFunc
 	DownFunc *MigrationFunc
 	Status   string `db:"status"`
-	Version  int    `db:"version"`
 
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
