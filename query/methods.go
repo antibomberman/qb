@@ -257,6 +257,23 @@ func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]
 
 	return qb.execExecContext(ctx, query, values...)
 }
+func (qb *Builder) BatchInsertAsync(records []map[string]interface{}) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.BatchInsertContext(context.Background(), records)
+		ch <- err
+	}()
+	return ch
+
+}
+func (qb *Builder) BatchInsertContextAsync(ctx context.Context, records []map[string]interface{}) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.BatchInsertContext(ctx, records)
+		ch <- err
+	}()
+	return ch
+}
 
 // BulkInsert выполняет массовую вставку записей с возвратом ID
 func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
@@ -327,6 +344,28 @@ func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]i
 	}
 
 	return ids, nil
+}
+func (qb *Builder) BulkInsertAsync(records []map[string]interface{}) (chan []int64, chan error) {
+	idsCh := make(chan []int64, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		ids, err := qb.BulkInsertContext(context.Background(), records)
+
+		idsCh <- ids
+		errorCh <- err
+	}()
+	return idsCh, errorCh
+}
+func (qb *Builder) BulkInsertContextAsync(ctx context.Context, records []map[string]interface{}) (chan []int64, chan error) {
+	idsCh := make(chan []int64, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		ids, err := qb.BulkInsertContext(ctx, records)
+
+		idsCh <- ids
+		errorCh <- err
+	}()
+	return idsCh, errorCh
 }
 
 // Update обновляет записи используя структуру
@@ -441,6 +480,22 @@ func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]i
 	args = append(args, keyValues...)
 
 	return qb.execExecContext(ctx, query, args...)
+}
+func (qb *Builder) BulkUpdateAsync(records []map[string]interface{}, keyColumn string) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.BulkUpdateContext(context.Background(), records, keyColumn)
+		ch <- err
+	}()
+	return ch
+}
+func (qb *Builder) BulkUpdateContextAsync(ctx context.Context, records []map[string]interface{}, keyColumn string) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.BulkUpdateContext(ctx, records, keyColumn)
+		ch <- err
+	}()
+	return ch
 }
 
 // BatchUpdate обновляет записи пакетами указанного размера
