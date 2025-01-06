@@ -28,16 +28,16 @@ func TestCrud(t *testing.T) {
 		Password: "new_password",
 	}
 	// Create
-	_, err = dbl.Table("users").Create(user)
+	_, err = dbl.Query("users").Create(user)
 	if err != nil {
 		t.Error(err)
 	}
 
-	_, err = dbl.Table("users").CreateContext(ctx, user)
+	_, err = dbl.Query("users").CreateContext(ctx, user)
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = dbl.Table("users").CreateMap(map[string]interface{}{
+	_, err = dbl.Query("users").CreateMap(map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
@@ -46,7 +46,7 @@ func TestCrud(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	_, err = dbl.Table("users").CreateMapContext(ctx, map[string]interface{}{
+	_, err = dbl.Query("users").CreateMapContext(ctx, map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
@@ -56,15 +56,15 @@ func TestCrud(t *testing.T) {
 		t.Error(err)
 	}
 	//update
-	err = dbl.Table("users").WhereId(1).Update(newUser)
+	err = dbl.Query("users").WhereId(1).Update(newUser)
 	if err != nil {
 		t.Error(err)
 	}
-	err = dbl.Table("users").Where("email = ?", "john.doe@example.com").UpdateContext(ctx, newUser)
+	err = dbl.Query("users").Where("email = ?", "john.doe@example.com").UpdateContext(ctx, newUser)
 	if err != nil {
 		t.Error(err)
 	}
-	err = dbl.Table("users").WhereId(3).UpdateMap(map[string]interface{}{
+	err = dbl.Query("users").WhereId(3).UpdateMap(map[string]interface{}{
 		"username": "new user map",
 		"email":    "new.user.map@example.com",
 		"phone":    "456",
@@ -73,7 +73,7 @@ func TestCrud(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = dbl.Table("users").WhereId(3).UpdateMapContext(ctx, map[string]interface{}{
+	err = dbl.Query("users").WhereId(3).UpdateMapContext(ctx, map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
@@ -84,7 +84,7 @@ func TestCrud(t *testing.T) {
 		t.Error(err)
 	}
 	//delete
-	err = dbl.Table("users").WhereId(1).Delete()
+	err = dbl.Query("users").WhereId(1).Delete()
 	if err != nil {
 		t.Error(err)
 	}
@@ -96,7 +96,7 @@ func TestPaginate(t *testing.T) {
 	}
 
 	var users []User
-	result, err := dbl.Table("users").Where("id > ?", 1).
+	result, err := dbl.Query("users").Where("id > ?", 1).
 		Where("id > ?", 2).
 		Paginate(1, 10, &users)
 
@@ -111,34 +111,34 @@ func TestAgr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	count, err := dbl.Table("users").Where("id >?", 1).Count()
+	count, err := dbl.Query("users").Where("id >?", 1).Count()
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("Total users:", count)
-	avg, err := dbl.Table("users").Where("id >?", 1).Avg("id")
+	avg, err := dbl.Query("users").Where("id >?", 1).Avg("id")
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("Average id:", avg)
-	sum, err := dbl.Table("users").Where("id >?", 1).Sum("id")
+	sum, err := dbl.Query("users").Where("id >?", 1).Sum("id")
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("Sum id:", sum)
-	maxId, err := dbl.Table("users").Where("id >?", 1).Max("id")
+	maxId, err := dbl.Query("users").Where("id >?", 1).Max("id")
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("Max id:", maxId)
 
-	minId, err := dbl.Table("users").Where("id >?", 1).Min("id")
+	minId, err := dbl.Query("users").Where("id >?", 1).Min("id")
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("Min id:", minId)
 
-	exists, err := dbl.Table("users").WhereId("id").Exists()
+	exists, err := dbl.Query("users").WhereId("id").Exists()
 	if err != nil {
 		t.Error(err)
 	}
@@ -160,7 +160,7 @@ func TestTransaction(t *testing.T) {
 		Phone:    "1",
 		Password: "password",
 	}
-	_, err = tx.Table("users").Create(user)
+	_, err = tx.Query("users").Create(user)
 	if err != nil {
 		tx.Rollback()
 		t.Error(err)
@@ -169,7 +169,7 @@ func TestTransaction(t *testing.T) {
 	tx.Commit()
 
 	err = dbl.Transaction(func(tx *query.Transaction) error {
-		_, err := tx.Table("users").Create(user)
+		_, err := tx.Query("users").Create(user)
 		return err
 	})
 	if err != nil {
@@ -187,7 +187,7 @@ func TestWhere(t *testing.T) {
 		t.Fatal(err)
 	}
 	var users []User
-	_, err = dbl.Table("users").Where("id > ?", 1).OrWhereGroup(func(builder *query.Builder) {
+	_, err = dbl.Query("users").Where("id > ?", 1).OrWhereGroup(func(builder *query.Builder) {
 		builder.Where("id > ?", 2).OrWhere("id < ?", 100)
 	}).Get(&users)
 	if err != nil {
@@ -201,19 +201,19 @@ func TestWhereDates(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now()
-	count, err := dbl.Table("users").WhereDate("created_at", "=", now).Count()
+	count, err := dbl.Query("users").WhereDate("created_at", "=", now).Count()
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("Users: ", count)
 
-	count, err = dbl.Table("users").WhereDateTime("created_at", "<=", now).Count()
+	count, err = dbl.Query("users").WhereDateTime("created_at", "<=", now).Count()
 	if err != nil {
 		t.Error(err)
 	}
 	fmt.Println("Users: ", count)
 
-	count, err = dbl.Table("users").WhereBetweenDates("created_at", now.Add(-time.Hour*24*30), now).Count()
+	count, err = dbl.Query("users").WhereBetweenDates("created_at", now.Add(-time.Hour*24*30), now).Count()
 	if err != nil {
 		t.Error(err)
 	}

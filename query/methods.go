@@ -126,7 +126,7 @@ func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields .
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.Table,
+		qb.TableName,
 		strings.Join(insertFields, ", "),
 		strings.Join(placeholders, ", "))
 
@@ -181,7 +181,7 @@ func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interfa
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.Table,
+		qb.TableName,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "))
 
@@ -250,7 +250,7 @@ func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]
 
 	query := fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES %s",
-		qb.Table,
+		qb.TableName,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
@@ -307,7 +307,7 @@ func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]i
 	if qb.getDriverName() == "postgres" {
 		query = fmt.Sprintf(
 			"INSERT INTO %s (%s) VALUES %s RETURNING id",
-			qb.Table,
+			qb.TableName,
 			strings.Join(columns, ", "),
 			strings.Join(placeholders, ", "),
 		)
@@ -318,7 +318,7 @@ func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]i
 
 	query = fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES %s",
-		qb.Table,
+		qb.TableName,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
@@ -468,7 +468,7 @@ func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]i
 
 	query := fmt.Sprintf(
 		"UPDATE %s SET %s WHERE %s IN (%s)",
-		qb.Table,
+		qb.TableName,
 		strings.Join(cases, ", "),
 		keyColumn,
 		strings.Repeat("?,", len(records)-1)+"?",
@@ -554,7 +554,7 @@ func (qb *Builder) DeleteContext(ctx context.Context) error {
 		return errors.New("delete without conditions is not allowed")
 	}
 
-	head := fmt.Sprintf("DELETE FROM %s", qb.Table)
+	head := fmt.Sprintf("DELETE FROM %s", qb.TableName)
 	body, args := qb.buildBodyQuery()
 
 	return qb.execExecContext(ctx, head+body, args...)
@@ -717,7 +717,7 @@ func (qb *Builder) As(alias string) *Builder {
 
 // Increment увеличивает значение поля
 func (qb *Builder) Increment(column string, value interface{}) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.Table, column, column)
+	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.TableName, column, column)
 
 	body, args := qb.buildBodyQuery()
 
@@ -728,7 +728,7 @@ func (qb *Builder) Increment(column string, value interface{}) error {
 
 // Decrement уменьшает значение поля
 func (qb *Builder) Decrement(column string, value interface{}) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.Table, column, column)
+	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.TableName, column, column)
 
 	body, args := qb.buildBodyQuery()
 	args = append(args, value)
@@ -921,7 +921,7 @@ func (qb *Builder) OrWhereRaw(sql string, args ...interface{}) *Builder {
 
 // Pluck получает значения одной колонки
 func (qb *Builder) Pluck(column string, dest interface{}) error {
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.Table)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.TableName)
 
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execSelect(dest, head+body, args...)
@@ -996,7 +996,7 @@ func (qb *Builder) RawQuery(dest interface{}, query string, args ...interface{})
 // Value получает значение одного поля
 func (qb *Builder) Value(column string) (interface{}, error) {
 	var result interface{}
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.Table)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.TableName)
 	qb.Limit(1)
 
 	body, args := qb.buildBodyQuery()
@@ -1008,7 +1008,7 @@ func (qb *Builder) Value(column string) (interface{}, error) {
 // Values получает значения одного поля для всех записей
 func (qb *Builder) Values(column string) ([]interface{}, error) {
 	var result []interface{}
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.Table)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.TableName)
 
 	body, args := qb.buildBodyQuery()
 
@@ -1601,7 +1601,7 @@ func (qb *Builder) Paginate(page int, perPage int, dest interface{}) (*Paginatio
 // Avg вычисляет среднее значение колонки
 func (qb *Builder) Avg(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.Table)
+	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.TableName)
 
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
@@ -1611,7 +1611,7 @@ func (qb *Builder) Avg(column string) (float64, error) {
 // Sum вычисляет сумму значений колонки
 func (qb *Builder) Sum(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.Table)
+	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.TableName)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
@@ -1620,7 +1620,7 @@ func (qb *Builder) Sum(column string) (float64, error) {
 // Min находит минимальное значение колонки
 func (qb *Builder) Min(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.Table)
+	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.TableName)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
@@ -1629,7 +1629,7 @@ func (qb *Builder) Min(column string) (float64, error) {
 // Max находит максимальное значение колонки
 func (qb *Builder) Max(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.Table)
+	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.TableName)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGet(&result, head+body, args...)
 	return result, err
@@ -1638,7 +1638,7 @@ func (qb *Builder) Max(column string) (float64, error) {
 // Count возвращает количество записей
 func (qb *Builder) Count() (int64, error) {
 	var count int64
-	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.Table)
+	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.TableName)
 
 	body, args := qb.buildBodyQuery()
 	fmt.Println(head+body, args)
@@ -1693,8 +1693,8 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.Query.Table("audits").Create(&AuditLog{
-			TableName: qb.Table,
+		_, err = qb.QueryBuilder.Query("audits").Create(&AuditLog{
+			TableName: qb.TableName,
 			RecordID:  recordID,
 			Action:    "update",
 			OldData:   oldData,
@@ -1728,8 +1728,8 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 			return err
 		}
 
-		return qb.Query.Table("audits").
-			Where("table_name = ?", qb.Table).
+		return qb.QueryBuilder.Query("audits").
+			Where("table_name = ?", qb.TableName).
 			Where("record_id = ?", recordID).
 			OrderBy("id", "DESC").
 			Limit(1).
@@ -1765,8 +1765,8 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.Query.Table("audits").Create(&AuditLog{
-			TableName: qb.Table,
+		_, err = qb.QueryBuilder.Query("audits").Create(&AuditLog{
+			TableName: qb.TableName,
 			RecordID:  recordID,
 			Action:    "create",
 			NewData:   newData,

@@ -20,9 +20,9 @@ type Condition struct {
 }
 
 type Builder struct {
-	DB    interface{} // может быть *sqlx.DB или *sqlx.Tx
-	Table string
-	Query *Query
+	DB           interface{} // может быть *sqlx.DB или *sqlx.Tx
+	TableName    string
+	QueryBuilder *QueryBuilder
 
 	conditions    []Condition
 	columns       []string

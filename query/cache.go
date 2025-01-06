@@ -30,7 +30,7 @@ func (qb *Builder) GetCached(dest interface{}) (bool, error) {
 	// Проверяем наличие ключа кеша
 	if qb.cacheKey != "" {
 		// Пытаемся получить из кеша
-		if cached, ok := qb.Query.Cache.Get(qb.cacheKey); ok {
+		if cached, ok := qb.QueryBuilder.Cache.Get(qb.cacheKey); ok {
 			// Копируем закешированные данные
 			if data, ok := cached.([]byte); ok {
 				return true, json.Unmarshal(data, dest)
@@ -51,7 +51,7 @@ func (qb *Builder) GetCached(dest interface{}) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		qb.Query.Cache.Set(qb.cacheKey, data, qb.cacheDuration)
+		qb.QueryBuilder.Cache.Set(qb.cacheKey, data, qb.cacheDuration)
 	}
 
 	return found, nil

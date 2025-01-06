@@ -21,17 +21,17 @@ func TestAudit(t *testing.T) {
 		Phone:    "1",
 		Password: "password",
 	}
-	_, err = dbl.Table("users").WithAudit(1).Create(user)
+	_, err = dbl.Query("users").WithAudit(1).Create(user)
 	if err != nil {
 		t.Fatalf("Ошибка создания записи в таблице: %v", err)
 	}
-	err = dbl.Table("users").OrderBy("id", "desc").Limit(1).Where("id > ?", 1).UpdateMap(map[string]interface{}{
+	err = dbl.Query("users").OrderBy("id", "desc").Limit(1).Where("id > ?", 1).UpdateMap(map[string]interface{}{
 		"username": "new name",
 	})
 	if err != nil {
 		t.Fatalf("Ошибка %v", err)
 	}
-	err = dbl.Table("users").OrderBy("id", "desc").Limit(1).Update(user)
+	err = dbl.Query("users").OrderBy("id", "desc").Limit(1).Update(user)
 	if err != nil {
 		t.Fatalf("Ошибка обновления записи в таблице: %v", err)
 	}

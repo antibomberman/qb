@@ -7,30 +7,30 @@ import (
 
 // Transaction представляет транзакцию
 type Transaction struct {
-	Tx    *sqlx.Tx
-	Query *Query
+	Tx           *sqlx.Tx
+	QueryBuilder *QueryBuilder
 }
 
 // Begin начинает новую транзакцию
-func (q *Query) Begin() (*Transaction, error) {
+func (q *QueryBuilder) Begin() (*Transaction, error) {
 	tx, err := q.DB.Beginx()
 	if err != nil {
 		return nil, err
 	}
-	return &Transaction{Tx: tx, Query: q}, nil
+	return &Transaction{Tx: tx, QueryBuilder: q}, nil
 }
 
 // BeginContext начинает новую транзакцию с контекстом
-func (q *Query) BeginContext(ctx context.Context) (*Transaction, error) {
+func (q *QueryBuilder) BeginContext(ctx context.Context) (*Transaction, error) {
 	tx, err := q.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
-	return &Transaction{Tx: tx, Query: q}, nil
+	return &Transaction{Tx: tx, QueryBuilder: q}, nil
 }
 
 // Transaction выполняет функцию в транзакции
-func (q *Query) Transaction(fn func(*Transaction) error) error {
+func (q *QueryBuilder) Transaction(fn func(*Transaction) error) error {
 	tx, err := q.Begin()
 	if err != nil {
 		return err
@@ -52,7 +52,7 @@ func (q *Query) Transaction(fn func(*Transaction) error) error {
 }
 
 // TransactionContext выполняет функцию в транзакции с контекстом
-func (q *Query) TransactionContext(ctx context.Context, fn func(*Transaction) error) error {
+func (q *QueryBuilder) TransactionContext(ctx context.Context, fn func(*Transaction) error) error {
 	tx, err := q.BeginContext(ctx)
 	if err != nil {
 		return err

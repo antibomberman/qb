@@ -4,39 +4,39 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type Query struct {
+type QueryBuilder struct {
 	DB         *sqlx.DB
 	DriverName string
 	Cache      CacheDriver
 }
 
-func (q *Query) CacheRedisDriver(addr string, password string, db int) {
+func (q *QueryBuilder) CacheRedisDriver(addr string, password string, db int) {
 	q.Cache = NewCacheRedis(addr, password, db)
 }
-func (q *Query) CacheMemoryDriver() {
+func (q *QueryBuilder) CacheMemoryDriver() {
 	q.Cache = NewCacheMemory()
 }
 
-func NewQueryBuilder(db *sqlx.DB, driverName string) *Query {
-	return &Query{
+func NewQueryBuilder(db *sqlx.DB, driverName string) *QueryBuilder {
+	return &QueryBuilder{
 		DB:         db,
 		DriverName: driverName,
 		Cache:      NewCacheMemory(),
 	}
 }
 
-func (q *Query) Query(name string) *Builder {
+func (q *QueryBuilder) Query(table string) *Builder {
 	return &Builder{
-		Table: name,
-		DB:    q.DB,
+		TableName: table,
+		DB:        q.DB,
 	}
 }
 
 // Table начинает построение запроса в транзакции
-func (t *Transaction) Table(name string) *Builder {
+func (t *Transaction) Query(table string) *Builder {
 	return &Builder{
-		Table: name,
-		DB:    t.Tx,
+		TableName: table,
+		DB:        t.Tx,
 	}
 }
 

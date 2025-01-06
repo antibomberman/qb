@@ -5,7 +5,7 @@ import (
 )
 
 // Raw выполняет сырой SQL-запрос
-func (q *Query) Raw(query string, args ...interface{}) *RawQuery {
+func (q *QueryBuilder) Raw(query string, args ...interface{}) *RawQuery {
 	return &RawQuery{
 		query: query,
 		args:  args,
