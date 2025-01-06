@@ -14,13 +14,7 @@ TIMEOUT=1
 `
 )
 
-func GenerateDefaultFiles() {
-	if _, err := os.Stat("migrations"); os.IsNotExist(err) {
-		err := os.Mkdir("migrations", 0755)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
+func GenerateEnv() {
 	if _, err := os.Stat(envFile); os.IsNotExist(err) {
 		file, err := os.Create(envFile)
 
@@ -32,5 +26,4 @@ func GenerateDefaultFiles() {
 			log.Fatal(err)
 		}
 	}
-
 }
