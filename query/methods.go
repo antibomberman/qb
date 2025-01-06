@@ -15,8 +15,9 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func (qb *Builder) Context(ctx context.Context) {
+func (qb *Builder) Context(ctx context.Context) *Builder {
 	qb.Ctx = ctx
+	return qb
 }
 
 // Find ищет запись по id

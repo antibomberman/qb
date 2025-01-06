@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"fmt"
 	"github.com/antibomberman/dblayer/query"
 	"testing"
@@ -214,6 +215,23 @@ func TestWhereDates(t *testing.T) {
 	fmt.Println("Users: ", count)
 
 	count, err = dbl.Query("users").WhereBetweenDates("created_at", now.Add(-time.Hour*24*30), now).Count()
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println("Users: ", count)
+
+}
+func TestCtx(t *testing.T) {
+	dbl, err := ConnectDB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	qb := dbl.Query("users")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+
+	count, err := qb.Context(ctx).Count()
 	if err != nil {
 		t.Error(err)
 	}

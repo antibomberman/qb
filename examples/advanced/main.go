@@ -1,6 +1,7 @@
 package advanced
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -12,6 +13,7 @@ import (
 )
 
 func main() {
+
 	// Подключение к базе данных
 	// Connect to database
 	db, err := sql.Open("mysql", "user:password@tcp(localhost:3306)/testdb?parseTime=true")
@@ -20,6 +22,10 @@ func main() {
 	}
 	defer db.Close()
 	dbl := dblayer.New("mysql", db)
+	_, err = contextExample(dbl)
+	if err != nil {
+		fmt.Printf("Error count table")
+	}
 	// Пример использования очередей
 	// Queue usage example
 	if err := queueExample(dbl); err != nil {
@@ -80,6 +86,21 @@ func eventsExample(dbl *dblayer.DBLayer) error {
 		"email": "new@example.com",
 	})
 	return err
+}
+
+func contextExample(dbl *dblayer.DBLayer) (int64, error) {
+
+	qb := dbl.Query("users")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	count, err := qb.Context(ctx).Count()
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func geoExample(dbl *dblayer.DBLayer) error {
