@@ -6,9 +6,9 @@ import (
 )
 
 type TableBuilder struct {
-	DB         *sqlx.DB
-	DriverName string
-	Dialect    Dialect
+	db         *sqlx.DB
+	driverName string
+	dialect    Dialect
 }
 type Table struct {
 	*TableBuilder
@@ -17,16 +17,16 @@ type Table struct {
 
 func New(db *sqlx.DB, driverName string) *TableBuilder {
 	dc := &TableBuilder{
-		DB:         db,
-		DriverName: driverName,
+		db:         db,
+		driverName: driverName,
 	}
 	switch driverName {
 	case "mysql":
-		dc.Dialect = &MysqlDialect{}
+		dc.dialect = &MysqlDialect{}
 	case "postgres":
-		dc.Dialect = &PostgresDialect{}
+		dc.dialect = &PostgresDialect{}
 	case "sqlite":
-		dc.Dialect = &SqliteDialect{}
+		dc.dialect = &SqliteDialect{}
 	}
 	return dc
 
@@ -45,7 +45,7 @@ func (s *Table) Truncate() error {
 		Tables: []string{s.Name},
 	}
 
-	_, err := s.DB.Exec(tb.Build())
+	_, err := s.db.Exec(tb.Build())
 	return err
 }
 
@@ -54,7 +54,7 @@ func (s *Table) Drop() error {
 		Table:  s,
 		Tables: []string{s.Name},
 	}
-	_, err := s.DB.Exec(dt.Build())
+	_, err := s.db.Exec(dt.Build())
 	return err
 }
 
@@ -78,7 +78,7 @@ func (s *Table) Create(fn func(builder *Builder)) error {
 	}
 
 	fn(builder)
-	_, err := s.DB.Exec(builder.BuildCreate())
+	_, err := s.db.Exec(builder.BuildCreate())
 	return err
 }
 
@@ -102,7 +102,7 @@ func (s *Table) CreateIfNotExists(fn func(builder *Builder)) error {
 
 	fn(schema)
 	fmt.Println(schema.BuildCreate())
-	_, err := s.DB.Exec(schema.BuildCreate())
+	_, err := s.db.Exec(schema.BuildCreate())
 	return err
 }
 
@@ -117,7 +117,7 @@ func (s *Table) Update(name string, fn func(builder *Builder)) error {
 
 	fn(schema)
 
-	_, err := s.DB.Exec(schema.BuildAlter())
+	_, err := s.db.Exec(schema.BuildAlter())
 	return err
 }
 

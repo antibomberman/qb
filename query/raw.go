@@ -9,7 +9,7 @@ func (q *QueryBuilder) Raw(query string, args ...interface{}) *RawQuery {
 	return &RawQuery{
 		query: query,
 		args:  args,
-		db:    q.DB,
+		db:    q.db,
 	}
 }
 

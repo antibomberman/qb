@@ -76,7 +76,7 @@ func (g *SqliteDialect) BuildDropTable(dt *DropTable) string {
 	}
 	sql.WriteString("TABLE ")
 
-	if dt.Options.Concurrent && dt.Table.DB.DriverName() == "postgres" {
+	if dt.Options.Concurrent && dt.Table.db.DriverName() == "postgres" {
 		sql.WriteString("CONCURRENTLY ")
 	}
 
@@ -86,15 +86,15 @@ func (g *SqliteDialect) BuildDropTable(dt *DropTable) string {
 
 	sql.WriteString(strings.Join(dt.Tables, ", "))
 
-	if dt.Options.Cascade && dt.Table.DB.DriverName() == "postgres" {
+	if dt.Options.Cascade && dt.Table.db.DriverName() == "postgres" {
 		sql.WriteString(" CASCADE")
 	}
 
-	if dt.Options.Restrict && dt.Table.DB.DriverName() == "postgres" {
+	if dt.Options.Restrict && dt.Table.db.DriverName() == "postgres" {
 		sql.WriteString(" RESTRICT")
 	}
 
-	if dt.Options.Force && dt.Table.DB.DriverName() == "mysql" {
+	if dt.Options.Force && dt.Table.db.DriverName() == "mysql" {
 		sql.WriteString(" FORCE")
 	}
 

@@ -16,7 +16,7 @@ import (
 )
 
 func (qb *Builder) Context(ctx context.Context) *Builder {
-	qb.Ctx = ctx
+	qb.ctx = ctx
 	return qb
 }
 
@@ -39,7 +39,7 @@ func (qb *Builder) FindAsync(id interface{}, dest interface{}) (chan bool, chan 
 // Get получает все записи
 func (qb *Builder) Get(dest interface{}) (bool, error) {
 	query, args := qb.buildSelectQuery()
-	return qb.execSelectContext(qb.Ctx, dest, query, args...)
+	return qb.execSelectContext(qb.ctx, dest, query, args...)
 }
 func (qb *Builder) GetAsync(dest interface{}) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
@@ -56,7 +56,7 @@ func (qb *Builder) GetAsync(dest interface{}) (chan bool, chan error) {
 func (qb *Builder) First(dest interface{}) (bool, error) {
 	qb.Limit(1)
 	query, args := qb.buildSelectQuery()
-	return qb.execGetContext(qb.Ctx, dest, query, args...)
+	return qb.execGetContext(qb.ctx, dest, query, args...)
 }
 func (qb *Builder) FirstAsync(dest interface{}) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
@@ -89,7 +89,7 @@ func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.TableName,
+		qb.tableName,
 		strings.Join(insertFields, ", "),
 		strings.Join(placeholders, ", "))
 
@@ -100,7 +100,7 @@ func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
 		return id, err
 	}
 
-	result, err := qb.getExecutor().NamedExecContext(qb.Ctx, query, data)
+	result, err := qb.getExecutor().NamedExecContext(qb.ctx, query, data)
 	if err != nil {
 		return 0, err
 	}
@@ -131,18 +131,18 @@ func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
 	}
 
 	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.TableName,
+		qb.tableName,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "))
 
 	if qb.getDriverName() == "postgres" {
 		var id int64
 		query = qb.rebindQuery(query + " RETURNING id")
-		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(qb.Ctx, query, values...).Scan(&id)
+		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(qb.ctx, query, values...).Scan(&id)
 		return id, err
 	}
 
-	result, err := qb.getExecutor().ExecContext(qb.Ctx, qb.rebindQuery(query), values...)
+	result, err := qb.getExecutor().ExecContext(qb.ctx, qb.rebindQuery(query), values...)
 	if err != nil {
 		return 0, err
 	}
@@ -187,12 +187,12 @@ func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
 
 	query := fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES %s",
-		qb.TableName,
+		qb.tableName,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
 
-	return qb.execExecContext(qb.Ctx, query, values...)
+	return qb.execExecContext(qb.ctx, query, values...)
 }
 func (qb *Builder) BatchInsertAsync(records []map[string]interface{}) chan error {
 	ch := make(chan error, 1)
@@ -233,23 +233,23 @@ func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error)
 	if qb.getDriverName() == "postgres" {
 		query = fmt.Sprintf(
 			"INSERT INTO %s (%s) VALUES %s RETURNING id",
-			qb.TableName,
+			qb.tableName,
 			strings.Join(columns, ", "),
 			strings.Join(placeholders, ", "),
 		)
 		var ids []int64
-		err := qb.getExecutor().SelectContext(qb.Ctx, &ids, qb.rebindQuery(query), values...)
+		err := qb.getExecutor().SelectContext(qb.ctx, &ids, qb.rebindQuery(query), values...)
 		return ids, err
 	}
 
 	query = fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES %s",
-		qb.TableName,
+		qb.tableName,
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
 
-	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(qb.Ctx, qb.rebindQuery(query), values...)
+	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(qb.ctx, qb.rebindQuery(query), values...)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +290,7 @@ func (qb *Builder) Update(data interface{}, fields ...string) error {
 		go qb.Trigger(AfterUpdate, data)
 	}()
 	query, args := qb.buildUpdateQuery(data, fields)
-	return qb.execExecContext(qb.Ctx, query, args...)
+	return qb.execExecContext(qb.ctx, query, args...)
 }
 func (qb *Builder) UpdateAsync(data interface{}, fields ...string) chan error {
 	ch := make(chan error, 1)
@@ -309,7 +309,7 @@ func (qb *Builder) UpdateMap(data map[string]interface{}) error {
 	}()
 	query, args := qb.buildUpdateMapQuery(data)
 	fmt.Println(query)
-	return qb.execExecContext(qb.Ctx, query, args...)
+	return qb.execExecContext(qb.ctx, query, args...)
 }
 func (qb *Builder) UpdateMapAsync(data map[string]interface{}) chan error {
 	ch := make(chan error, 1)
@@ -358,7 +358,7 @@ func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string
 
 	query := fmt.Sprintf(
 		"UPDATE %s SET %s WHERE %s IN (%s)",
-		qb.TableName,
+		qb.tableName,
 		strings.Join(cases, ", "),
 		keyColumn,
 		strings.Repeat("?,", len(records)-1)+"?",
@@ -369,7 +369,7 @@ func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string
 	args = append(args, valueArgs...)
 	args = append(args, keyValues...)
 
-	return qb.execExecContext(qb.Ctx, query, args...)
+	return qb.execExecContext(qb.ctx, query, args...)
 }
 func (qb *Builder) BulkUpdateAsync(records []map[string]interface{}, keyColumn string) chan error {
 	ch := make(chan error, 1)
@@ -389,7 +389,7 @@ func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn strin
 	// Разбиваем записи на пакеты
 	for i := 0; i < len(records); i += batchSize {
 		// Проверяем контекст
-		if err := qb.Ctx.Err(); err != nil {
+		if err := qb.ctx.Err(); err != nil {
 			return err
 		}
 
@@ -421,10 +421,10 @@ func (qb *Builder) Delete() error {
 		return errors.New("delete without conditions is not allowed")
 	}
 
-	head := fmt.Sprintf("DELETE FROM %s", qb.TableName)
+	head := fmt.Sprintf("DELETE FROM %s", qb.tableName)
 	body, args := qb.buildBodyQuery()
 
-	return qb.execExecContext(qb.Ctx, head+body, args...)
+	return qb.execExecContext(qb.ctx, head+body, args...)
 }
 func (qb *Builder) DeleteAsync() chan error {
 	ch := make(chan error, 1)
@@ -576,23 +576,23 @@ func (qb *Builder) As(alias string) *Builder {
 
 // Increment увеличивает значение поля
 func (qb *Builder) Increment(column string, value interface{}) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.TableName, column, column)
+	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.tableName, column, column)
 
 	body, args := qb.buildBodyQuery()
 
 	args = append(args, value)
 
-	return qb.execExecContext(qb.Ctx, head+body, args...)
+	return qb.execExecContext(qb.ctx, head+body, args...)
 }
 
 // Decrement уменьшает значение поля
 func (qb *Builder) Decrement(column string, value interface{}) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.TableName, column, column)
+	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.tableName, column, column)
 
 	body, args := qb.buildBodyQuery()
 	args = append(args, value)
 
-	return qb.execExecContext(qb.Ctx, head+body, args...)
+	return qb.execExecContext(qb.ctx, head+body, args...)
 }
 
 // SubQuery создает подзапрос
@@ -600,7 +600,7 @@ func (qb *Builder) SubQuery(alias string) *Builder {
 	sql, args := qb.buildSelectQuery()
 	return &Builder{
 		columns: []string{fmt.Sprintf("(%s) AS %s", sql, alias)},
-		DB:      qb.DB,
+		db:      qb.db,
 		conditions: []Condition{{
 			args: args,
 		}},
@@ -624,7 +624,7 @@ func (qb *Builder) Union(other *Builder) *Builder {
 	sql2, args2 := other.buildSelectQuery()
 
 	return &Builder{
-		DB:      qb.DB,
+		db:      qb.db,
 		columns: []string{fmt.Sprintf("(%s) UNION (%s)", sql1, sql2)},
 		conditions: []Condition{{
 			args: append(args1, args2...),
@@ -638,7 +638,7 @@ func (qb *Builder) UnionAll(other *Builder) *Builder {
 	sql2, args2 := other.buildSelectQuery()
 
 	return &Builder{
-		DB:      qb.DB,
+		db:      qb.db,
 		columns: []string{fmt.Sprintf("(%s) UNION ALL (%s)", sql1, sql2)},
 		conditions: []Condition{{
 			args: append(args1, args2...),
@@ -696,7 +696,7 @@ func (qb *Builder) HavingRaw(sql string, args ...interface{}) *Builder {
 
 // WithTransaction выполняет запрос в существующей транзакции
 func (qb *Builder) WithTransaction(tx *Transaction) *Builder {
-	qb.DB = tx.Tx
+	qb.db = tx.Tx
 	return qb
 }
 
@@ -780,7 +780,7 @@ func (qb *Builder) OrWhereRaw(sql string, args ...interface{}) *Builder {
 
 // Pluck получает значения одной колонки
 func (qb *Builder) Pluck(column string, dest interface{}) error {
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.TableName)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execSelect(dest, head+body, args...)
@@ -855,7 +855,7 @@ func (qb *Builder) RawQuery(dest interface{}, query string, args ...interface{})
 // Value получает значение одного поля
 func (qb *Builder) Value(column string) (interface{}, error) {
 	var result interface{}
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.TableName)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
 	qb.Limit(1)
 
 	body, args := qb.buildBodyQuery()
@@ -867,7 +867,7 @@ func (qb *Builder) Value(column string) (interface{}, error) {
 // Values получает значения одного поля для всех записей
 func (qb *Builder) Values(column string) ([]interface{}, error) {
 	var result []interface{}
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.TableName)
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
 
@@ -915,7 +915,7 @@ const (
 
 type Join struct {
 	Type      JoinType
-	TableName string
+	tableName string
 	Condition string
 }
 
@@ -923,7 +923,7 @@ type Join struct {
 func (qb *Builder) Join(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      InnerJoin,
-		TableName: table,
+		tableName: table,
 		Condition: condition,
 	})
 	return qb
@@ -933,7 +933,7 @@ func (qb *Builder) Join(table string, condition string) *Builder {
 func (qb *Builder) LeftJoin(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      LeftJoin,
-		TableName: table,
+		tableName: table,
 		Condition: condition,
 	})
 	return qb
@@ -943,7 +943,7 @@ func (qb *Builder) LeftJoin(table string, condition string) *Builder {
 func (qb *Builder) RightJoin(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      RightJoin,
-		TableName: table,
+		tableName: table,
 		Condition: condition,
 	})
 	return qb
@@ -953,7 +953,7 @@ func (qb *Builder) RightJoin(table string, condition string) *Builder {
 func (qb *Builder) CrossJoin(table string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      CrossJoin,
-		TableName: table,
+		tableName: table,
 	})
 	return qb
 }
@@ -1438,48 +1438,48 @@ func (qb *Builder) Paginate(page int, perPage int, dest interface{}) (*Paginatio
 // Avg вычисляет среднее значение колонки
 func (qb *Builder) Avg(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.TableName)
+	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
+	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
 	return result, err
 }
 
 // Sum вычисляет сумму значений колонки
 func (qb *Builder) Sum(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.TableName)
+	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.tableName)
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
+	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
 	return result, err
 }
 
 // Min находит минимальное значение колонки
 func (qb *Builder) Min(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.TableName)
+	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.tableName)
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
+	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
 	return result, err
 }
 
 // Max находит максимальное значение колонки
 func (qb *Builder) Max(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.TableName)
+	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.tableName)
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
+	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
 	return result, err
 }
 
 // Count возвращает количество записей
 func (qb *Builder) Count() (int64, error) {
 	var count int64
-	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.TableName)
+	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.tableName)
 
 	body, args := qb.buildBodyQuery()
 	fmt.Println(head+body, args)
-	_, err := qb.execGetContext(qb.Ctx, &count, head+body, args...)
+	_, err := qb.execGetContext(qb.ctx, &count, head+body, args...)
 	return count, err
 }
 
@@ -1495,7 +1495,7 @@ func (qb *Builder) Exists() (bool, error) {
 // AuditLog представляет запись аудита
 type AuditLog struct {
 	ID        int64     `db:"id"`
-	TableName string    `db:"table_name"`
+	tableName string    `db:"table_name"`
 	RecordID  int64     `db:"record_id"`
 	Action    string    `db:"action"`
 	OldData   []byte    `db:"old_data"`
@@ -1530,8 +1530,8 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.QueryBuilder.Query("audits").Create(&AuditLog{
-			TableName: qb.TableName,
+		_, err = qb.queryBuilder.Query("audits").Create(&AuditLog{
+			tableName: qb.tableName,
 			RecordID:  recordID,
 			Action:    "update",
 			OldData:   oldData,
@@ -1565,8 +1565,8 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 			return err
 		}
 
-		return qb.QueryBuilder.Query("audits").
-			Where("table_name = ?", qb.TableName).
+		return qb.queryBuilder.Query("audits").
+			Where("table_name = ?", qb.tableName).
 			Where("record_id = ?", recordID).
 			OrderBy("id", "DESC").
 			Limit(1).
@@ -1602,8 +1602,8 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.QueryBuilder.Query("audits").Create(&AuditLog{
-			TableName: qb.TableName,
+		_, err = qb.queryBuilder.Query("audits").Create(&AuditLog{
+			tableName: qb.tableName,
 			RecordID:  recordID,
 			Action:    "create",
 			NewData:   newData,

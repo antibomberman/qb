@@ -13,7 +13,7 @@ type Transaction struct {
 
 // Begin начинает новую транзакцию
 func (q *QueryBuilder) Begin() (*Transaction, error) {
-	tx, err := q.DB.Beginx()
+	tx, err := q.db.Beginx()
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +22,7 @@ func (q *QueryBuilder) Begin() (*Transaction, error) {
 
 // BeginContext начинает новую транзакцию с контекстом
 func (q *QueryBuilder) BeginContext(ctx context.Context) (*Transaction, error) {
-	tx, err := q.DB.BeginTxx(ctx, nil)
+	tx, err := q.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return nil, err
 	}

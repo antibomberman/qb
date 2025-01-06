@@ -6,42 +6,42 @@ import (
 )
 
 type QueryBuilder struct {
-	DB         *sqlx.DB
-	DriverName string
-	Cache      CacheDriver
+	db         *sqlx.DB
+	driverName string
+	cache      CacheDriver
 }
 
 func (q *QueryBuilder) CacheRedisDriver(addr string, password string, db int) {
-	q.Cache = NewCacheRedis(addr, password, db)
+	q.cache = NewCacheRedis(addr, password, db)
 }
 func (q *QueryBuilder) CacheMemoryDriver() {
-	q.Cache = NewCacheMemory()
+	q.cache = NewCacheMemory()
 }
 
 func New(db *sqlx.DB, driverName string) *QueryBuilder {
 	return &QueryBuilder{
-		DB:         db,
-		DriverName: driverName,
-		Cache:      NewCacheMemory(),
+		db:         db,
+		driverName: driverName,
+		cache:      NewCacheMemory(),
 	}
 }
 
 func (q *QueryBuilder) Query(table string) *Builder {
 	return &Builder{
-		TableName:    table,
-		DB:           q.DB,
-		QueryBuilder: q,
-		Ctx:          context.TODO(),
+		tableName:    table,
+		db:           q.db,
+		queryBuilder: q,
+		ctx:          context.TODO(),
 	}
 }
 
 // Table начинает построение запроса в транзакции
 func (t *Transaction) Query(table string) *Builder {
 	return &Builder{
-		TableName:    table,
-		DB:           t.Tx,
-		QueryBuilder: t.QueryBuilder,
-		Ctx:          context.TODO(),
+		tableName:    table,
+		db:           t.Tx,
+		queryBuilder: t.QueryBuilder,
+		ctx:          context.TODO(),
 	}
 }
 

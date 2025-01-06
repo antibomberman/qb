@@ -18,11 +18,11 @@ DROP TABLE IF EXISTS %s;
 const defaultGoContent = `package %s
 
 import (
-	q "github.com/antibomberman/dblayer/table"
+	q "github.com/antibomberman/dblayer/query"
 	t "github.com/antibomberman/dblayer/table"
 )
 
-func Up%s (tb *t.TableBuilder, qb *q.TableBuilder) error {
+func Up%s (tb *t.TableBuilder, qb *q.QueryBuilder) error {
 	return tb.Table("%s").CreateIfNotExists(func(b *t.Builder) {
 		b.ID()
 
@@ -32,7 +32,7 @@ func Up%s (tb *t.TableBuilder, qb *q.TableBuilder) error {
 
 }
 
-func Down%s (sb *t.TableBuilder, qb *q.TableBuilder) error {
+func Down%s (sb *t.TableBuilder, qb *q.QueryBuilder) error {
 	return sb.Table("%s").Drop()
 }
 `

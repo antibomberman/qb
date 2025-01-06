@@ -20,10 +20,10 @@ type Condition struct {
 }
 
 type Builder struct {
-	DB           interface{} // может быть *sqlx.DB или *sqlx.Tx
-	TableName    string
-	QueryBuilder *QueryBuilder
-	Ctx          context.Context
+	db           interface{} // может быть *sqlx.DB или *sqlx.Tx
+	tableName    string
+	queryBuilder *QueryBuilder
+	ctx          context.Context
 
 	conditions    []Condition
 	columns       []string
@@ -139,7 +139,7 @@ func (qb *Builder) Trigger(event EventType, data interface{}) {
 
 // getExecutor возвращает исполнитель запросов
 func (qb *Builder) getExecutor() Executor {
-	switch db := qb.DB.(type) {
+	switch db := qb.db.(type) {
 	case *sqlx.Tx:
 		return db
 	case *sqlx.DB:
@@ -198,7 +198,7 @@ func (qb *Builder) getStructInfo(data interface{}) (fields []string, placeholder
 
 // getDriverName возвращает имя драйвера базы данных
 func (qb *Builder) getDriverName() string {
-	return qb.QueryBuilder.DriverName
+	return qb.queryBuilder.driverName
 }
 
 func (qb *Builder) buildBodyQuery() (string, []interface{}) {
@@ -251,7 +251,7 @@ func (qb *Builder) buildSelectQuery() (string, []interface{}) {
 	if len(qb.columns) > 0 {
 		selectClause = strings.Join(qb.columns, ", ")
 	}
-	tableName := qb.TableName
+	tableName := qb.tableName
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
@@ -286,12 +286,12 @@ func (qb *Builder) buildUpdateQuery(data interface{}, fields []string) (string, 
 			args = append(args, values[field])
 		}
 	}
-	tableName := qb.TableName
+	tableName := qb.tableName
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
 
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.TableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.tableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
@@ -310,11 +310,11 @@ func (qb *Builder) buildUpdateMapQuery(data map[string]interface{}) (string, []i
 		args = append(args, val)
 	}
 
-	tableName := qb.TableName
+	tableName := qb.tableName
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.TableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.tableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
