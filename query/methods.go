@@ -15,15 +15,494 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// DateFunctions содержит SQL функции для разных СУБД
-type DateFunctions struct {
-	DateDiff    string
-	DateTrunc   string
-	DateFormat  string
-	TimeZone    string
-	Extract     string
-	DateAdd     string
-	CurrentDate string
+// Find ищет запись по id
+func (qb *Builder) Find(id interface{}, dest interface{}) (bool, error) {
+	return qb.FindContext(context.Background(), id, dest)
+}
+func (qb *Builder) FindContext(ctx context.Context, id interface{}, dest interface{}) (bool, error) {
+	qb.Where("id = ?", id)
+	return qb.FirstContext(ctx, dest)
+}
+func (qb *Builder) FindAsync(id interface{}, dest interface{}) (chan bool, chan error) {
+	foundCh := make(chan bool, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		found, err := qb.FindContext(context.Background(), id, dest)
+		foundCh <- found
+		errorCh <- err
+	}()
+	return foundCh, errorCh
+}
+func (qb *Builder) FindContextAsync(ctx context.Context, id interface{}, dest interface{}) (chan bool, chan error) {
+	foundCh := make(chan bool, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		found, err := qb.FindContext(ctx, id, dest)
+		foundCh <- found
+		errorCh <- err
+	}()
+	return foundCh, errorCh
+}
+
+// Get получает все записи
+func (qb *Builder) Get(dest interface{}) (bool, error) {
+	return qb.GetContext(context.Background(), dest)
+}
+func (qb *Builder) GetContext(ctx context.Context, dest interface{}) (bool, error) {
+	query, args := qb.buildSelectQuery()
+	return qb.execSelectContext(ctx, dest, query, args...)
+}
+func (qb *Builder) GetAsync(dest interface{}) (chan bool, chan error) {
+	foundCh := make(chan bool, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		found, err := qb.GetContext(context.Background(), dest)
+		errorCh <- err
+		foundCh <- found
+	}()
+	return foundCh, errorCh
+}
+func (qb *Builder) GetContextAsync(ctx context.Context, dest interface{}) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		_, err := qb.GetContext(ctx, dest)
+		ch <- err
+	}()
+	return ch
+}
+
+// First получает первую запись
+func (qb *Builder) First(dest interface{}) (bool, error) {
+	return qb.FirstContext(context.Background(), dest)
+}
+func (qb *Builder) FirstContext(ctx context.Context, dest interface{}) (bool, error) {
+	qb.Limit(1)
+	query, args := qb.buildSelectQuery()
+	return qb.execGetContext(ctx, dest, query, args...)
+}
+func (qb *Builder) FirstAsync(dest interface{}) (chan bool, chan error) {
+	foundCh := make(chan bool, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		found, err := qb.FirstContext(context.Background(), dest)
+		foundCh <- found
+		errorCh <- err
+	}()
+	return foundCh, errorCh
+}
+func (qb *Builder) FirstContextAsync(ctx context.Context, dest interface{}) (chan bool, chan error) {
+	foundCh := make(chan bool, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		found, err := qb.FirstContext(ctx, dest)
+		foundCh <- found
+		errorCh <- err
+	}()
+	return foundCh, errorCh
+}
+
+// Create add new record to database and return id
+// Create создает новую запись из структуры и возвращает её id
+func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
+	return qb.CreateContext(context.Background(), data, fields...)
+}
+func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
+	go qb.Trigger(BeforeCreate, data)
+	defer func() {
+		go qb.Trigger(AfterCreate, data)
+	}()
+	var insertFields, placeholders []string
+
+	if len(fields) > 0 {
+		// Используем только указанные поля
+		insertFields = fields
+		placeholders = make([]string, len(fields))
+		for i, field := range fields {
+			placeholders[i] = ":" + field
+		}
+	} else {
+		// Используем все поля из структуры
+		insertFields, placeholders, _ = qb.getStructInfo(data)
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
+		qb.Table,
+		strings.Join(insertFields, ", "),
+		strings.Join(placeholders, ", "))
+
+	if qb.getDriverName() == "postgres" {
+		var id int64
+		query += " RETURNING id"
+		err := qb.getExecutor().QueryRowx(query, data).Scan(&id)
+		return id, err
+	}
+
+	result, err := qb.getExecutor().NamedExecContext(ctx, query, data)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+func (qb *Builder) CreateAsync(data interface{}, fields ...string) (chan int64, chan error) {
+	idCh := make(chan int64, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		id, err := qb.CreateContext(context.Background(), data, fields...)
+		idCh <- id
+		errorCh <- err
+	}()
+	return idCh, errorCh
+}
+func (qb *Builder) CreateContextAsync(ctx context.Context, data interface{}, fields ...string) (chan int64, chan error) {
+	idCh := make(chan int64, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		id, err := qb.CreateContext(ctx, data, fields...)
+		idCh <- id
+		errorCh <- err
+	}()
+	return idCh, errorCh
+}
+
+// CreateMap создает новую запись из map и возвращает её id
+func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
+	return qb.CreateMapContext(context.Background(), data)
+}
+func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interface{}) (int64, error) {
+	go qb.Trigger(BeforeCreate, data)
+	columns := make([]string, 0, len(data))
+	placeholders := make([]string, 0, len(data))
+	values := make([]interface{}, 0, len(data))
+
+	for col, val := range data {
+		columns = append(columns, col)
+		placeholders = append(placeholders, "?")
+		values = append(values, val)
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
+		qb.Table,
+		strings.Join(columns, ", "),
+		strings.Join(placeholders, ", "))
+
+	if qb.getDriverName() == "postgres" {
+		var id int64
+		query = qb.rebindQuery(query + " RETURNING id")
+		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(ctx, query, values...).Scan(&id)
+		return id, err
+	}
+
+	result, err := qb.getExecutor().ExecContext(ctx, qb.rebindQuery(query), values...)
+	if err != nil {
+		return 0, err
+	}
+	go qb.Trigger(AfterCreate, data)
+	return result.LastInsertId()
+}
+func (qb *Builder) CreateMapAsync(data map[string]interface{}) (chan int64, chan error) {
+	idCh := make(chan int64, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		id, err := qb.CreateMapContext(context.Background(), data)
+		idCh <- id
+		errorCh <- err
+	}()
+	return idCh, errorCh
+}
+func (qb *Builder) CreateMapContextAsync(ctx context.Context, data map[string]interface{}) (chan int64, chan error) {
+	idCh := make(chan int64, 1)
+	errorCh := make(chan error, 1)
+	go func() {
+		id, err := qb.CreateMapContext(ctx, data)
+		idCh <- id
+		errorCh <- err
+	}()
+	return idCh, errorCh
+}
+
+// BatchInsert вставляет множество записей
+func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
+	return qb.BatchInsertContext(context.Background(), records)
+}
+func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]interface{}) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	// Получаем все колонки из первой записи
+	columns := make([]string, 0)
+	for column := range records[0] {
+		columns = append(columns, column)
+	}
+	sort.Strings(columns)
+
+	// Создаем placeholders и значения
+	var placeholders []string
+	var values []interface{}
+	for _, record := range records {
+		placeholder := make([]string, len(columns))
+		for i := range columns {
+			placeholder[i] = "?"
+			values = append(values, record[columns[i]])
+		}
+		placeholders = append(placeholders, "("+strings.Join(placeholder, ", ")+")")
+	}
+
+	query := fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES %s",
+		qb.Table,
+		strings.Join(columns, ", "),
+		strings.Join(placeholders, ", "),
+	)
+
+	return qb.execExecContext(ctx, query, values...)
+}
+
+// BulkInsert выполняет массовую вставку записей с возвратом ID
+func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
+	return qb.BulkInsertContext(context.Background(), records)
+}
+func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]interface{}) ([]int64, error) {
+	if len(records) == 0 {
+		return nil, nil
+	}
+
+	// Получаем все колонки из первой записи
+	columns := make([]string, 0)
+	for column := range records[0] {
+		columns = append(columns, column)
+	}
+	sort.Strings(columns)
+
+	// Создаем placeholders и значения
+	var placeholders []string
+	var values []interface{}
+	for _, record := range records {
+		placeholder := make([]string, len(columns))
+		for i := range columns {
+			placeholder[i] = "?"
+			values = append(values, record[columns[i]])
+		}
+		placeholders = append(placeholders, "("+strings.Join(placeholder, ", ")+")")
+	}
+
+	var query string
+	if qb.getDriverName() == "postgres" {
+		query = fmt.Sprintf(
+			"INSERT INTO %s (%s) VALUES %s RETURNING id",
+			qb.Table,
+			strings.Join(columns, ", "),
+			strings.Join(placeholders, ", "),
+		)
+		var ids []int64
+		err := qb.getExecutor().SelectContext(ctx, &ids, qb.rebindQuery(query), values...)
+		return ids, err
+	}
+
+	query = fmt.Sprintf(
+		"INSERT INTO %s (%s) VALUES %s",
+		qb.Table,
+		strings.Join(columns, ", "),
+		strings.Join(placeholders, ", "),
+	)
+
+	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(ctx, qb.rebindQuery(query), values...)
+	if err != nil {
+		return nil, err
+	}
+
+	lastID, err := result.LastInsertId()
+	if err != nil {
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]int64, rowsAffected)
+	for i := range ids {
+		ids[i] = lastID + int64(i)
+	}
+
+	return ids, nil
+}
+
+// Update обновляет записи используя структуру
+func (qb *Builder) Update(data interface{}, fields ...string) error {
+	return qb.UpdateContext(context.Background(), data, fields...)
+}
+func (qb *Builder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
+	go qb.Trigger(BeforeUpdate, data)
+	defer func() {
+		go qb.Trigger(AfterUpdate, data)
+	}()
+	query, args := qb.buildUpdateQuery(data, fields)
+	return qb.execExecContext(ctx, query, args...)
+}
+func (qb *Builder) UpdateAsync(data interface{}, fields ...string) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.UpdateContext(context.Background(), data, fields...)
+		ch <- err
+	}()
+	return ch
+}
+func (qb *Builder) UpdateContextAsync(ctx context.Context, data interface{}, fields ...string) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.UpdateContext(ctx, data, fields...)
+		ch <- err
+	}()
+	return ch
+}
+
+// UpdateMap обновляет записи используя map
+func (qb *Builder) UpdateMap(data map[string]interface{}) error {
+	return qb.UpdateMapContext(context.Background(), data)
+}
+func (qb *Builder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
+	go qb.Trigger(BeforeUpdate, data)
+	defer func() {
+		go qb.Trigger(AfterUpdate, data)
+	}()
+	query, args := qb.buildUpdateMapQuery(data)
+	fmt.Println(query)
+	return qb.execExecContext(ctx, query, args...)
+}
+func (qb *Builder) UpdateMapAsync(data map[string]interface{}) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.UpdateMapContext(context.Background(), data)
+		ch <- err
+	}()
+	return ch
+}
+func (qb *Builder) UpdateMapContextAsync(ctx context.Context, data map[string]interface{}) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.UpdateMapContext(ctx, data)
+		ch <- err
+	}()
+	return ch
+}
+
+// BulkUpdate выполняет массовое обновление записей
+func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
+	return qb.BulkUpdateContext(context.Background(), records, keyColumn)
+}
+func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	// Получаем все колонки из первой записи
+	columns := make([]string, 0)
+	for column := range records[0] {
+		if column != keyColumn {
+			columns = append(columns, column)
+		}
+	}
+	sort.Strings(columns)
+
+	// Формируем CASE выражения для каждой колонки
+	cases := make([]string, len(columns))
+	keyValues := make([]interface{}, 0, len(records))
+	valueArgs := make([]interface{}, 0, len(records)*len(columns))
+
+	for i, column := range columns {
+		whenClauses := make([]string, 0, len(records))
+		for _, record := range records {
+			if i == 0 {
+				keyValues = append(keyValues, record[keyColumn])
+			}
+			whenClauses = append(whenClauses, "WHEN ? THEN ?")
+			valueArgs = append(valueArgs, record[keyColumn], record[column])
+		}
+		cases[i] = fmt.Sprintf("%s = CASE %s %s END",
+			column,
+			keyColumn,
+			strings.Join(whenClauses, " "),
+		)
+	}
+
+	query := fmt.Sprintf(
+		"UPDATE %s SET %s WHERE %s IN (%s)",
+		qb.Table,
+		strings.Join(cases, ", "),
+		keyColumn,
+		strings.Repeat("?,", len(records)-1)+"?",
+	)
+
+	// Объединяем все аргументы
+	args := make([]interface{}, 0, len(valueArgs)+len(keyValues))
+	args = append(args, valueArgs...)
+	args = append(args, keyValues...)
+
+	return qb.execExecContext(ctx, query, args...)
+}
+
+// BatchUpdate обновляет записи пакетами указанного размера
+func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
+	return qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
+}
+func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) error {
+	if len(records) == 0 {
+		return nil
+	}
+
+	// Разбиваем записи на пакеты
+	for i := 0; i < len(records); i += batchSize {
+		// Проверяем контекст
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		end := i + batchSize
+		if end > len(records) {
+			end = len(records)
+		}
+		batch := records[i:end]
+
+		// Обновляем текущий пакет
+		if err := qb.BulkUpdateContext(ctx, batch, keyColumn); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Delete удаляет записи
+func (qb *Builder) Delete() error {
+	return qb.DeleteContext(context.Background())
+}
+func (qb *Builder) DeleteContext(ctx context.Context) error {
+	if len(qb.conditions) == 0 {
+		return errors.New("delete without conditions is not allowed")
+	}
+
+	head := fmt.Sprintf("DELETE FROM %s", qb.Table)
+	body, args := qb.buildBodyQuery()
+
+	return qb.execExecContext(ctx, head+body, args...)
+}
+func (qb *Builder) DeleteAsync() chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.DeleteContext(context.Background())
+		ch <- err
+	}()
+	return ch
+}
+func (qb *Builder) DeleteContextAsync(ctx context.Context) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		err := qb.DeleteContext(ctx)
+		ch <- err
+	}()
+	return ch
 }
 
 // Select указывает колонки для выборки
@@ -165,18 +644,6 @@ func (qb *Builder) As(alias string) *Builder {
 	return qb
 }
 
-// Find ищет запись по id
-func (qb *Builder) Find(id interface{}, dest interface{}) (bool, error) {
-	qb.Where("id = ?", id)
-	return qb.First(dest)
-}
-
-// FindContext ищет запись по id с контекстом
-func (qb *Builder) FindContext(ctx context.Context, id interface{}, dest interface{}) (bool, error) {
-	qb.Where("id = ?", id)
-	return qb.FirstContext(ctx, dest)
-}
-
 // Increment увеличивает значение поля
 func (qb *Builder) Increment(column string, value interface{}) error {
 	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.Table, column, column)
@@ -196,56 +663,6 @@ func (qb *Builder) Decrement(column string, value interface{}) error {
 	args = append(args, value)
 
 	return qb.execExec(head+body, args...)
-}
-
-// Get получает все записи
-func (qb *Builder) Get(dest interface{}) (bool, error) {
-	return qb.GetContext(context.Background(), dest)
-}
-func (qb *Builder) GetContext(ctx context.Context, dest interface{}) (bool, error) {
-	query, args := qb.buildSelectQuery()
-	return qb.execSelectContext(ctx, dest, query, args...)
-}
-func (qb *Builder) GetAsync(dest interface{}) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		_, err := qb.GetContext(context.Background(), dest)
-		ch <- err
-	}()
-	return ch
-}
-func (qb *Builder) GetContextAsync(ctx context.Context, dest interface{}) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		_, err := qb.GetContext(ctx, dest)
-		ch <- err
-	}()
-	return ch
-}
-
-// First получает первую запись
-func (qb *Builder) First(dest interface{}) (bool, error) {
-	return qb.FirstContext(context.Background(), dest)
-}
-func (qb *Builder) FirstContext(ctx context.Context, dest interface{}) (bool, error) {
-	qb.Limit(1)
-	query, args := qb.buildSelectQuery()
-	return qb.execGetContext(ctx, dest, query, args...)
-}
-
-// Delete удаляет записи
-func (qb *Builder) Delete() error {
-	return qb.DeleteContext(context.Background())
-}
-func (qb *Builder) DeleteContext(ctx context.Context) error {
-	if len(qb.conditions) == 0 {
-		return errors.New("delete without conditions is not allowed")
-	}
-
-	head := fmt.Sprintf("DELETE FROM %s", qb.Table)
-	body, args := qb.buildBodyQuery()
-
-	return qb.execExecContext(ctx, head+body, args...)
 }
 
 // SubQuery создает подзапрос
@@ -577,307 +994,6 @@ func (qb *Builder) Restore() error {
 	})
 }
 
-// Create add new record to database and return id
-// Create создает новую запись из структуры и возвращает её id
-func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
-	return qb.CreateContext(context.Background(), data, fields...)
-}
-func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
-	go qb.Trigger(BeforeCreate, data)
-	defer func() {
-		go qb.Trigger(AfterCreate, data)
-	}()
-	var insertFields, placeholders []string
-
-	if len(fields) > 0 {
-		// Используем только указанные поля
-		insertFields = fields
-		placeholders = make([]string, len(fields))
-		for i, field := range fields {
-			placeholders[i] = ":" + field
-		}
-	} else {
-		// Используем все поля из структуры
-		insertFields, placeholders, _ = qb.getStructInfo(data)
-	}
-
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.Table,
-		strings.Join(insertFields, ", "),
-		strings.Join(placeholders, ", "))
-
-	if qb.getDriverName() == "postgres" {
-		var id int64
-		query += " RETURNING id"
-		err := qb.getExecutor().QueryRowx(query, data).Scan(&id)
-		return id, err
-	}
-
-	result, err := qb.getExecutor().NamedExecContext(ctx, query, data)
-	if err != nil {
-		return 0, err
-	}
-	return result.LastInsertId()
-}
-
-// CreateMap создает новую запись из map и возвращает её id
-func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
-	return qb.CreateMapContext(context.Background(), data)
-}
-func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interface{}) (int64, error) {
-	go qb.Trigger(BeforeCreate, data)
-	columns := make([]string, 0, len(data))
-	placeholders := make([]string, 0, len(data))
-	values := make([]interface{}, 0, len(data))
-
-	for col, val := range data {
-		columns = append(columns, col)
-		placeholders = append(placeholders, "?")
-		values = append(values, val)
-	}
-
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)",
-		qb.Table,
-		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "))
-
-	if qb.getDriverName() == "postgres" {
-		var id int64
-		query = qb.rebindQuery(query + " RETURNING id")
-		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(ctx, query, values...).Scan(&id)
-		return id, err
-	}
-
-	result, err := qb.getExecutor().ExecContext(ctx, qb.rebindQuery(query), values...)
-	if err != nil {
-		return 0, err
-	}
-	go qb.Trigger(AfterCreate, data)
-	return result.LastInsertId()
-}
-
-// BatchInsert вставляет множество записей
-func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
-	return qb.BatchInsertContext(context.Background(), records)
-}
-func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]interface{}) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	// Получаем все колонки из первой записи
-	columns := make([]string, 0)
-	for column := range records[0] {
-		columns = append(columns, column)
-	}
-	sort.Strings(columns)
-
-	// Создаем placeholders и значения
-	var placeholders []string
-	var values []interface{}
-	for _, record := range records {
-		placeholder := make([]string, len(columns))
-		for i := range columns {
-			placeholder[i] = "?"
-			values = append(values, record[columns[i]])
-		}
-		placeholders = append(placeholders, "("+strings.Join(placeholder, ", ")+")")
-	}
-
-	query := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES %s",
-		qb.Table,
-		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "),
-	)
-
-	return qb.execExecContext(ctx, query, values...)
-}
-
-// BulkInsert выполняет массовую вставку записей с возвратом ID
-func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
-	return qb.BulkInsertContext(context.Background(), records)
-}
-func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]interface{}) ([]int64, error) {
-	if len(records) == 0 {
-		return nil, nil
-	}
-
-	// Получаем все колонки из первой записи
-	columns := make([]string, 0)
-	for column := range records[0] {
-		columns = append(columns, column)
-	}
-	sort.Strings(columns)
-
-	// Создаем placeholders и значения
-	var placeholders []string
-	var values []interface{}
-	for _, record := range records {
-		placeholder := make([]string, len(columns))
-		for i := range columns {
-			placeholder[i] = "?"
-			values = append(values, record[columns[i]])
-		}
-		placeholders = append(placeholders, "("+strings.Join(placeholder, ", ")+")")
-	}
-
-	var query string
-	if qb.getDriverName() == "postgres" {
-		query = fmt.Sprintf(
-			"INSERT INTO %s (%s) VALUES %s RETURNING id",
-			qb.Table,
-			strings.Join(columns, ", "),
-			strings.Join(placeholders, ", "),
-		)
-		var ids []int64
-		err := qb.getExecutor().SelectContext(ctx, &ids, qb.rebindQuery(query), values...)
-		return ids, err
-	}
-
-	query = fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES %s",
-		qb.Table,
-		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "),
-	)
-
-	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(ctx, qb.rebindQuery(query), values...)
-	if err != nil {
-		return nil, err
-	}
-
-	lastID, err := result.LastInsertId()
-	if err != nil {
-		return nil, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return nil, err
-	}
-
-	ids := make([]int64, rowsAffected)
-	for i := range ids {
-		ids[i] = lastID + int64(i)
-	}
-
-	return ids, nil
-}
-
-// Update обновляет записи используя структуру
-func (qb *Builder) Update(data interface{}, fields ...string) error {
-	return qb.UpdateContext(context.Background(), data, fields...)
-}
-func (qb *Builder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
-	go qb.Trigger(BeforeUpdate, data)
-	defer func() {
-		go qb.Trigger(AfterUpdate, data)
-	}()
-	query, args := qb.buildUpdateQuery(data, fields)
-	return qb.execExecContext(ctx, query, args...)
-}
-
-// UpdateMap обновляет записи используя map
-func (qb *Builder) UpdateMap(data map[string]interface{}) error {
-	return qb.UpdateMapContext(context.Background(), data)
-}
-func (qb *Builder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
-	go qb.Trigger(BeforeUpdate, data)
-	defer func() {
-		go qb.Trigger(AfterUpdate, data)
-	}()
-	query, args := qb.buildUpdateMapQuery(data)
-	fmt.Println(query)
-	return qb.execExecContext(ctx, query, args...)
-}
-
-// BulkUpdate выполняет массовое обновление записей
-func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
-	return qb.BulkUpdateContext(context.Background(), records, keyColumn)
-}
-func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	// Получаем все колонки из первой записи
-	columns := make([]string, 0)
-	for column := range records[0] {
-		if column != keyColumn {
-			columns = append(columns, column)
-		}
-	}
-	sort.Strings(columns)
-
-	// Формируем CASE выражения для каждой колонки
-	cases := make([]string, len(columns))
-	keyValues := make([]interface{}, 0, len(records))
-	valueArgs := make([]interface{}, 0, len(records)*len(columns))
-
-	for i, column := range columns {
-		whenClauses := make([]string, 0, len(records))
-		for _, record := range records {
-			if i == 0 {
-				keyValues = append(keyValues, record[keyColumn])
-			}
-			whenClauses = append(whenClauses, "WHEN ? THEN ?")
-			valueArgs = append(valueArgs, record[keyColumn], record[column])
-		}
-		cases[i] = fmt.Sprintf("%s = CASE %s %s END",
-			column,
-			keyColumn,
-			strings.Join(whenClauses, " "),
-		)
-	}
-
-	query := fmt.Sprintf(
-		"UPDATE %s SET %s WHERE %s IN (%s)",
-		qb.Table,
-		strings.Join(cases, ", "),
-		keyColumn,
-		strings.Repeat("?,", len(records)-1)+"?",
-	)
-
-	// Объединяем все аргументы
-	args := make([]interface{}, 0, len(valueArgs)+len(keyValues))
-	args = append(args, valueArgs...)
-	args = append(args, keyValues...)
-
-	return qb.execExecContext(ctx, query, args...)
-}
-
-// BatchUpdate обновляет записи пакетами указанного размера
-func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
-	return qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
-}
-func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) error {
-	if len(records) == 0 {
-		return nil
-	}
-
-	// Разбиваем записи на пакеты
-	for i := 0; i < len(records); i += batchSize {
-		// Проверяем контекст
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		end := i + batchSize
-		if end > len(records) {
-			end = len(records)
-		}
-		batch := records[i:end]
-
-		// Обновляем текущий пакет
-		if err := qb.BulkUpdateContext(ctx, batch, keyColumn); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 type JoinType string
 
 const (
@@ -1027,6 +1143,17 @@ func (qb *Builder) Search(columns []string, query string) *Builder {
 	}
 
 	return qb
+}
+
+// DateFunctions содержит SQL функции для разных СУБД
+type DateFunctions struct {
+	DateDiff    string
+	DateTrunc   string
+	DateFormat  string
+	TimeZone    string
+	Extract     string
+	DateAdd     string
+	CurrentDate string
 }
 
 // getDateFunctions возвращает функции для текущей СУБД
