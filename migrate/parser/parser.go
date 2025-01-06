@@ -93,17 +93,16 @@ func SqlFile(filename string) (string, string, error) {
 	return strings.TrimSpace(upSQL.String()), strings.TrimSpace(downSQL.String()), nil
 }
 
-func Files(extType string) ([]string, error) {
+func Files() (map[string]string, error) {
 	files, err := os.ReadDir("migrations")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	var newFiles []string
+	var newFiles map[string]string
+
 	for _, f := range files {
-		if filepath.Ext(f.Name())[1:] == extType {
-			newFiles = append(newFiles, f.Name())
-		}
+		newFiles[filepath.Ext(f.Name())[1:]] = f.Name()
 	}
 
 	return newFiles, nil

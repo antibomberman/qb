@@ -1,0 +1,15 @@
+package utils
+
+const DefaultContent = `
+-- UP
+CREATE TABLE IF NOT EXISTS %s (
+	id bigint unsigned NOT NULL  PRIMARY KEY AUTO_INCREMENT COMMENT 'id',
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'created_at',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'updated_at',
+    deleted_at TIMESTAMP NULL DEFAULT NULL COMMENT 'deleted_at'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- DOWN
+DROP TABLE IF EXISTS %s;
+`

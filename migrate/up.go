@@ -2,24 +2,25 @@ package migrate
 
 import (
 	"github.com/antibomberman/dblayer/migrate/parser"
+	"github.com/antibomberman/dblayer/migrate/utils"
 	"log"
 	"os"
 )
 
 func (m *MigrateBuilder) Up() error {
 	//check exist dir migrations
-	if _, err := os.Stat("migrations"); os.IsNotExist(err) {
+	if _, err := os.Stat(utils.MigrationDir); os.IsNotExist(err) {
 		err := os.Mkdir("migrations", 0755)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
-	files, err := parser.Files("sql")
+	files, err := parser.Files()
 	if err != nil {
 		log.Fatal(err)
 	}
 	for _, file := range files {
-		upSQL, _, err := parser.SqlFile("migrations/" + file)
+		upSQL, _, err := parser.SqlFile(utils.MigrationDir + "/" + file)
 		if err != nil {
 
 			return err
