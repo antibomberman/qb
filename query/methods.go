@@ -15,29 +15,20 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+func (qb *Builder) Context(ctx context.Context) {
+	qb.Ctx = ctx
+}
+
 // Find ищет запись по id
 func (qb *Builder) Find(id interface{}, dest interface{}) (bool, error) {
-	return qb.FindContext(context.Background(), id, dest)
-}
-func (qb *Builder) FindContext(ctx context.Context, id interface{}, dest interface{}) (bool, error) {
 	qb.Where("id = ?", id)
-	return qb.FirstContext(ctx, dest)
+	return qb.First(dest)
 }
 func (qb *Builder) FindAsync(id interface{}, dest interface{}) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
 	errorCh := make(chan error, 1)
 	go func() {
-		found, err := qb.FindContext(context.Background(), id, dest)
-		foundCh <- found
-		errorCh <- err
-	}()
-	return foundCh, errorCh
-}
-func (qb *Builder) FindContextAsync(ctx context.Context, id interface{}, dest interface{}) (chan bool, chan error) {
-	foundCh := make(chan bool, 1)
-	errorCh := make(chan error, 1)
-	go func() {
-		found, err := qb.FindContext(ctx, id, dest)
+		found, err := qb.Find(id, dest)
 		foundCh <- found
 		errorCh <- err
 	}()
@@ -46,67 +37,38 @@ func (qb *Builder) FindContextAsync(ctx context.Context, id interface{}, dest in
 
 // Get получает все записи
 func (qb *Builder) Get(dest interface{}) (bool, error) {
-	return qb.GetContext(context.Background(), dest)
-}
-func (qb *Builder) GetContext(ctx context.Context, dest interface{}) (bool, error) {
 	query, args := qb.buildSelectQuery()
-	return qb.execSelectContext(ctx, dest, query, args...)
+	return qb.execSelectContext(qb.Ctx, dest, query, args...)
 }
 func (qb *Builder) GetAsync(dest interface{}) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
 	errorCh := make(chan error, 1)
 	go func() {
-		found, err := qb.GetContext(context.Background(), dest)
+		found, err := qb.Get(dest)
 		errorCh <- err
 		foundCh <- found
 	}()
 	return foundCh, errorCh
 }
-func (qb *Builder) GetContextAsync(ctx context.Context, dest interface{}) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		_, err := qb.GetContext(ctx, dest)
-		ch <- err
-	}()
-	return ch
-}
 
 // First получает первую запись
 func (qb *Builder) First(dest interface{}) (bool, error) {
-	return qb.FirstContext(context.Background(), dest)
-}
-func (qb *Builder) FirstContext(ctx context.Context, dest interface{}) (bool, error) {
 	qb.Limit(1)
 	query, args := qb.buildSelectQuery()
-	return qb.execGetContext(ctx, dest, query, args...)
+	return qb.execGetContext(qb.Ctx, dest, query, args...)
 }
 func (qb *Builder) FirstAsync(dest interface{}) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
 	errorCh := make(chan error, 1)
 	go func() {
-		found, err := qb.FirstContext(context.Background(), dest)
-		foundCh <- found
-		errorCh <- err
-	}()
-	return foundCh, errorCh
-}
-func (qb *Builder) FirstContextAsync(ctx context.Context, dest interface{}) (chan bool, chan error) {
-	foundCh := make(chan bool, 1)
-	errorCh := make(chan error, 1)
-	go func() {
-		found, err := qb.FirstContext(ctx, dest)
+		found, err := qb.First(dest)
 		foundCh <- found
 		errorCh <- err
 	}()
 	return foundCh, errorCh
 }
 
-// Create add new record to database and return id
-// Create создает новую запись из структуры и возвращает её id
 func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
-	return qb.CreateContext(context.Background(), data, fields...)
-}
-func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields ...string) (int64, error) {
 	go qb.Trigger(BeforeCreate, data)
 	defer func() {
 		go qb.Trigger(AfterCreate, data)
@@ -137,7 +99,7 @@ func (qb *Builder) CreateContext(ctx context.Context, data interface{}, fields .
 		return id, err
 	}
 
-	result, err := qb.getExecutor().NamedExecContext(ctx, query, data)
+	result, err := qb.getExecutor().NamedExecContext(qb.Ctx, query, data)
 	if err != nil {
 		return 0, err
 	}
@@ -147,17 +109,7 @@ func (qb *Builder) CreateAsync(data interface{}, fields ...string) (chan int64, 
 	idCh := make(chan int64, 1)
 	errorCh := make(chan error, 1)
 	go func() {
-		id, err := qb.CreateContext(context.Background(), data, fields...)
-		idCh <- id
-		errorCh <- err
-	}()
-	return idCh, errorCh
-}
-func (qb *Builder) CreateContextAsync(ctx context.Context, data interface{}, fields ...string) (chan int64, chan error) {
-	idCh := make(chan int64, 1)
-	errorCh := make(chan error, 1)
-	go func() {
-		id, err := qb.CreateContext(ctx, data, fields...)
+		id, err := qb.Create(data, fields...)
 		idCh <- id
 		errorCh <- err
 	}()
@@ -166,9 +118,6 @@ func (qb *Builder) CreateContextAsync(ctx context.Context, data interface{}, fie
 
 // CreateMap создает новую запись из map и возвращает её id
 func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
-	return qb.CreateMapContext(context.Background(), data)
-}
-func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interface{}) (int64, error) {
 	go qb.Trigger(BeforeCreate, data)
 	columns := make([]string, 0, len(data))
 	placeholders := make([]string, 0, len(data))
@@ -188,11 +137,11 @@ func (qb *Builder) CreateMapContext(ctx context.Context, data map[string]interfa
 	if qb.getDriverName() == "postgres" {
 		var id int64
 		query = qb.rebindQuery(query + " RETURNING id")
-		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(ctx, query, values...).Scan(&id)
+		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(qb.Ctx, query, values...).Scan(&id)
 		return id, err
 	}
 
-	result, err := qb.getExecutor().ExecContext(ctx, qb.rebindQuery(query), values...)
+	result, err := qb.getExecutor().ExecContext(qb.Ctx, qb.rebindQuery(query), values...)
 	if err != nil {
 		return 0, err
 	}
@@ -203,17 +152,7 @@ func (qb *Builder) CreateMapAsync(data map[string]interface{}) (chan int64, chan
 	idCh := make(chan int64, 1)
 	errorCh := make(chan error, 1)
 	go func() {
-		id, err := qb.CreateMapContext(context.Background(), data)
-		idCh <- id
-		errorCh <- err
-	}()
-	return idCh, errorCh
-}
-func (qb *Builder) CreateMapContextAsync(ctx context.Context, data map[string]interface{}) (chan int64, chan error) {
-	idCh := make(chan int64, 1)
-	errorCh := make(chan error, 1)
-	go func() {
-		id, err := qb.CreateMapContext(ctx, data)
+		id, err := qb.CreateMap(data)
 		idCh <- id
 		errorCh <- err
 	}()
@@ -222,9 +161,6 @@ func (qb *Builder) CreateMapContextAsync(ctx context.Context, data map[string]in
 
 // BatchInsert вставляет множество записей
 func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
-	return qb.BatchInsertContext(context.Background(), records)
-}
-func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]interface{}) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -255,31 +191,20 @@ func (qb *Builder) BatchInsertContext(ctx context.Context, records []map[string]
 		strings.Join(placeholders, ", "),
 	)
 
-	return qb.execExecContext(ctx, query, values...)
+	return qb.execExecContext(qb.Ctx, query, values...)
 }
 func (qb *Builder) BatchInsertAsync(records []map[string]interface{}) chan error {
 	ch := make(chan error, 1)
 	go func() {
-		err := qb.BatchInsertContext(context.Background(), records)
+		err := qb.BatchInsert(records)
 		ch <- err
 	}()
 	return ch
 
-}
-func (qb *Builder) BatchInsertContextAsync(ctx context.Context, records []map[string]interface{}) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		err := qb.BatchInsertContext(ctx, records)
-		ch <- err
-	}()
-	return ch
 }
 
 // BulkInsert выполняет массовую вставку записей с возвратом ID
 func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
-	return qb.BulkInsertContext(context.Background(), records)
-}
-func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]interface{}) ([]int64, error) {
 	if len(records) == 0 {
 		return nil, nil
 	}
@@ -312,7 +237,7 @@ func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]i
 			strings.Join(placeholders, ", "),
 		)
 		var ids []int64
-		err := qb.getExecutor().SelectContext(ctx, &ids, qb.rebindQuery(query), values...)
+		err := qb.getExecutor().SelectContext(qb.Ctx, &ids, qb.rebindQuery(query), values...)
 		return ids, err
 	}
 
@@ -323,7 +248,7 @@ func (qb *Builder) BulkInsertContext(ctx context.Context, records []map[string]i
 		strings.Join(placeholders, ", "),
 	)
 
-	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(ctx, qb.rebindQuery(query), values...)
+	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(qb.Ctx, qb.rebindQuery(query), values...)
 	if err != nil {
 		return nil, err
 	}
@@ -349,18 +274,7 @@ func (qb *Builder) BulkInsertAsync(records []map[string]interface{}) (chan []int
 	idsCh := make(chan []int64, 1)
 	errorCh := make(chan error, 1)
 	go func() {
-		ids, err := qb.BulkInsertContext(context.Background(), records)
-
-		idsCh <- ids
-		errorCh <- err
-	}()
-	return idsCh, errorCh
-}
-func (qb *Builder) BulkInsertContextAsync(ctx context.Context, records []map[string]interface{}) (chan []int64, chan error) {
-	idsCh := make(chan []int64, 1)
-	errorCh := make(chan error, 1)
-	go func() {
-		ids, err := qb.BulkInsertContext(ctx, records)
+		ids, err := qb.BulkInsert(records)
 
 		idsCh <- ids
 		errorCh <- err
@@ -370,28 +284,17 @@ func (qb *Builder) BulkInsertContextAsync(ctx context.Context, records []map[str
 
 // Update обновляет записи используя структуру
 func (qb *Builder) Update(data interface{}, fields ...string) error {
-	return qb.UpdateContext(context.Background(), data, fields...)
-}
-func (qb *Builder) UpdateContext(ctx context.Context, data interface{}, fields ...string) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
 	query, args := qb.buildUpdateQuery(data, fields)
-	return qb.execExecContext(ctx, query, args...)
+	return qb.execExecContext(qb.Ctx, query, args...)
 }
 func (qb *Builder) UpdateAsync(data interface{}, fields ...string) chan error {
 	ch := make(chan error, 1)
 	go func() {
-		err := qb.UpdateContext(context.Background(), data, fields...)
-		ch <- err
-	}()
-	return ch
-}
-func (qb *Builder) UpdateContextAsync(ctx context.Context, data interface{}, fields ...string) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		err := qb.UpdateContext(ctx, data, fields...)
+		err := qb.Update(data, fields...)
 		ch <- err
 	}()
 	return ch
@@ -399,29 +302,18 @@ func (qb *Builder) UpdateContextAsync(ctx context.Context, data interface{}, fie
 
 // UpdateMap обновляет записи используя map
 func (qb *Builder) UpdateMap(data map[string]interface{}) error {
-	return qb.UpdateMapContext(context.Background(), data)
-}
-func (qb *Builder) UpdateMapContext(ctx context.Context, data map[string]interface{}) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
 	query, args := qb.buildUpdateMapQuery(data)
 	fmt.Println(query)
-	return qb.execExecContext(ctx, query, args...)
+	return qb.execExecContext(qb.Ctx, query, args...)
 }
 func (qb *Builder) UpdateMapAsync(data map[string]interface{}) chan error {
 	ch := make(chan error, 1)
 	go func() {
-		err := qb.UpdateMapContext(context.Background(), data)
-		ch <- err
-	}()
-	return ch
-}
-func (qb *Builder) UpdateMapContextAsync(ctx context.Context, data map[string]interface{}) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		err := qb.UpdateMapContext(ctx, data)
+		err := qb.UpdateMap(data)
 		ch <- err
 	}()
 	return ch
@@ -429,9 +321,6 @@ func (qb *Builder) UpdateMapContextAsync(ctx context.Context, data map[string]in
 
 // BulkUpdate выполняет массовое обновление записей
 func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
-	return qb.BulkUpdateContext(context.Background(), records, keyColumn)
-}
-func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -479,20 +368,12 @@ func (qb *Builder) BulkUpdateContext(ctx context.Context, records []map[string]i
 	args = append(args, valueArgs...)
 	args = append(args, keyValues...)
 
-	return qb.execExecContext(ctx, query, args...)
+	return qb.execExecContext(qb.Ctx, query, args...)
 }
 func (qb *Builder) BulkUpdateAsync(records []map[string]interface{}, keyColumn string) chan error {
 	ch := make(chan error, 1)
 	go func() {
-		err := qb.BulkUpdateContext(context.Background(), records, keyColumn)
-		ch <- err
-	}()
-	return ch
-}
-func (qb *Builder) BulkUpdateContextAsync(ctx context.Context, records []map[string]interface{}, keyColumn string) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		err := qb.BulkUpdateContext(ctx, records, keyColumn)
+		err := qb.BulkUpdate(records, keyColumn)
 		ch <- err
 	}()
 	return ch
@@ -500,9 +381,6 @@ func (qb *Builder) BulkUpdateContextAsync(ctx context.Context, records []map[str
 
 // BatchUpdate обновляет записи пакетами указанного размера
 func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
-	return qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
-}
-func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -510,7 +388,7 @@ func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]
 	// Разбиваем записи на пакеты
 	for i := 0; i < len(records); i += batchSize {
 		// Проверяем контекст
-		if err := ctx.Err(); err != nil {
+		if err := qb.Ctx.Err(); err != nil {
 			return err
 		}
 
@@ -521,7 +399,7 @@ func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]
 		batch := records[i:end]
 
 		// Обновляем текущий пакет
-		if err := qb.BulkUpdateContext(ctx, batch, keyColumn); err != nil {
+		if err := qb.BulkUpdate(batch, keyColumn); err != nil {
 			return err
 		}
 	}
@@ -531,25 +409,13 @@ func (qb *Builder) BatchUpdateContext(ctx context.Context, records []map[string]
 func (qb *Builder) BatchUpdateAsync(records []map[string]interface{}, keyColumn string, batchSize int) chan error {
 	ch := make(chan error, 1)
 	go func() {
-		err := qb.BatchUpdateContext(context.Background(), records, keyColumn, batchSize)
-		ch <- err
-	}()
-	return ch
-}
-func (qb *Builder) BatchUpdateContextAsync(ctx context.Context, records []map[string]interface{}, keyColumn string, batchSize int) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		err := qb.BatchUpdateContext(ctx, records, keyColumn, batchSize)
+		err := qb.BatchUpdate(records, keyColumn, batchSize)
 		ch <- err
 	}()
 	return ch
 }
 
-// Delete удаляет записи
 func (qb *Builder) Delete() error {
-	return qb.DeleteContext(context.Background())
-}
-func (qb *Builder) DeleteContext(ctx context.Context) error {
 	if len(qb.conditions) == 0 {
 		return errors.New("delete without conditions is not allowed")
 	}
@@ -557,20 +423,12 @@ func (qb *Builder) DeleteContext(ctx context.Context) error {
 	head := fmt.Sprintf("DELETE FROM %s", qb.TableName)
 	body, args := qb.buildBodyQuery()
 
-	return qb.execExecContext(ctx, head+body, args...)
+	return qb.execExecContext(qb.Ctx, head+body, args...)
 }
 func (qb *Builder) DeleteAsync() chan error {
 	ch := make(chan error, 1)
 	go func() {
-		err := qb.DeleteContext(context.Background())
-		ch <- err
-	}()
-	return ch
-}
-func (qb *Builder) DeleteContextAsync(ctx context.Context) chan error {
-	ch := make(chan error, 1)
-	go func() {
-		err := qb.DeleteContext(ctx)
+		err := qb.Delete()
 		ch <- err
 	}()
 	return ch
@@ -723,7 +581,7 @@ func (qb *Builder) Increment(column string, value interface{}) error {
 
 	args = append(args, value)
 
-	return qb.execExec(head+body, args...)
+	return qb.execExecContext(qb.Ctx, head+body, args...)
 }
 
 // Decrement уменьшает значение поля
@@ -733,7 +591,7 @@ func (qb *Builder) Decrement(column string, value interface{}) error {
 	body, args := qb.buildBodyQuery()
 	args = append(args, value)
 
-	return qb.execExec(head+body, args...)
+	return qb.execExecContext(qb.Ctx, head+body, args...)
 }
 
 // SubQuery создает подзапрос
@@ -1097,28 +955,6 @@ func (qb *Builder) CrossJoin(table string) *Builder {
 		TableName: table,
 	})
 	return qb
-}
-
-// Versioning добавляет поддержку версионирования
-type Versioning struct {
-	Version int `db:"version"`
-}
-
-// WithVersion добавляет оптимистичную блокировку
-func (qb *Builder) WithVersion(version int) *Builder {
-	qb.conditions = append(qb.conditions, Condition{
-		operator: "AND",
-		clause:   "version = ?",
-		args:     []interface{}{version},
-	})
-	return qb
-}
-
-// IncrementVersion увеличивает версию записи
-func (qb *Builder) IncrementVersion() error {
-	return qb.UpdateMap(map[string]interface{}{
-		"version": qb.Raw("version + 1"),
-	})
 }
 
 // Point представляет географическую точку
@@ -1604,7 +1440,7 @@ func (qb *Builder) Avg(column string) (float64, error) {
 	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.TableName)
 
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGet(&result, head+body, args...)
+	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
 	return result, err
 }
 
@@ -1613,7 +1449,7 @@ func (qb *Builder) Sum(column string) (float64, error) {
 	var result float64
 	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.TableName)
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGet(&result, head+body, args...)
+	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
 	return result, err
 }
 
@@ -1622,7 +1458,7 @@ func (qb *Builder) Min(column string) (float64, error) {
 	var result float64
 	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.TableName)
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGet(&result, head+body, args...)
+	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
 	return result, err
 }
 
@@ -1631,7 +1467,7 @@ func (qb *Builder) Max(column string) (float64, error) {
 	var result float64
 	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.TableName)
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execGet(&result, head+body, args...)
+	_, err := qb.execGetContext(qb.Ctx, &result, head+body, args...)
 	return result, err
 }
 
@@ -1642,7 +1478,7 @@ func (qb *Builder) Count() (int64, error) {
 
 	body, args := qb.buildBodyQuery()
 	fmt.Println(head+body, args)
-	_, err := qb.execGet(&count, head+body, args...)
+	_, err := qb.execGetContext(qb.Ctx, &count, head+body, args...)
 	return count, err
 }
 

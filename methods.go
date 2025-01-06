@@ -35,10 +35,7 @@ func (d *DBLayer) Raw(query string, args ...interface{}) *q.RawQuery {
 }
 
 // Table Builder
-
 func (d *DBLayer) Table(name string) *t.Table {
 	qb := t.New(d.DB, d.DriverName)
-
 	return qb.Table(name)
-
 }

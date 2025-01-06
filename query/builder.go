@@ -23,6 +23,7 @@ type Builder struct {
 	DB           interface{} // может быть *sqlx.DB или *sqlx.Tx
 	TableName    string
 	QueryBuilder *QueryBuilder
+	Ctx          context.Context
 
 	conditions    []Condition
 	columns       []string

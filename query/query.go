@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -30,6 +31,7 @@ func (q *QueryBuilder) Query(table string) *Builder {
 		TableName:    table,
 		DB:           q.DB,
 		QueryBuilder: q,
+		Ctx:          context.TODO(),
 	}
 }
 
@@ -39,6 +41,7 @@ func (t *Transaction) Query(table string) *Builder {
 		TableName:    table,
 		DB:           t.Tx,
 		QueryBuilder: t.QueryBuilder,
+		Ctx:          context.TODO(),
 	}
 }
 
