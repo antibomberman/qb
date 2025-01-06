@@ -20,7 +20,6 @@ type User struct {
 	CreatedAt time.Time `db:"created_at"`
 	Version   int       `db:"version"`
 }
-
 type Post struct {
 	ID        int64     `db:"id"`
 	UserID    int64     `db:"user_id"`
@@ -111,7 +110,6 @@ func createTables(dbl *dblayer.DBLayer) error {
 	}
 	return nil
 }
-
 func examples(dbl *dblayer.DBLayer) error {
 	// 1. Create user with transaction and audit
 	tx, err := dbl.Begin()
