@@ -2,14 +2,14 @@ package internal
 
 import (
 	"fmt"
-	sb "github.com/antibomberman/dblayer/schema"
+	t "github.com/antibomberman/dblayer/table"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"strings"
 )
 
-func parseGoMigrationWithAst(filename string) (up func(*sb.Schema) error, down func(*sb.Schema) error, err error) {
+func parseGoMigrationWithAst(filename string) (up func(builder *t.TableBuilder) error, down func(builder *t.TableBuilder) error, err error) {
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
 	if err != nil {
@@ -22,8 +22,8 @@ func parseGoMigrationWithAst(filename string) (up func(*sb.Schema) error, down f
 		if fn, ok := n.(*ast.FuncDecl); ok {
 			if strings.HasPrefix(fn.Name.Name, "Up") {
 				upFound = true
-				up = func(s *sb.Schema) error {
-					return s.CreateTableIfNotExists("users", func(b *sb.Builder) {
+				up = func(s *t.TableBuilder) error {
+					return s.Table("users").CreateIfNotExists(func(b *t.Builder) {
 						b.String("name", 255)
 						b.String("email", 255)
 						b.String("password", 255)
@@ -32,8 +32,8 @@ func parseGoMigrationWithAst(filename string) (up func(*sb.Schema) error, down f
 				}
 			} else if strings.HasPrefix(fn.Name.Name, "Down") {
 				downFound = true
-				down = func(s *sb.Schema) error {
-					return s.DropTable("users")
+				down = func(s *t.TableBuilder) error {
+					return s.Table("users").Drop()
 				}
 			}
 		}

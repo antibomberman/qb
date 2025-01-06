@@ -16,9 +16,9 @@ type TruncateOptions struct {
 
 // TruncateTable очищает таблицу
 type TruncateTable struct {
-	TableBuilder *TableBuilder
-	Tables       []string
-	Options      TruncateOptions
+	Table   *Table
+	Tables  []string
+	Options TruncateOptions
 }
 
 // Cascade включает каскадную очистку
@@ -58,7 +58,7 @@ func (tt *TruncateTable) Build() string {
 	sql.WriteString("TRUNCATE TABLE ")
 	sql.WriteString(strings.Join(tt.Tables, ", "))
 
-	if tt.TableBuilder.Dialect.SupportsRestartIdentity() {
+	if tt.Table.Dialect.SupportsRestartIdentity() {
 		if tt.Options.Restart {
 			sql.WriteString(" RESTART IDENTITY")
 		} else if tt.Options.ContinueIdentity {
@@ -72,7 +72,7 @@ func (tt *TruncateTable) Build() string {
 		}
 	}
 
-	if tt.Options.Force && tt.TableBuilder.Dialect.SupportsForce() {
+	if tt.Options.Force && tt.Table.Dialect.SupportsForce() {
 		sql.WriteString(" FORCE")
 	}
 

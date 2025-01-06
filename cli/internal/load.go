@@ -2,7 +2,7 @@ package internal
 
 import (
 	"fmt"
-	sb "github.com/antibomberman/dblayer/schema"
+	t "github.com/antibomberman/dblayer/table"
 	"github.com/jmoiron/sqlx"
 	"os"
 	"path/filepath"
@@ -13,20 +13,20 @@ import (
 
 type Migration struct {
 	Version int
-	Up      func(*sb.Schema) error
-	Down    func(*sb.Schema) error
+	Up      func(builder *t.TableBuilder) error
+	Down    func(builder *t.TableBuilder) error
 }
 
 type Migrator struct {
-	schema     *sb.Schema
-	migrations map[int]*Migration
+	tableBuilder *t.TableBuilder
+	migrations   map[int]*Migration
 }
 
 func NewMigrator(db *sqlx.DB) *Migrator {
-
+	s := t.New(db, "mysql")
 	return &Migrator{
-		schema:     sb.NewSchemaBuilder(db, "mysql"),
-		migrations: make(map[int]*Migration),
+		tableBuilder: s,
+		migrations:   make(map[int]*Migration),
 	}
 }
 
@@ -83,7 +83,7 @@ func (m *Migrator) MigrateUp() error {
 
 	for _, version := range versions {
 		migration := m.migrations[version]
-		if err := migration.Up(m.schema); err != nil {
+		if err := migration.Up(m.tableBuilder); err != nil {
 			return fmt.Errorf("failed to run migration %d: %w", version, err)
 		}
 		fmt.Printf("Successfully ran migration %d\n", version)
@@ -101,7 +101,7 @@ func (m *Migrator) MigrateDown() error {
 
 	for _, version := range versions {
 		migration := m.migrations[version]
-		if err := migration.Down(m.schema); err != nil {
+		if err := migration.Down(m.tableBuilder); err != nil {
 			return fmt.Errorf("failed to rollback migration %d: %w", version, err)
 		}
 		fmt.Printf("Successfully rolled back migration %d\n", version)
@@ -121,7 +121,7 @@ func (m *Migrator) MigrateTo(targetVersion int) error {
 
 	for _, version := range versions {
 		migration := m.migrations[version]
-		if err := migration.Up(m.schema); err != nil {
+		if err := migration.Up(m.tableBuilder); err != nil {
 			return fmt.Errorf("failed to run migration %d: %w", version, err)
 		}
 		fmt.Printf("Successfully ran migration %d\n", version)
