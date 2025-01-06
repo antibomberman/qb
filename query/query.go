@@ -27,16 +27,18 @@ func New(db *sqlx.DB, driverName string) *QueryBuilder {
 
 func (q *QueryBuilder) Query(table string) *Builder {
 	return &Builder{
-		TableName: table,
-		DB:        q.DB,
+		TableName:    table,
+		DB:           q.DB,
+		QueryBuilder: q,
 	}
 }
 
 // Table начинает построение запроса в транзакции
 func (t *Transaction) Query(table string) *Builder {
 	return &Builder{
-		TableName: table,
-		DB:        t.Tx,
+		TableName:    table,
+		DB:           t.Tx,
+		QueryBuilder: t.QueryBuilder,
 	}
 }
 

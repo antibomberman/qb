@@ -30,6 +30,7 @@ func TestCrud(t *testing.T) {
 	// Create
 	_, err = dbl.Query("users").Create(user)
 	if err != nil {
+		fmt.Println("error create user", err)
 		t.Error(err)
 	}
 
@@ -44,6 +45,7 @@ func TestCrud(t *testing.T) {
 		"password": "secret",
 	})
 	if err != nil {
+		fmt.Println("error createContext user", err)
 		t.Error(err)
 	}
 	_, err = dbl.Query("users").CreateMapContext(ctx, map[string]interface{}{
