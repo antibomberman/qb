@@ -207,9 +207,9 @@ func (qb *Builder) buildBodyQuery() (string, []interface{}) {
 
 	for _, join := range qb.joins {
 		if join.Type == CrossJoin {
-			sql.WriteString(fmt.Sprintf(" %s %s", join.Type, join.TableName))
+			sql.WriteString(fmt.Sprintf(" %s %s", join.Type, join.tableName))
 		} else {
-			sql.WriteString(fmt.Sprintf(" %s %s ON %s", join.Type, join.TableName, join.Condition))
+			sql.WriteString(fmt.Sprintf(" %s %s ON %s", join.Type, join.tableName, join.Condition))
 		}
 	}
 
