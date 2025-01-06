@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/antibomberman/dblayer"
 	QB "github.com/antibomberman/dblayer/query"
-	SB "github.com/antibomberman/dblayer/schema"
+	t "github.com/antibomberman/dblayer/table"
 	"log"
 	_ "modernc.org/sqlite"
 	"time"
@@ -54,7 +54,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	count, err := dbl.Table("users").WhereAge("age", ">", 3).WhereDateIsNotNull("created_at").Count()
+	count, err := dbl.Query("users").WhereAge("age", ">", 3).WhereDateIsNotNull("created_at").Count()
 	if err != nil {
 		fmt.Printf("Error count table")
 	}
@@ -63,7 +63,7 @@ func main() {
 	//example 2
 	var post Post
 
-	fount, err := dbl.Table("posts").First(&post)
+	fount, err := dbl.Query("posts").First(&post)
 	if err != nil {
 		fmt.Printf("Error")
 	}
@@ -76,7 +76,7 @@ func main() {
 
 func createTables(dbl *dblayer.DBLayer) error {
 	// Create users table
-	err := dbl.CreateTable("users", func(schema *SB.Builder) {
+	err := dbl.Table("users").CreateIfNotExists(func(schema *t.Builder) {
 		schema.ID()
 		schema.String("email", 255).Unique()
 		schema.String("name", 100)
@@ -88,7 +88,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating users table: %w", err)
 	}
 	// Create posts table
-	err = dbl.CreateTable("posts", func(schema *SB.Builder) {
+	err = dbl.Table("posts").CreateIfNotExists(func(schema *t.Builder) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("user_id")
 		schema.String("title", 200)
@@ -99,7 +99,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating posts table: %w", err)
 	}
 	// Create comments table
-	err = dbl.CreateTable("comments", func(schema *SB.Builder) {
+	err = dbl.Table("comments").CreateIfNotExists(func(schema *t.Builder) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("post_id")
 		schema.Integer("user_id")
@@ -125,7 +125,7 @@ func examples(dbl *dblayer.DBLayer) error {
 		CreatedAt: time.Now(),
 		Version:   1,
 	}
-	userID, err := tx.Table("users").
+	userID, err := tx.Query("users").
 		WithAudit(1). // Admin ID
 		Create(user)
 	if err != nil {
@@ -139,7 +139,7 @@ func examples(dbl *dblayer.DBLayer) error {
 		Content:   "Hello world!",
 		CreatedAt: time.Now(),
 	}
-	postID, err := tx.Table("posts").Create(post)
+	postID, err := tx.Query("posts").Create(post)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -151,7 +151,7 @@ func examples(dbl *dblayer.DBLayer) error {
 		Content:   "First comment",
 		CreatedAt: time.Now(),
 	}
-	_, err = tx.Table("comments").Create(comment)
+	_, err = tx.Query("comments").Create(comment)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -167,7 +167,7 @@ func examples(dbl *dblayer.DBLayer) error {
 		CommentCount int       `db:"comment_count"`
 		LastComment  time.Time `db:"last_comment"`
 	}
-	_, err = dbl.Table("users").
+	_, err = dbl.Query("users").
 		Select("users.name, posts.title, COUNT(comments.id) as comment_count, MAX(comments.created_at) as last_comment").
 		LeftJoin("posts", "posts.user_id = users.id").
 		LeftJoin("comments", "comments.post_id = posts.id").
@@ -184,13 +184,13 @@ func examples(dbl *dblayer.DBLayer) error {
 		{"id": 1, "age": 26, "version": 2},
 		{"id": 2, "age": 31, "version": 2},
 	}
-	err = dbl.Table("users").BatchUpdate(users, "id", 100)
+	err = dbl.Query("users").BatchUpdate(users, "id", 100)
 	if err != nil {
 		return err
 	}
 	// 6. Full-text search
 	var searchResults []Post
-	_, err = dbl.Table("posts").
+	_, err = dbl.Query("posts").
 		Search([]string{"title", "content"}, "hello").
 		OrderBy("search_rank", "DESC").
 		Limit(10).
@@ -201,7 +201,7 @@ func examples(dbl *dblayer.DBLayer) error {
 	// 7. Pagination with metrics
 	var pagedUsers []User
 	collector := QB.NewMetricsCollector()
-	result, err := dbl.Table("users").
+	result, err := dbl.Query("users").
 		WithMetrics(collector).
 		OrderBy("created_at", "DESC").
 		Paginate(1, 10, &pagedUsers)
