@@ -11,9 +11,9 @@ type MigrateBuilder struct {
 	tableBuilder *t.TableBuilder
 }
 
-func New(db *sqlx.DB, driverName string) *MigrateBuilder {
-	qb := q.New(db, driverName)
-	tb := t.New(db, driverName)
+func New(driverName string, db *sqlx.DB) *MigrateBuilder {
+	qb := q.New(driverName, db)
+	tb := t.New(driverName, db)
 	return &MigrateBuilder{
 		queryBuilder: qb,
 		tableBuilder: tb,

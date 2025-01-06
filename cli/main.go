@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/antibomberman/dblayer/cli/internal"
-	"github.com/antibomberman/dblayer/migrate"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
+
+	"github.com/antibomberman/dblayer"
+	"github.com/antibomberman/dblayer/cli/internal"
+	"github.com/antibomberman/dblayer/migrate"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/spf13/cobra"
 )
 
 var rootCmd = &cobra.Command{
@@ -45,7 +48,7 @@ var CreateCmd = &cobra.Command{
 		migrate.InitDir()
 		internal.GenerateEnv()
 
-		dbl, err := internal.ConnectDB()
+		dbl, err := dblayer.ConnectEnv()
 		path, err := dbl.Migrate().CreateGo(args[0])
 		if err != nil {
 			fmt.Println(err)
@@ -60,7 +63,7 @@ var UpCmd = &cobra.Command{
 	Short: "Применить все миграции",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Применение миграций...")
-		dbl, err := internal.ConnectDB()
+		dbl, err := dblayer.ConnectEnv()
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -18,7 +19,7 @@ func (q *QueryBuilder) CacheMemoryDriver() {
 	q.cache = NewCacheMemory()
 }
 
-func New(db *sqlx.DB, driverName string) *QueryBuilder {
+func New(driverName string, db *sqlx.DB) *QueryBuilder {
 	return &QueryBuilder{
 		db:         db,
 		driverName: driverName,

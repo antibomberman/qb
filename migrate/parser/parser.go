@@ -2,52 +2,19 @@ package parser
 
 import (
 	"fmt"
-	t "github.com/antibomberman/dblayer/table"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/antibomberman/dblayer/migrate/utils"
 )
 
-func GoFile(filename string) (up func(builder *t.TableBuilder) error, down func(builder *t.TableBuilder) error, err error) {
-	fset := token.NewFileSet()
-	node, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse file: %w", err)
-	}
-
-	var upFound, downFound bool
-
-	ast.Inspect(node, func(n ast.Node) bool {
-		if fn, ok := n.(*ast.FuncDecl); ok {
-			if strings.HasPrefix(fn.Name.Name, "Up") {
-				upFound = true
-				up = func(s *t.TableBuilder) error {
-					return s.Table("users").CreateIfNotExists(func(b *t.Builder) {
-						b.String("name", 255)
-						b.String("email", 255)
-						b.String("password", 255)
-						b.Timestamps()
-					})
-				}
-			} else if strings.HasPrefix(fn.Name.Name, "Down") {
-				downFound = true
-				down = func(s *t.TableBuilder) error {
-					return s.Table("users").Drop()
-				}
-			}
-		}
-		return true
-	})
-
-	if !upFound || !downFound {
-		return nil, nil, fmt.Errorf("up or down function not found")
-	}
-
-	return up, down, nil
+type MigrationsFiles struct {
+	Path    string
+	ExtType string
+	Name    string
 }
+
 func SqlFile(filename string) (string, string, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
@@ -93,16 +60,24 @@ func SqlFile(filename string) (string, string, error) {
 	return strings.TrimSpace(upSQL.String()), strings.TrimSpace(downSQL.String()), nil
 }
 
-func Files() (map[string]string, error) {
+func Files() ([]MigrationsFiles, error) {
 	files, err := os.ReadDir("migrations")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
 
-	var newFiles map[string]string
+	var newFiles []MigrationsFiles
 
 	for _, f := range files {
-		newFiles[filepath.Ext(f.Name())[1:]] = f.Name()
+		extType := filepath.Ext(f.Name())[1:]
+		if extType == "go" || extType == "sql" {
+			newFiles = append(newFiles, MigrationsFiles{
+				Path:    filepath.Join(utils.MigrationDir, "/", f.Name()),
+				ExtType: extType,
+				Name:    f.Name(),
+			})
+		}
+
 	}
 
 	return newFiles, nil

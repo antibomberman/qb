@@ -64,6 +64,15 @@ func Connection(ctx context.Context, driverName string, dataSourceName string, m
 
 	return nil, fmt.Errorf("failed to connect to dataDBLayer after %d attempts", maxAttempts)
 }
+func ConnectEnv() (*DBLayer, error) {
+	ctx := context.Background()
+
+	cfg := Load()
+	timeDuration := time.Duration(cfg.Timeout) * time.Second
+
+	return Connection(ctx, cfg.Driver, cfg.DSN, cfg.MaxAttempts, timeDuration)
+
+}
 
 func (d *DBLayer) Close() error {
 	return d.DB.Close()

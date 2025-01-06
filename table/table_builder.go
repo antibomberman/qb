@@ -2,6 +2,7 @@ package table
 
 import (
 	"fmt"
+
 	"github.com/jmoiron/sqlx"
 )
 
@@ -15,7 +16,7 @@ type Table struct {
 	Name string
 }
 
-func New(db *sqlx.DB, driverName string) *TableBuilder {
+func New(driverName string, db *sqlx.DB) *TableBuilder {
 	dc := &TableBuilder{
 		db:         db,
 		driverName: driverName,
