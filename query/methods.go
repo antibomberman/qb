@@ -202,19 +202,31 @@ func (qb *Builder) Decrement(column string, value interface{}) error {
 func (qb *Builder) Get(dest interface{}) (bool, error) {
 	return qb.GetContext(context.Background(), dest)
 }
-
-// GetContext получает все записи с контекстом
 func (qb *Builder) GetContext(ctx context.Context, dest interface{}) (bool, error) {
 	query, args := qb.buildSelectQuery()
 	return qb.execSelectContext(ctx, dest, query, args...)
+}
+func (qb *Builder) GetAsync(dest interface{}) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		_, err := qb.GetContext(context.Background(), dest)
+		ch <- err
+	}()
+	return ch
+}
+func (qb *Builder) GetContextAsync(ctx context.Context, dest interface{}) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		_, err := qb.GetContext(ctx, dest)
+		ch <- err
+	}()
+	return ch
 }
 
 // First получает первую запись
 func (qb *Builder) First(dest interface{}) (bool, error) {
 	return qb.FirstContext(context.Background(), dest)
 }
-
-// FirstContext получает первую запись с контекстом
 func (qb *Builder) FirstContext(ctx context.Context, dest interface{}) (bool, error) {
 	qb.Limit(1)
 	query, args := qb.buildSelectQuery()
@@ -225,8 +237,6 @@ func (qb *Builder) FirstContext(ctx context.Context, dest interface{}) (bool, er
 func (qb *Builder) Delete() error {
 	return qb.DeleteContext(context.Background())
 }
-
-// DeleteContext удаляет записи с контекстом
 func (qb *Builder) DeleteContext(ctx context.Context) error {
 	if len(qb.conditions) == 0 {
 		return errors.New("delete without conditions is not allowed")
