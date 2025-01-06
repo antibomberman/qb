@@ -197,7 +197,7 @@ func (qb *Builder) getStructInfo(data interface{}) (fields []string, placeholder
 
 // getDriverName возвращает имя драйвера базы данных
 func (qb *Builder) getDriverName() string {
-	return qb.Query.DriverName
+	return qb.QueryBuilder.DriverName
 }
 
 func (qb *Builder) buildBodyQuery() (string, []interface{}) {
@@ -206,9 +206,9 @@ func (qb *Builder) buildBodyQuery() (string, []interface{}) {
 
 	for _, join := range qb.joins {
 		if join.Type == CrossJoin {
-			sql.WriteString(fmt.Sprintf(" %s %s", join.Type, join.Table))
+			sql.WriteString(fmt.Sprintf(" %s %s", join.Type, join.TableName))
 		} else {
-			sql.WriteString(fmt.Sprintf(" %s %s ON %s", join.Type, join.Table, join.Condition))
+			sql.WriteString(fmt.Sprintf(" %s %s ON %s", join.Type, join.TableName, join.Condition))
 		}
 	}
 
@@ -250,7 +250,7 @@ func (qb *Builder) buildSelectQuery() (string, []interface{}) {
 	if len(qb.columns) > 0 {
 		selectClause = strings.Join(qb.columns, ", ")
 	}
-	tableName := qb.Table
+	tableName := qb.TableName
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
@@ -285,12 +285,12 @@ func (qb *Builder) buildUpdateQuery(data interface{}, fields []string) (string, 
 			args = append(args, values[field])
 		}
 	}
-	tableName := qb.Table
+	tableName := qb.TableName
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
 
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.Table, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.TableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
@@ -309,11 +309,11 @@ func (qb *Builder) buildUpdateMapQuery(data map[string]interface{}) (string, []i
 		args = append(args, val)
 	}
 
-	tableName := qb.Table
+	tableName := qb.TableName
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
 	}
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.Table, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", qb.TableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)

@@ -1056,7 +1056,7 @@ const (
 
 type Join struct {
 	Type      JoinType
-	Table     string
+	TableName string
 	Condition string
 }
 
@@ -1064,7 +1064,7 @@ type Join struct {
 func (qb *Builder) Join(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      InnerJoin,
-		Table:     table,
+		TableName: table,
 		Condition: condition,
 	})
 	return qb
@@ -1074,7 +1074,7 @@ func (qb *Builder) Join(table string, condition string) *Builder {
 func (qb *Builder) LeftJoin(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      LeftJoin,
-		Table:     table,
+		TableName: table,
 		Condition: condition,
 	})
 	return qb
@@ -1084,7 +1084,7 @@ func (qb *Builder) LeftJoin(table string, condition string) *Builder {
 func (qb *Builder) RightJoin(table string, condition string) *Builder {
 	qb.joins = append(qb.joins, Join{
 		Type:      RightJoin,
-		Table:     table,
+		TableName: table,
 		Condition: condition,
 	})
 	return qb
@@ -1093,8 +1093,8 @@ func (qb *Builder) RightJoin(table string, condition string) *Builder {
 // CrossJoin добавляет CROSS JOIN
 func (qb *Builder) CrossJoin(table string) *Builder {
 	qb.joins = append(qb.joins, Join{
-		Type:  CrossJoin,
-		Table: table,
+		Type:      CrossJoin,
+		TableName: table,
 	})
 	return qb
 }
