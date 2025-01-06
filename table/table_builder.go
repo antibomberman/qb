@@ -1,8 +1,6 @@
 package table
 
 import (
-	"fmt"
-
 	"github.com/jmoiron/sqlx"
 )
 
@@ -40,26 +38,28 @@ func (t *TableBuilder) Table(name string) *Table {
 	}
 }
 
-func (s *Table) Truncate() error {
+func (s *Table) Truncate() (string, error) {
 	tb := &TruncateTable{
 		Table:  s,
 		Tables: []string{s.Name},
 	}
 
-	_, err := s.db.Exec(tb.Build())
-	return err
+	sql := tb.Build()
+	_, err := s.db.Exec(sql)
+	return sql, err
 }
 
-func (s *Table) Drop() error {
+func (s *Table) Drop() (string, error) {
 	dt := &DropTable{
 		Table:  s,
 		Tables: []string{s.Name},
 	}
-	_, err := s.db.Exec(dt.Build())
-	return err
+	sql := dt.Build()
+	_, err := s.db.Exec(sql)
+	return sql, err
 }
 
-func (s *Table) Create(fn func(builder *Builder)) error {
+func (s *Table) Create(fn func(builder *Builder)) (string, error) {
 	builder := &Builder{
 		Table: s,
 		Definition: Definition{
@@ -79,11 +79,12 @@ func (s *Table) Create(fn func(builder *Builder)) error {
 	}
 
 	fn(builder)
-	_, err := s.db.Exec(builder.BuildCreate())
-	return err
+	sql := builder.BuildCreate()
+	_, err := s.db.Exec(sql)
+	return sql, err
 }
 
-func (s *Table) CreateIfNotExists(fn func(builder *Builder)) error {
+func (s *Table) CreateIfNotExists(fn func(builder *Builder)) (string, error) {
 	schema := &Builder{
 		Table: s,
 		Definition: Definition{
@@ -102,12 +103,12 @@ func (s *Table) CreateIfNotExists(fn func(builder *Builder)) error {
 	}
 
 	fn(schema)
-	fmt.Println(schema.BuildCreate())
-	_, err := s.db.Exec(schema.BuildCreate())
-	return err
+	sql := schema.BuildCreate()
+	_, err := s.db.Exec(sql)
+	return sql, err
 }
 
-func (s *Table) Update(name string, fn func(builder *Builder)) error {
+func (s *Table) Update(name string, fn func(builder *Builder)) (string, error) {
 	schema := &Builder{
 		Table: s,
 		Definition: Definition{
@@ -118,8 +119,9 @@ func (s *Table) Update(name string, fn func(builder *Builder)) error {
 
 	fn(schema)
 
-	_, err := s.db.Exec(schema.BuildAlter())
-	return err
+	sql := schema.BuildAlter()
+	_, err := s.db.Exec(sql)
+	return sql, err
 }
 
 //TODO  SHOW TABLES

@@ -14,7 +14,7 @@ func TestCreateTable(t *testing.T) {
 	dbl.Table("posts").Drop()
 
 	// Тест создания таблицы
-	err = dbl.Table("users").CreateIfNotExists(func(schema *table.Builder) {
+	_, err = dbl.Table("users").CreateIfNotExists(func(schema *table.Builder) {
 		schema.ID()
 		schema.String("username", 50)
 		schema.String("email", 100)
@@ -26,7 +26,7 @@ func TestCreateTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Тест создания таблицы
-	err = dbl.Table("posts").CreateIfNotExists(func(schema *table.Builder) {
+	_, err = dbl.Table("posts").CreateIfNotExists(func(schema *table.Builder) {
 		schema.ID()
 		schema.BigInteger("user_id").Unsigned().Nullable().Foreign("users").References("users", "id").CascadeOnDelete()
 
