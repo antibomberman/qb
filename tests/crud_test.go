@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"fmt"
 	"github.com/antibomberman/dblayer/query"
 	"testing"
@@ -9,7 +8,6 @@ import (
 )
 
 func TestCrud(t *testing.T) {
-	ctx := context.Background()
 	dbl, err := ConnectDB()
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +32,7 @@ func TestCrud(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, err = dbl.Query("users").CreateContext(ctx, user)
+	_, err = dbl.Query("users").Create(user)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +46,7 @@ func TestCrud(t *testing.T) {
 		fmt.Println("error createContext user", err)
 		t.Error(err)
 	}
-	_, err = dbl.Query("users").CreateMapContext(ctx, map[string]interface{}{
+	_, err = dbl.Query("users").CreateMap(map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
@@ -62,7 +60,7 @@ func TestCrud(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = dbl.Query("users").Where("email = ?", "john.doe@example.com").UpdateContext(ctx, newUser)
+	err = dbl.Query("users").Where("email = ?", "john.doe@example.com").Update(newUser)
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +73,7 @@ func TestCrud(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	err = dbl.Query("users").WhereId(3).UpdateMapContext(ctx, map[string]interface{}{
+	err = dbl.Query("users").WhereId(3).UpdateMap(map[string]interface{}{
 		"username": "Jane Doe",
 		"email":    "jane.doe@example.com",
 		"phone":    "456",
