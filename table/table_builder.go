@@ -5,49 +5,60 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type TableBuilder struct {
+type DatabaseConfig struct {
 	DB         *sqlx.DB
 	DriverName string
 	Dialect    Dialect
 }
+type TableBuilder struct {
+	*DatabaseConfig
+	Name string
+}
 
-func NewSchemaBuilder(db *sqlx.DB, driverName string) *TableBuilder {
-	schema := &TableBuilder{
+func New(db *sqlx.DB, driverName string) *DatabaseConfig {
+	tableBuilder := &DatabaseConfig{
 		DB:         db,
 		DriverName: driverName,
 	}
 	switch driverName {
 	case "mysql":
-		schema.Dialect = &MysqlDialect{}
+		tableBuilder.Dialect = &MysqlDialect{}
 	case "postgres":
-		schema.Dialect = &PostgresDialect{}
+		tableBuilder.Dialect = &PostgresDialect{}
 	case "sqlite":
-		schema.Dialect = &SqliteDialect{}
+		tableBuilder.Dialect = &SqliteDialect{}
 	}
-	return schema
+	return tableBuilder
 
 }
 
-func (s *TableBuilder) TruncateTable(tables ...string) error {
+func (dc *DatabaseConfig) Table(name string) *TableBuilder {
+	return &TableBuilder{
+		Name:           name,
+		DatabaseConfig: dc,
+	}
+}
+
+func (s *TableBuilder) Truncate() error {
 	tb := &TruncateTable{
 		TableBuilder: s,
-		Tables:       tables,
+		Tables:       []string{s.Name},
 	}
 
 	_, err := s.DB.Exec(tb.Build())
 	return err
 }
 
-func (s *TableBuilder) DropTable(tables ...string) error {
+func (s *TableBuilder) Drop() error {
 	dt := &DropTable{
 		TableBuilder: s,
-		Tables:       tables,
+		Tables:       []string{s.Name},
 	}
 	_, err := s.DB.Exec(dt.Build())
 	return err
 }
 
-func (s *TableBuilder) CreateTable(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) Create(name string, fn func(builder *Builder)) error {
 	builder := &Builder{
 		TableBuilder: s,
 		Definition: Definition{
@@ -71,7 +82,7 @@ func (s *TableBuilder) CreateTable(name string, fn func(builder *Builder)) error
 	return err
 }
 
-func (s *TableBuilder) CreateTableIfNotExists(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) CreateIfNotExists(name string, fn func(builder *Builder)) error {
 	schema := &Builder{
 		TableBuilder: s,
 		Definition: Definition{
@@ -95,7 +106,7 @@ func (s *TableBuilder) CreateTableIfNotExists(name string, fn func(builder *Buil
 	return err
 }
 
-func (s *TableBuilder) UpdateTable(name string, fn func(builder *Builder)) error {
+func (s *TableBuilder) Update(name string, fn func(builder *Builder)) error {
 	schema := &Builder{
 		TableBuilder: s,
 		Definition: Definition{
