@@ -12,9 +12,9 @@ func TestAudit(t *testing.T) {
 		t.Fatal(err)
 	}
 	//err = dbl.AuditTableCreate()
-	if err != nil {
-		t.Fatalf("Ошибка создания таблицы аудита: %v", err)
-	}
+	//if err != nil {
+	//	t.Fatalf("Ошибка создания таблицы аудита: %v", err)
+	//}
 	user := User{
 		Username: "tes3t",
 		Email:    "t2est@example.com",
