@@ -23,7 +23,7 @@ type ColumnDefinition struct {
 }
 
 type ColumnConstraints struct {
-	NotNull       bool
+	Nullable      bool
 	Unsigned      bool
 	AutoIncrement bool
 	Primary       bool
@@ -469,11 +469,11 @@ func (cb *ColumnBuilder) OnUpdate(value string) *ColumnBuilder {
 
 // NotNull устанавливает колонку как NOT NULL
 func (cb *ColumnBuilder) NotNull() *ColumnBuilder {
-	cb.Column.Constraints.NotNull = true
+	cb.Column.Constraints.Nullable = false
 	return cb
 }
 func (cb *ColumnBuilder) Nullable() *ColumnBuilder {
-	cb.Column.Constraints.NotNull = false
+	cb.Column.Constraints.Nullable = true
 	return cb
 }
 

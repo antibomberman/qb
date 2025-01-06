@@ -124,7 +124,7 @@ func (g *PostgresDialect) BuildColumnDefinition(col *Column) string {
 		sql.WriteString(fmt.Sprintf("(%d)", col.Definition.Length))
 	}
 
-	if !col.Constraints.NotNull {
+	if !col.Constraints.Nullable {
 		sql.WriteString(" NOT NULL")
 	} else {
 		sql.WriteString(" NULL")
