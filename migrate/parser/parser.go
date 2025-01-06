@@ -10,18 +10,18 @@ import (
 )
 
 type MigrationsFiles struct {
+	Version string
 	Path    string
 	ExtType string
 	Name    string
 }
 
-func SqlFile(filename string) (string, string, error) {
+func GetSqlFromMigrationFile(filename string) (string, string, error) {
 	content, err := os.ReadFile(filename)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to read file %s: %w", filename, err)
 	}
 
-	// Разделяем содержимое на строки
 	lines := strings.Split(string(content), "\n")
 
 	var upSQL, downSQL strings.Builder
@@ -61,7 +61,7 @@ func SqlFile(filename string) (string, string, error) {
 }
 
 func Files() ([]MigrationsFiles, error) {
-	files, err := os.ReadDir("migrations")
+	files, err := os.ReadDir(utils.MigrationDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory: %w", err)
 	}
@@ -73,6 +73,7 @@ func Files() ([]MigrationsFiles, error) {
 		if extType == "sql" {
 			newFiles = append(newFiles, MigrationsFiles{
 				Path:    filepath.Join(utils.MigrationDir, "/", f.Name()),
+				Version: getVersionFromFilename(f.Name()),
 				ExtType: extType,
 				Name:    f.Name(),
 			})
@@ -81,4 +82,7 @@ func Files() ([]MigrationsFiles, error) {
 	}
 
 	return newFiles, nil
+}
+func getVersionFromFilename(filename string) string {
+	return filename[:14]
 }

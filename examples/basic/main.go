@@ -3,12 +3,13 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
+	"time"
+
 	"github.com/antibomberman/dblayer"
 	QB "github.com/antibomberman/dblayer/query"
 	t "github.com/antibomberman/dblayer/table"
-	"log"
 	_ "modernc.org/sqlite"
-	"time"
 )
 
 // Data structures for working with database
@@ -75,7 +76,7 @@ func main() {
 
 func createTables(dbl *dblayer.DBLayer) error {
 	// Create users table
-	err := dbl.Table("users").CreateIfNotExists(func(schema *t.Builder) {
+	_, err := dbl.Table("users").CreateIfNotExists(func(schema *t.Builder) {
 		schema.ID()
 		schema.String("email", 255).Unique()
 		schema.String("name", 100)
@@ -87,7 +88,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating users table: %w", err)
 	}
 	// Create posts table
-	err = dbl.Table("posts").CreateIfNotExists(func(schema *t.Builder) {
+	_, err = dbl.Table("posts").CreateIfNotExists(func(schema *t.Builder) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("user_id")
 		schema.String("title", 200)
@@ -98,7 +99,7 @@ func createTables(dbl *dblayer.DBLayer) error {
 		return fmt.Errorf("error creating posts table: %w", err)
 	}
 	// Create comments table
-	err = dbl.Table("comments").CreateIfNotExists(func(schema *t.Builder) {
+	_, err = dbl.Table("comments").CreateIfNotExists(func(schema *t.Builder) {
 		schema.Integer("id").Primary().AutoIncrement()
 		schema.Integer("post_id")
 		schema.Integer("user_id")
