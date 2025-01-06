@@ -1,8 +1,8 @@
-# DBL
-### DBL is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQ, PostgreSQL and SQLite databases.
+# DBLayer
+### DBLayer is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQ, PostgreSQL and SQLite databases.
 
 ## Installation
-### go get github.com/antibomberman/dbl@v1.1.49
+### go get github.com/antibomberman/dblayer@v1.1.49
 
 ## Key Features
 
@@ -18,11 +18,17 @@
 - Window functions
 - Soft delete records
 
-# DBL
-### DBL - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
+## Documentation
+
+Detailed documentation on using Query is available in the [query documentation](docs/query_en).
+Detailed documentation on using Table is available in the [table documentation](docs/table_en).
+
+
+# DBLayer
+### DBLayer - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
 
 ## Установка
-### go get github.com/antibomberman/dbl@v1.1.49
+### go get github.com/antibomberman/dblayer@v1.1.49
 
 ## Основные возможности
 
@@ -43,5 +49,6 @@
 
 ## Документация
 
-Подробная документация по использованию DBLQuery доступна в [документации по запросам](docs/query_en).
+Подробная документация по использованию Query доступна в [документации по запросам](docs/query_ru).
+Подробная документация по использованию Table доступна в [документации по запросам](docs/table_ru).
 
