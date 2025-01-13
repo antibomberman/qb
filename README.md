@@ -2,7 +2,7 @@
 ### DBLayer is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQ, PostgreSQL and SQLite databases.
 
 ## Installation
-### go get github.com/antibomberman/dblayer@v1.1.58
+### go get github.com/antibomberman/dblayer@v1.1.60
 
 ## Key Features
 
@@ -28,7 +28,7 @@ Detailed documentation on using Table is available in the [table documentation](
 ### DBLayer - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
 
 ## Установка
-### go get github.com/antibomberman/dblayer@v1.1.58
+### go get github.com/antibomberman/dblayer@v1.1.60
 
 ## Основные возможности
 
