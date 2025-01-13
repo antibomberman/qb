@@ -2,6 +2,7 @@ package query
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1402,11 +1403,21 @@ func (qb *Builder) WhereTimeZone(column string, operator string, value time.Time
 }
 
 type PaginationResult struct {
-	Data        interface{} `json:"data"`
-	Total       int64       `json:"total"`
-	PerPage     int         `json:"per_page"`
-	CurrentPage int         `json:"current_page"`
-	LastPage    int         `json:"last_page"`
+	Total       int64 `json:"total"`
+	PerPage     int   `json:"per_page"`
+	CurrentPage int   `json:"current_page"`
+	LastPage    int   `json:"last_page"`
+}
+type PaginationTokenResult struct {
+	NextToken string `json:"next_token"`
+	HasMore   bool   `json:"has_more"`
+}
+
+// CursorPagination результат курсор-пагинации
+type CursorPagination struct {
+	Data       interface{} `json:"data"`
+	NextCursor string      `json:"next_cursor"`
+	HasMore    bool        `json:"has_more"`
 }
 
 // Paginate выполняет пагинацию результатов
@@ -1427,11 +1438,96 @@ func (qb *Builder) Paginate(page int, perPage int, dest interface{}) (*Paginatio
 	}
 
 	return &PaginationResult{
-		Data:        dest,
 		Total:       total,
 		PerPage:     perPage,
 		CurrentPage: page,
 		LastPage:    lastPage,
+	}, nil
+}
+
+// PaginateWithToken выполняет пагинацию с токеном
+func (qb *Builder) PaginateWithToken(token string, limit int, dest interface{}) (*PaginationTokenResult, error) {
+	if token != "" {
+		// Декодируем токен
+		tokenData, err := base64.URLEncoding.DecodeString(token)
+		if err != nil {
+			return nil, err
+		}
+
+		var lastID int64
+		if err := json.Unmarshal(tokenData, &lastID); err != nil {
+			return nil, err
+		}
+
+		qb.Where("id > ?", lastID)
+	}
+
+	qb.Limit(limit + 1) // Берем на 1 больше для проверки наличия следующей страницы
+
+	if _, err := qb.Get(dest); err != nil {
+		return nil, err
+	}
+
+	// Проверяем есть ли следующая страница
+	val := reflect.ValueOf(dest).Elem()
+	hasMore := val.Len() > limit
+
+	if hasMore {
+		// Удаляем последний элемент
+		val.Set(val.Slice(0, limit))
+
+		// Создаем токен из последнего ID
+		lastItem := val.Index(limit - 1)
+		lastID := lastItem.FieldByName("ID").Int()
+
+		tokenData, err := json.Marshal(lastID)
+		if err != nil {
+			return nil, err
+		}
+
+		nextToken := base64.URLEncoding.EncodeToString(tokenData)
+
+		return &PaginationTokenResult{
+			NextToken: nextToken,
+			HasMore:   true,
+		}, nil
+	}
+
+	return &PaginationTokenResult{
+		HasMore: false,
+	}, nil
+}
+
+// PaginateWithCursor выполняет пагинацию с курсором
+func (qb *Builder) PaginateWithCursor(cursor string, limit int, dest interface{}) (*CursorPagination, error) {
+	if cursor != "" {
+		qb.Where("id > ?", cursor)
+	}
+
+	qb.Limit(limit + 1)
+
+	if _, err := qb.Get(dest); err != nil {
+		return nil, err
+	}
+
+	val := reflect.ValueOf(dest).Elem()
+	hasMore := val.Len() > limit
+
+	if hasMore {
+		val.Set(val.Slice(0, limit))
+		lastItem := val.Index(limit - 1)
+		nextCursor := fmt.Sprint(lastItem.FieldByName("ID").Interface())
+
+		return &CursorPagination{
+			Data:       dest,
+			NextCursor: nextCursor,
+			HasMore:    true,
+		}, nil
+	}
+
+	return &CursorPagination{
+		Data:    dest,
+		HasMore: false,
 	}, nil
 }
 
