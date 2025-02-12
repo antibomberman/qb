@@ -581,7 +581,7 @@ func (qb *Builder) Increment(column string, value interface{}) error {
 
 	body, args := qb.buildBodyQuery()
 
-	args = append(args, value)
+	args = append([]interface{}{value}, args...)
 
 	return qb.execExecContext(qb.ctx, head+body, args...)
 }
@@ -591,7 +591,7 @@ func (qb *Builder) Decrement(column string, value interface{}) error {
 	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.tableName, column, column)
 
 	body, args := qb.buildBodyQuery()
-	args = append(args, value)
+	args = append([]interface{}{value}, args...)
 
 	return qb.execExecContext(qb.ctx, head+body, args...)
 }
