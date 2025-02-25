@@ -22,11 +22,11 @@ func (qb *Builder) Context(ctx context.Context) *Builder {
 }
 
 // Find ищет запись по id
-func (qb *Builder) Find(id interface{}, dest interface{}) (bool, error) {
+func (qb *Builder) Find(id any, dest any) (bool, error) {
 	qb.Where("id = ?", id)
 	return qb.First(dest)
 }
-func (qb *Builder) FindAsync(id interface{}, dest interface{}) (chan bool, chan error) {
+func (qb *Builder) FindAsync(id any, dest any) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
 	errorCh := make(chan error, 1)
 	go func() {
@@ -38,11 +38,11 @@ func (qb *Builder) FindAsync(id interface{}, dest interface{}) (chan bool, chan 
 }
 
 // Get получает все записи
-func (qb *Builder) Get(dest interface{}) (bool, error) {
+func (qb *Builder) Get(dest any) (bool, error) {
 	query, args := qb.buildSelectQuery()
 	return qb.execSelectContext(qb.ctx, dest, query, args...)
 }
-func (qb *Builder) GetAsync(dest interface{}) (chan bool, chan error) {
+func (qb *Builder) GetAsync(dest any) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
 	errorCh := make(chan error, 1)
 	go func() {
@@ -54,12 +54,12 @@ func (qb *Builder) GetAsync(dest interface{}) (chan bool, chan error) {
 }
 
 // First получает первую запись
-func (qb *Builder) First(dest interface{}) (bool, error) {
+func (qb *Builder) First(dest any) (bool, error) {
 	qb.Limit(1)
 	query, args := qb.buildSelectQuery()
 	return qb.execGetContext(qb.ctx, dest, query, args...)
 }
-func (qb *Builder) FirstAsync(dest interface{}) (chan bool, chan error) {
+func (qb *Builder) FirstAsync(dest any) (chan bool, chan error) {
 	foundCh := make(chan bool, 1)
 	errorCh := make(chan error, 1)
 	go func() {
@@ -70,7 +70,7 @@ func (qb *Builder) FirstAsync(dest interface{}) (chan bool, chan error) {
 	return foundCh, errorCh
 }
 
-func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
+func (qb *Builder) Create(data any, fields ...string) (any, error) {
 	go qb.Trigger(BeforeCreate, data)
 	defer func() {
 		go qb.Trigger(AfterCreate, data)
@@ -95,7 +95,7 @@ func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
 		strings.Join(placeholders, ", "))
 
 	if qb.getDriverName() == "postgres" {
-		var id int64
+		var id any
 		query += " RETURNING id"
 		err := qb.getExecutor().QueryRowx(query, data).Scan(&id)
 		return id, err
@@ -107,8 +107,8 @@ func (qb *Builder) Create(data interface{}, fields ...string) (int64, error) {
 	}
 	return result.LastInsertId()
 }
-func (qb *Builder) CreateAsync(data interface{}, fields ...string) (chan int64, chan error) {
-	idCh := make(chan int64, 1)
+func (qb *Builder) CreateAsync(data any, fields ...string) (chan any, chan error) {
+	idCh := make(chan any, 1)
 	errorCh := make(chan error, 1)
 	go func() {
 		id, err := qb.Create(data, fields...)
@@ -119,11 +119,11 @@ func (qb *Builder) CreateAsync(data interface{}, fields ...string) (chan int64, 
 }
 
 // CreateMap создает новую запись из map и возвращает её id
-func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
+func (qb *Builder) CreateMap(data map[string]any) (any, error) {
 	go qb.Trigger(BeforeCreate, data)
 	columns := make([]string, 0, len(data))
 	placeholders := make([]string, 0, len(data))
-	values := make([]interface{}, 0, len(data))
+	values := make([]any, 0, len(data))
 
 	for col, val := range data {
 		columns = append(columns, col)
@@ -137,7 +137,7 @@ func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
 		strings.Join(placeholders, ", "))
 
 	if qb.getDriverName() == "postgres" {
-		var id int64
+		var id any
 		query = qb.rebindQuery(query + " RETURNING id")
 		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(qb.ctx, query, values...).Scan(&id)
 		return id, err
@@ -150,8 +150,8 @@ func (qb *Builder) CreateMap(data map[string]interface{}) (int64, error) {
 	go qb.Trigger(AfterCreate, data)
 	return result.LastInsertId()
 }
-func (qb *Builder) CreateMapAsync(data map[string]interface{}) (chan int64, chan error) {
-	idCh := make(chan int64, 1)
+func (qb *Builder) CreateMapAsync(data map[string]any) (chan any, chan error) {
+	idCh := make(chan any, 1)
 	errorCh := make(chan error, 1)
 	go func() {
 		id, err := qb.CreateMap(data)
@@ -162,7 +162,7 @@ func (qb *Builder) CreateMapAsync(data map[string]interface{}) (chan int64, chan
 }
 
 // BatchInsert вставляет множество записей
-func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
+func (qb *Builder) BatchInsert(records []map[string]any) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -176,7 +176,7 @@ func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
 
 	// Создаем placeholders и значения
 	var placeholders []string
-	var values []interface{}
+	var values []any
 	for _, record := range records {
 		placeholder := make([]string, len(columns))
 		for i := range columns {
@@ -195,7 +195,7 @@ func (qb *Builder) BatchInsert(records []map[string]interface{}) error {
 
 	return qb.execExecContext(qb.ctx, query, values...)
 }
-func (qb *Builder) BatchInsertAsync(records []map[string]interface{}) chan error {
+func (qb *Builder) BatchInsertAsync(records []map[string]any) chan error {
 	ch := make(chan error, 1)
 	go func() {
 		err := qb.BatchInsert(records)
@@ -206,9 +206,9 @@ func (qb *Builder) BatchInsertAsync(records []map[string]interface{}) chan error
 }
 
 // BulkInsert выполняет массовую вставку записей с возвратом ID
-func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error) {
+func (qb *Builder) BulkInsert(records []map[string]any) error {
 	if len(records) == 0 {
-		return nil, nil
+		return nil
 	}
 
 	// Получаем все колонки из первой записи
@@ -220,7 +220,7 @@ func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error)
 
 	// Создаем placeholders и значения
 	var placeholders []string
-	var values []interface{}
+	var values []any
 	for _, record := range records {
 		placeholder := make([]string, len(columns))
 		for i := range columns {
@@ -238,9 +238,9 @@ func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error)
 			strings.Join(columns, ", "),
 			strings.Join(placeholders, ", "),
 		)
-		var ids []int64
+		var ids []any
 		err := qb.getExecutor().SelectContext(qb.ctx, &ids, qb.rebindQuery(query), values...)
-		return ids, err
+		return err
 	}
 
 	query = fmt.Sprintf(
@@ -252,40 +252,38 @@ func (qb *Builder) BulkInsert(records []map[string]interface{}) ([]int64, error)
 
 	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(qb.ctx, qb.rebindQuery(query), values...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	lastID, err := result.LastInsertId()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	ids := make([]int64, rowsAffected)
+	ids := make([]any, rowsAffected)
 	for i := range ids {
-		ids[i] = lastID + int64(i)
+		ids[i] = lastID
 	}
 
-	return ids, nil
+	return nil
 }
-func (qb *Builder) BulkInsertAsync(records []map[string]interface{}) (chan []int64, chan error) {
-	idsCh := make(chan []int64, 1)
+func (qb *Builder) BulkInsertAsync(records []map[string]any) chan error {
 	errorCh := make(chan error, 1)
 	go func() {
-		ids, err := qb.BulkInsert(records)
+		err := qb.BulkInsert(records)
 
-		idsCh <- ids
 		errorCh <- err
 	}()
-	return idsCh, errorCh
+	return errorCh
 }
 
 // Update обновляет записи используя структуру
-func (qb *Builder) Update(data interface{}, fields ...string) error {
+func (qb *Builder) Update(data any, fields ...string) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
@@ -293,7 +291,7 @@ func (qb *Builder) Update(data interface{}, fields ...string) error {
 	query, args := qb.buildUpdateQuery(data, fields)
 	return qb.execExecContext(qb.ctx, query, args...)
 }
-func (qb *Builder) UpdateAsync(data interface{}, fields ...string) chan error {
+func (qb *Builder) UpdateAsync(data any, fields ...string) chan error {
 	ch := make(chan error, 1)
 	go func() {
 		err := qb.Update(data, fields...)
@@ -303,7 +301,7 @@ func (qb *Builder) UpdateAsync(data interface{}, fields ...string) chan error {
 }
 
 // UpdateMap обновляет записи используя map
-func (qb *Builder) UpdateMap(data map[string]interface{}) error {
+func (qb *Builder) UpdateMap(data map[string]any) error {
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
@@ -312,7 +310,7 @@ func (qb *Builder) UpdateMap(data map[string]interface{}) error {
 	fmt.Println(query)
 	return qb.execExecContext(qb.ctx, query, args...)
 }
-func (qb *Builder) UpdateMapAsync(data map[string]interface{}) chan error {
+func (qb *Builder) UpdateMapAsync(data map[string]any) chan error {
 	ch := make(chan error, 1)
 	go func() {
 		err := qb.UpdateMap(data)
@@ -322,7 +320,7 @@ func (qb *Builder) UpdateMapAsync(data map[string]interface{}) chan error {
 }
 
 // BulkUpdate выполняет массовое обновление записей
-func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string) error {
+func (qb *Builder) BulkUpdate(records []map[string]any, keyColumn string) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -338,8 +336,8 @@ func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string
 
 	// Формируем CASE выражения для каждой колонки
 	cases := make([]string, len(columns))
-	keyValues := make([]interface{}, 0, len(records))
-	valueArgs := make([]interface{}, 0, len(records)*len(columns))
+	keyValues := make([]any, 0, len(records))
+	valueArgs := make([]any, 0, len(records)*len(columns))
 
 	for i, column := range columns {
 		whenClauses := make([]string, 0, len(records))
@@ -366,13 +364,13 @@ func (qb *Builder) BulkUpdate(records []map[string]interface{}, keyColumn string
 	)
 
 	// Объединяем все аргументы
-	args := make([]interface{}, 0, len(valueArgs)+len(keyValues))
+	args := make([]any, 0, len(valueArgs)+len(keyValues))
 	args = append(args, valueArgs...)
 	args = append(args, keyValues...)
 
 	return qb.execExecContext(qb.ctx, query, args...)
 }
-func (qb *Builder) BulkUpdateAsync(records []map[string]interface{}, keyColumn string) chan error {
+func (qb *Builder) BulkUpdateAsync(records []map[string]any, keyColumn string) chan error {
 	ch := make(chan error, 1)
 	go func() {
 		err := qb.BulkUpdate(records, keyColumn)
@@ -382,7 +380,7 @@ func (qb *Builder) BulkUpdateAsync(records []map[string]interface{}, keyColumn s
 }
 
 // BatchUpdate обновляет записи пакетами указанного размера
-func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn string, batchSize int) error {
+func (qb *Builder) BatchUpdate(records []map[string]any, keyColumn string, batchSize int) error {
 	if len(records) == 0 {
 		return nil
 	}
@@ -408,7 +406,7 @@ func (qb *Builder) BatchUpdate(records []map[string]interface{}, keyColumn strin
 
 	return nil
 }
-func (qb *Builder) BatchUpdateAsync(records []map[string]interface{}, keyColumn string, batchSize int) chan error {
+func (qb *Builder) BatchUpdateAsync(records []map[string]any, keyColumn string, batchSize int) chan error {
 	ch := make(chan error, 1)
 	go func() {
 		err := qb.BatchUpdate(records, keyColumn, batchSize)
@@ -443,7 +441,7 @@ func (qb *Builder) Select(columns ...string) *Builder {
 }
 
 // Where добавляет условие AND
-func (qb *Builder) Where(condition string, args ...interface{}) *Builder {
+func (qb *Builder) Where(condition string, args ...any) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   condition,
@@ -453,13 +451,13 @@ func (qb *Builder) Where(condition string, args ...interface{}) *Builder {
 }
 
 // WhereId добавляет условие WHERE id = ?
-func (qb *Builder) WhereId(id interface{}) *Builder {
+func (qb *Builder) WhereId(id any) *Builder {
 	qb.Where("id = ?", id)
 	return qb
 }
 
 // OrWhere добавляет условие OR
-func (qb *Builder) OrWhere(condition string, args ...interface{}) *Builder {
+func (qb *Builder) OrWhere(condition string, args ...any) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "OR",
 		clause:   condition,
@@ -469,7 +467,7 @@ func (qb *Builder) OrWhere(condition string, args ...interface{}) *Builder {
 }
 
 // WhereIn добавляет условие IN
-func (qb *Builder) WhereIn(column string, values ...interface{}) *Builder {
+func (qb *Builder) WhereIn(column string, values ...any) *Builder {
 	placeholders := make([]string, len(values))
 	for i := range values {
 		placeholders[i] = "?"
@@ -488,7 +486,7 @@ func (qb *Builder) WhereGroup(fn func(*Builder)) *Builder {
 	group := &Builder{}
 	fn(group)
 
-	var args []interface{}
+	var args []any
 	for _, cond := range group.conditions {
 		args = append(args, cond.args...)
 	}
@@ -505,7 +503,7 @@ func (qb *Builder) WhereGroup(fn func(*Builder)) *Builder {
 func (qb *Builder) OrWhereGroup(fn func(*Builder)) *Builder {
 	group := &Builder{}
 	fn(group)
-	var args []interface{}
+	var args []any
 	for _, cond := range group.conditions {
 		args = append(args, cond.args...)
 	}
@@ -576,22 +574,22 @@ func (qb *Builder) As(alias string) *Builder {
 }
 
 // Increment увеличивает значение поля
-func (qb *Builder) Increment(column string, value interface{}) error {
+func (qb *Builder) Increment(column string, value any) error {
 	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.tableName, column, column)
 
 	body, args := qb.buildBodyQuery()
 
-	args = append([]interface{}{value}, args...)
+	args = append([]any{value}, args...)
 
 	return qb.execExecContext(qb.ctx, head+body, args...)
 }
 
 // Decrement уменьшает значение поля
-func (qb *Builder) Decrement(column string, value interface{}) error {
+func (qb *Builder) Decrement(column string, value any) error {
 	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.tableName, column, column)
 
 	body, args := qb.buildBodyQuery()
-	args = append([]interface{}{value}, args...)
+	args = append([]any{value}, args...)
 
 	return qb.execExecContext(qb.ctx, head+body, args...)
 }
@@ -666,27 +664,27 @@ func (qb *Builder) WhereNotNull(column string) *Builder {
 }
 
 // WhereBetween добавляет условие BETWEEN
-func (qb *Builder) WhereBetween(column string, start, end interface{}) *Builder {
+func (qb *Builder) WhereBetween(column string, start, end any) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s BETWEEN ? AND ?", column),
-		args:     []interface{}{start, end},
+		args:     []any{start, end},
 	})
 	return qb
 }
 
 // WhereNotBetween добавляет условие NOT BETWEEN
-func (qb *Builder) WhereNotBetween(column string, start, end interface{}) *Builder {
+func (qb *Builder) WhereNotBetween(column string, start, end any) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s NOT BETWEEN ? AND ?", column),
-		args:     []interface{}{start, end},
+		args:     []any{start, end},
 	})
 	return qb
 }
 
 // HavingRaw добавляет сырое условие HAVING
-func (qb *Builder) HavingRaw(sql string, args ...interface{}) *Builder {
+func (qb *Builder) HavingRaw(sql string, args ...any) *Builder {
 	if qb.having != "" {
 		qb.having += " AND "
 	}
@@ -760,7 +758,7 @@ func (qb *Builder) DenseRank(partition string, orderBy string, alias string) *Bu
 }
 
 // WhereRaw добавляет сырое условие WHERE
-func (qb *Builder) WhereRaw(sql string, args ...interface{}) *Builder {
+func (qb *Builder) WhereRaw(sql string, args ...any) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   sql,
@@ -770,7 +768,7 @@ func (qb *Builder) WhereRaw(sql string, args ...interface{}) *Builder {
 }
 
 // OrWhereRaw добавляет сырое условие через OR
-func (qb *Builder) OrWhereRaw(sql string, args ...interface{}) *Builder {
+func (qb *Builder) OrWhereRaw(sql string, args ...any) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "OR",
 		clause:   sql,
@@ -780,7 +778,7 @@ func (qb *Builder) OrWhereRaw(sql string, args ...interface{}) *Builder {
 }
 
 // Pluck получает значения одной колонки
-func (qb *Builder) Pluck(column string, dest interface{}) error {
+func (qb *Builder) Pluck(column string, dest any) error {
 	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
@@ -789,21 +787,21 @@ func (qb *Builder) Pluck(column string, dest interface{}) error {
 }
 
 // Chunk обрабатывает записи чанками
-func (qb *Builder) Chunk(size int, fn func(items interface{}) error) error {
-	return qb.ChunkContext(context.Background(), size, func(_ context.Context, items interface{}) error {
+func (qb *Builder) Chunk(size int, fn func(items any) error) error {
+	return qb.ChunkContext(context.Background(), size, func(_ context.Context, items any) error {
 		return fn(items)
 	})
 }
 
 // ChunkContext обрабатывает записи чанками с контекстом
-func (qb *Builder) ChunkContext(ctx context.Context, size int, fn func(context.Context, interface{}) error) error {
+func (qb *Builder) ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error) error {
 	offset := 0
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		dest := make([]map[string]interface{}, 0, size)
+		dest := make([]map[string]any, 0, size)
 
 		query, args := qb.buildSelectQuery()
 		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
@@ -843,19 +841,19 @@ func (qb *Builder) Distinct(columns ...string) *Builder {
 }
 
 // Raw выполняет сырой SQL запрос
-func (qb *Builder) Raw(query string, args ...interface{}) error {
+func (qb *Builder) Raw(query string, args ...any) error {
 	return qb.execExec(query, args...)
 }
 
 // RawQuery выполняет сырой SQL запрос с возвратом данных
-func (qb *Builder) RawQuery(dest interface{}, query string, args ...interface{}) error {
+func (qb *Builder) RawQuery(dest any, query string, args ...any) error {
 	_, err := qb.execSelect(dest, query, args...)
 	return err
 }
 
 // Value получает значение одного поля
-func (qb *Builder) Value(column string) (interface{}, error) {
-	var result interface{}
+func (qb *Builder) Value(column string) (any, error) {
+	var result any
 	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
 	qb.Limit(1)
 
@@ -866,8 +864,8 @@ func (qb *Builder) Value(column string) (interface{}, error) {
 }
 
 // Values получает значения одного поля для всех записей
-func (qb *Builder) Values(column string) ([]interface{}, error) {
-	var result []interface{}
+func (qb *Builder) Values(column string) ([]any, error) {
+	var result []any
 	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
@@ -893,14 +891,14 @@ func (qb *Builder) OnlyTrashed() *Builder {
 
 // SoftDelete помечает записи как удаленные
 func (qb *Builder) SoftDelete() error {
-	return qb.UpdateMap(map[string]interface{}{
+	return qb.UpdateMap(map[string]any{
 		"deleted_at": time.Now(),
 	})
 }
 
 // Restore восстанавливает удаленные записи
 func (qb *Builder) Restore() error {
-	return qb.UpdateMap(map[string]interface{}{
+	return qb.UpdateMap(map[string]any{
 		"deleted_at": nil,
 	})
 }
@@ -974,7 +972,7 @@ func (qb *Builder) GeoSearch(column string, point Point, radius float64) *Builde
 			clause: fmt.Sprintf(
 				"ST_DWithin(ST_SetSRID(ST_MakePoint(%s), 4326), ST_SetSRID(ST_MakePoint(?, ?), 4326), ?)",
 				column),
-			args: []interface{}{point.Lng, point.Lat, radius},
+			args: []any{point.Lng, point.Lat, radius},
 		})
 	} else {
 		// Для MySQL
@@ -983,7 +981,7 @@ func (qb *Builder) GeoSearch(column string, point Point, radius float64) *Builde
 			clause: fmt.Sprintf(
 				"ST_Distance_Sphere(%s, POINT(?, ?)) <= ?",
 				column),
-			args: []interface{}{point.Lng, point.Lat, radius},
+			args: []any{point.Lng, point.Lat, radius},
 		})
 	}
 	return qb
@@ -1011,7 +1009,7 @@ func (qb *Builder) Search(columns []string, query string) *Builder {
 			operator: "AND",
 			clause: fmt.Sprintf("to_tsvector(concat_ws(' ', %s)) @@ plainto_tsquery(?)",
 				strings.Join(columns, ", ")),
-			args: []interface{}{query},
+			args: []any{query},
 		})
 
 		qb.OrderBy("search_rank", "DESC")
@@ -1025,7 +1023,7 @@ func (qb *Builder) Search(columns []string, query string) *Builder {
 			operator: "AND",
 			clause: fmt.Sprintf("MATCH(%s) AGAINST(? IN BOOLEAN MODE)",
 				strings.Join(columns, ",")),
-			args: []interface{}{query},
+			args: []any{query},
 		})
 
 		qb.OrderBy("search_rank", "DESC")
@@ -1105,7 +1103,7 @@ func (qb *Builder) WhereDate(column string, operator string, value time.Time) *B
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) %s ?", column, operator),
-		args:     []interface{}{value.Format("2006-01-02")},
+		args:     []any{value.Format("2006-01-02")},
 	})
 	return qb
 }
@@ -1115,7 +1113,7 @@ func (qb *Builder) WhereBetweenDates(column string, start time.Time, end time.Ti
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) BETWEEN ? AND ?", column),
-		args:     []interface{}{start.Format("2006-01-02"), end.Format("2006-01-02")},
+		args:     []any{start.Format("2006-01-02"), end.Format("2006-01-02")},
 	})
 	return qb
 }
@@ -1125,7 +1123,7 @@ func (qb *Builder) WhereDateTime(column string, operator string, value time.Time
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s %s ?", column, operator),
-		args:     []interface{}{value.Format("2006-01-02 15:04:05")},
+		args:     []any{value.Format("2006-01-02 15:04:05")},
 	})
 	return qb
 }
@@ -1135,7 +1133,7 @@ func (qb *Builder) WhereBetweenDateTime(column string, start time.Time, end time
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s BETWEEN ? AND ?", column),
-		args: []interface{}{
+		args: []any{
 			start.Format("2006-01-02 15:04:05"),
 			end.Format("2006-01-02 15:04:05"),
 		},
@@ -1148,7 +1146,7 @@ func (qb *Builder) WhereYear(column string, operator string, year int) *Builder 
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(YEAR FROM %s) %s ?", column, operator),
-		args:     []interface{}{year},
+		args:     []any{year},
 	})
 	return qb
 }
@@ -1158,7 +1156,7 @@ func (qb *Builder) WhereMonth(column string, operator string, month int) *Builde
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(MONTH FROM %s) %s ?", column, operator),
-		args:     []interface{}{month},
+		args:     []any{month},
 	})
 	return qb
 }
@@ -1168,7 +1166,7 @@ func (qb *Builder) WhereDay(column string, operator string, day int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(DAY FROM %s) %s ?", column, operator),
-		args:     []interface{}{day},
+		args:     []any{day},
 	})
 	return qb
 }
@@ -1178,7 +1176,7 @@ func (qb *Builder) WhereTime(column string, operator string, value time.Time) *B
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("TIME(%s) %s ?", column, operator),
-		args:     []interface{}{value.Format("15:04:05")},
+		args:     []any{value.Format("15:04:05")},
 	})
 	return qb
 }
@@ -1207,7 +1205,7 @@ func (qb *Builder) WhereLastDays(column string, days int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) >= CURRENT_DATE - INTERVAL ? DAY", column),
-		args:     []interface{}{days},
+		args:     []any{days},
 	})
 	return qb
 }
@@ -1217,7 +1215,7 @@ func (qb *Builder) WhereWeekday(column string, operator string, weekday int) *Bu
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(DOW FROM %s) %s ?", column, operator),
-		args:     []interface{}{weekday},
+		args:     []any{weekday},
 	})
 	return qb
 }
@@ -1227,7 +1225,7 @@ func (qb *Builder) WhereQuarter(column string, operator string, quarter int) *Bu
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(QUARTER FROM %s) %s ?", column, operator),
-		args:     []interface{}{quarter},
+		args:     []any{quarter},
 	})
 	return qb
 }
@@ -1237,7 +1235,7 @@ func (qb *Builder) WhereWeek(column string, operator string, week int) *Builder 
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(WEEK FROM %s) %s ?", column, operator),
-		args:     []interface{}{week},
+		args:     []any{week},
 	})
 	return qb
 }
@@ -1251,7 +1249,7 @@ func (qb *Builder) WhereDateRange(column string, start time.Time, end time.Time,
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) > ? AND DATE(%s) < ?", column, column),
-		args:     []interface{}{start.Format("2006-01-02"), end.Format("2006-01-02")},
+		args:     []any{start.Format("2006-01-02"), end.Format("2006-01-02")},
 	})
 	return qb
 }
@@ -1261,7 +1259,7 @@ func (qb *Builder) WhereNextDays(column string, days int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("DATE(%s) <= CURRENT_DATE + INTERVAL ? DAY AND DATE(%s) >= CURRENT_DATE", column, column),
-		args:     []interface{}{days},
+		args:     []any{days},
 	})
 	return qb
 }
@@ -1280,7 +1278,7 @@ func (qb *Builder) WhereAge(column string, operator string, age int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXTRACT(YEAR FROM AGE(%s)) %s ?", column, operator),
-		args:     []interface{}{age},
+		args:     []any{age},
 	})
 	return qb
 }
@@ -1291,7 +1289,7 @@ func (qb *Builder) WhereDateDiff(column1 string, column2 string, operator string
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf(df.DateDiff+" %s ?", column1, column2, operator),
-		args:     []interface{}{days},
+		args:     []any{days},
 	})
 	return qb
 }
@@ -1300,16 +1298,16 @@ func (qb *Builder) WhereDateDiff(column1 string, column2 string, operator string
 func (qb *Builder) WhereDateTrunc(part string, column string, operator string, value time.Time) *Builder {
 	df := qb.getDateFunctions()
 	var clause string
-	var args []interface{}
+	var args []any
 
 	if qb.getDriverName() == "postgres" {
 		clause = fmt.Sprintf("%s(?, %s) %s ?", df.DateTrunc, column, operator)
-		args = []interface{}{part, value}
+		args = []any{part, value}
 	} else {
 		// Преобразуем part в формат MySQL
 		format := getMySQLDateFormat(part)
 		clause = fmt.Sprintf("%s(%s, ?) %s ?", df.DateTrunc, column, operator)
-		args = []interface{}{format, value.Format(format)}
+		args = []any{format, value.Format(format)}
 	}
 
 	qb.conditions = append(qb.conditions, Condition{
@@ -1326,7 +1324,7 @@ func (qb *Builder) WhereTimeWindow(column string, startTime, endTime time.Time) 
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
 			clause:   fmt.Sprintf("EXTRACT(HOUR FROM %s) * 60 + EXTRACT(MINUTE FROM %s) BETWEEN ? AND ?", column, column),
-			args: []interface{}{
+			args: []any{
 				startTime.Hour()*60 + startTime.Minute(),
 				endTime.Hour()*60 + endTime.Minute(),
 			},
@@ -1335,7 +1333,7 @@ func (qb *Builder) WhereTimeWindow(column string, startTime, endTime time.Time) 
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
 			clause:   fmt.Sprintf("TIME(%s) BETWEEN ? AND ?", column),
-			args: []interface{}{
+			args: []any{
 				startTime.Format("15:04:05"),
 				endTime.Format("15:04:05"),
 			},
@@ -1370,13 +1368,13 @@ func (qb *Builder) WhereDateFormat(column string, format string, operator string
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
 			clause:   fmt.Sprintf("%s(%s, ?) %s ?", df.DateFormat, column, operator),
-			args:     []interface{}{pgFormat, value},
+			args:     []any{pgFormat, value},
 		})
 	} else {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
 			clause:   fmt.Sprintf("%s(%s, ?) %s ?", df.DateFormat, column, operator),
-			args:     []interface{}{format, value},
+			args:     []any{format, value},
 		})
 	}
 	return qb
@@ -1390,13 +1388,13 @@ func (qb *Builder) WhereTimeZone(column string, operator string, value time.Time
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
 			clause:   fmt.Sprintf("%s %s ? %s ?", column, df.TimeZone, operator),
-			args:     []interface{}{timezone, value},
+			args:     []any{timezone, value},
 		})
 	} else {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
 			clause:   fmt.Sprintf("%s(%s, 'UTC', ?) %s ?", df.TimeZone, column, operator),
-			args:     []interface{}{timezone, value},
+			args:     []any{timezone, value},
 		})
 	}
 	return qb
@@ -1415,13 +1413,13 @@ type PaginationTokenResult struct {
 
 // CursorPagination результат курсор-пагинации
 type CursorPagination struct {
-	Data       interface{} `json:"data"`
-	NextCursor string      `json:"next_cursor"`
-	HasMore    bool        `json:"has_more"`
+	Data       any    `json:"data"`
+	NextCursor string `json:"next_cursor"`
+	HasMore    bool   `json:"has_more"`
 }
 
 // Paginate выполняет пагинацию результатов
-func (qb *Builder) Paginate(page int, perPage int, dest interface{}) (*PaginationResult, error) {
+func (qb *Builder) Paginate(page int, perPage int, dest any) (*PaginationResult, error) {
 	total, err := qb.Count()
 	if err != nil {
 		return nil, err
@@ -1446,7 +1444,7 @@ func (qb *Builder) Paginate(page int, perPage int, dest interface{}) (*Paginatio
 }
 
 // PaginateWithToken выполняет пагинацию с токеном
-func (qb *Builder) PaginateWithToken(token string, limit int, dest interface{}) (*PaginationTokenResult, error) {
+func (qb *Builder) PaginateWithToken(token string, limit int, dest any) (*PaginationTokenResult, error) {
 	if token != "" {
 		// Декодируем токен
 		tokenData, err := base64.URLEncoding.DecodeString(token)
@@ -1454,7 +1452,7 @@ func (qb *Builder) PaginateWithToken(token string, limit int, dest interface{}) 
 			return nil, err
 		}
 
-		var lastID int64
+		var lastID any
 		if err := json.Unmarshal(tokenData, &lastID); err != nil {
 			return nil, err
 		}
@@ -1499,7 +1497,7 @@ func (qb *Builder) PaginateWithToken(token string, limit int, dest interface{}) 
 }
 
 // PaginateWithCursor выполняет пагинацию с курсором
-func (qb *Builder) PaginateWithCursor(cursor string, limit int, dest interface{}) (*CursorPagination, error) {
+func (qb *Builder) PaginateWithCursor(cursor string, limit int, dest any) (*CursorPagination, error) {
 	if cursor != "" {
 		qb.Where("id > ?", cursor)
 	}
@@ -1592,30 +1590,30 @@ func (qb *Builder) Exists() (bool, error) {
 type AuditLog struct {
 	ID        int64     `db:"id"`
 	tableName string    `db:"table_name"`
-	RecordID  int64     `db:"record_id"`
+	RecordID  any       `db:"record_id"`
 	Action    string    `db:"action"`
 	OldData   []byte    `db:"old_data"`
 	NewData   []byte    `db:"new_data"`
-	UserID    int64     `db:"user_id"`
+	UserID    any       `db:"user_id"`
 	CreatedAt time.Time `db:"created_at"`
 }
 
 // WithAudit включает аудит для запроса
-func (qb *Builder) WithAudit(userID int64) *Builder {
-	qb.On(BeforeUpdate, func(data interface{}) error {
+func (qb *Builder) WithAudit(userID any) *Builder {
+	qb.On(BeforeUpdate, func(data any) error {
 		var oldData []byte
-		var recordID int64
+		var recordID any
 		var err error
 
 		for _, cond := range qb.conditions {
 			if cond.clause == "id = ?" {
-				recordID = int64(cond.args[0].(int))
+				recordID = cond.args[0]
 				break
 			}
 		}
 
 		switch v := data.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			oldData, err = json.Marshal(v)
 		default:
 			oldData, err = json.Marshal(data)
@@ -1637,21 +1635,21 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 		return err
 	})
 
-	qb.On(AfterUpdate, func(data interface{}) error {
+	qb.On(AfterUpdate, func(data any) error {
 		var newData []byte
-		var recordID int64
+		var recordID any
 		var err error
 
 		// Получаем ID из условий WHERE
 		for _, cond := range qb.conditions {
 			if cond.clause == "id = ?" {
-				recordID = int64(cond.args[0].(int))
+				recordID = any(cond.args[0].(int))
 				break
 			}
 		}
 
 		switch v := data.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			newData, err = json.Marshal(v)
 		default:
 			newData, err = json.Marshal(data)
@@ -1666,21 +1664,21 @@ func (qb *Builder) WithAudit(userID int64) *Builder {
 			Where("record_id = ?", recordID).
 			OrderBy("id", "DESC").
 			Limit(1).
-			UpdateMap(map[string]interface{}{
+			UpdateMap(map[string]any{
 				"new_data": newData,
 			})
 	})
 
-	qb.On(AfterCreate, func(data interface{}) error {
+	qb.On(AfterCreate, func(data any) error {
 		var newData []byte
-		var recordID int64
+		var recordID any
 		var err error
 
 		switch v := data.(type) {
-		case map[string]interface{}:
+		case map[string]any:
 			newData, err = json.Marshal(v)
 			if id, ok := v["id"]; ok {
-				recordID = int64(id.(int))
+				recordID = id
 			}
 		default:
 			val := reflect.ValueOf(data)
@@ -1722,7 +1720,7 @@ type QueuedOperation struct {
 }
 
 // Queue добавляет операцию в очередь
-func (qb *Builder) Queue(operation string, data interface{}, runAt time.Time) error {
+func (qb *Builder) Queue(operation string, data any, runAt time.Time) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -1753,7 +1751,7 @@ func (qb *Builder) ProcessQueue(handler func(QueuedOperation) error) error {
 		}
 
 		err = qb.Where("id = ?", op.ID).
-			UpdateMap(map[string]interface{}{
+			UpdateMap(map[string]any{
 				"status": "completed",
 			})
 		if err != nil {
@@ -1809,13 +1807,13 @@ func (mc *MetricsCollector) Track(query string, duration time.Duration, err erro
 
 // WithMetrics добавляет сбор метрик
 func (qb *Builder) WithMetrics(collector *MetricsCollector) *Builder {
-	qb.On(BeforeCreate, func(data interface{}) error {
+	qb.On(BeforeCreate, func(data any) error {
 		start := time.Now()
 		collector.Track("CREATE", time.Since(start), nil)
 		return nil
 	})
 
-	qb.On(BeforeUpdate, func(data interface{}) error {
+	qb.On(BeforeUpdate, func(data any) error {
 		start := time.Now()
 		collector.Track("UPDATE", time.Since(start), nil)
 		return nil
