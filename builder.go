@@ -53,7 +53,13 @@ type Executor interface {
 // execGet выполняет запрос и получает одну запись
 func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
+	start := time.Now()
+	qb.queryBuilder.logger.Debug(query, args...)
 	err := qb.getExecutor().Get(dest, query, args...)
+	qb.queryBuilder.logger.QueryTiming(time.Since(start), query, args...)
+	if err != nil {
+		qb.queryBuilder.logger.Error(query, args...)
+	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -63,7 +69,13 @@ func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
 // execSelect выполняет запрос и получает множество записей
 func (qb *Builder) execSelect(dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
+	start := time.Now()
+	qb.queryBuilder.logger.Debug(query, args...)
 	err := qb.getExecutor().Select(dest, query, args...)
+	qb.queryBuilder.logger.QueryTiming(time.Since(start), query, args...)
+	if err != nil {
+		qb.queryBuilder.logger.Error(query, args...)
+	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
@@ -73,17 +85,29 @@ func (qb *Builder) execSelect(dest any, query string, args ...any) (bool, error)
 // execExec выполняет запрос без возврата данных
 func (qb *Builder) execExec(query string, args ...any) error {
 	query = qb.rebindQuery(query)
+	start := time.Now()
+	qb.queryBuilder.logger.Debug(query, args...)
 	_, err := qb.getExecutor().Exec(query, args...)
+	qb.queryBuilder.logger.QueryTiming(time.Since(start), query, args...)
+	if err != nil {
+		qb.queryBuilder.logger.Error(query, args...)
+	}
 	return err
 }
 
 // execGetContext выполняет запрос с контекстом и получает одну запись
 func (qb *Builder) execGetContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
+	start := time.Now()
+	qb.queryBuilder.logger.Debug(query, args...)
 	if ex, ok := qb.getExecutor().(interface {
 		GetContext(context.Context, any, string, ...any) error
 	}); ok {
 		err := ex.GetContext(ctx, dest, query, args...)
+		qb.queryBuilder.logger.QueryTiming(time.Since(start), query, args...)
+		if err != nil {
+			qb.queryBuilder.logger.Error(query, args...)
+		}
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
@@ -95,10 +119,16 @@ func (qb *Builder) execGetContext(ctx context.Context, dest any, query string, a
 // execSelectContext выполняет запрос с контекстом и получает множество записей
 func (qb *Builder) execSelectContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
+	start := time.Now()
+	qb.queryBuilder.logger.Debug(query, args...)
 	if ex, ok := qb.getExecutor().(interface {
 		SelectContext(context.Context, any, string, ...any) error
 	}); ok {
 		err := ex.SelectContext(ctx, dest, query, args...)
+		qb.queryBuilder.logger.QueryTiming(time.Since(start), query, args...)
+		if err != nil {
+			qb.queryBuilder.logger.Error(query, args...)
+		}
 		if errors.Is(err, sql.ErrNoRows) {
 			return false, nil
 		}
@@ -110,10 +140,16 @@ func (qb *Builder) execSelectContext(ctx context.Context, dest any, query string
 // execExecContext выполняет запрос с контекстом
 func (qb *Builder) execExecContext(ctx context.Context, query string, args ...any) error {
 	query = qb.rebindQuery(query)
+	start := time.Now()
+	qb.queryBuilder.logger.Debug(query, args...)
 	if ex, ok := qb.getExecutor().(interface {
 		ExecContext(context.Context, string, ...any) (sql.Result, error)
 	}); ok {
 		_, err := ex.ExecContext(ctx, query, args...)
+		qb.queryBuilder.logger.QueryTiming(time.Since(start), query, args...)
+		if err != nil {
+			qb.queryBuilder.logger.Error(query, args...)
+		}
 		return err
 	}
 	return fmt.Errorf("executor doesn't support context")

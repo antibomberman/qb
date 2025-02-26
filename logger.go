@@ -2,7 +2,7 @@ package qb
 
 import (
 	"fmt"
-	"log"
+	"os"
 	"time"
 )
 
@@ -20,6 +20,7 @@ type Logger interface {
 	Info(query string, args ...any)
 	Warn(query string, args ...any)
 	Error(query string, args ...any)
+	QueryTiming(duration time.Duration, query string, args ...any)
 }
 
 type DefaultLogger struct {
@@ -33,8 +34,21 @@ func NewLogger(level LogLevel) *DefaultLogger {
 func (l *DefaultLogger) log(level LogLevel, query string, args ...any) {
 	if level >= l.level {
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		message := fmt.Sprintf("[%s] %s; args: %v", timestamp, query, args)
-		log.Println(message)
+		message := fmt.Sprintf("[%s] %s; args: %v\n", timestamp, query, args)
+		fmt.Fprint(os.Stdout, message)
+	}
+}
+
+func (l *DefaultLogger) QueryTiming(duration time.Duration, query string, args ...any) {
+	if l.level <= LogLevelDebug {
+		timestamp := time.Now().Format("2006-01-02 15:04:05")
+		message := fmt.Sprintf("[%s] Query took %s: %s; args: %v\n",
+			timestamp,
+			duration.String(),
+			query,
+			args,
+		)
+		fmt.Fprint(os.Stdout, message)
 	}
 }
 
