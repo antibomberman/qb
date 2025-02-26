@@ -840,17 +840,6 @@ func (qb *Builder) Distinct(columns ...string) *Builder {
 	return qb
 }
 
-// Raw выполняет сырой SQL запрос
-func (qb *Builder) Raw(query string, args ...any) error {
-	return qb.execExec(query, args...)
-}
-
-// RawQuery выполняет сырой SQL запрос с возвратом данных
-func (qb *Builder) RawQuery(dest any, query string, args ...any) error {
-	_, err := qb.execSelect(dest, query, args...)
-	return err
-}
-
 // Value получает значение одного поля
 func (qb *Builder) Value(column string) (any, error) {
 	var result any
