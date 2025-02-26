@@ -27,6 +27,7 @@ type QueryBuilder struct {
 	db         DBInterface
 	driverName string
 	cache      CacheInterface
+	logger     Logger
 }
 
 func New(driverName string, db *sql.DB) *QueryBuilder {
@@ -37,6 +38,7 @@ func NewX(driverName string, db *sqlx.DB) *QueryBuilder {
 		db:         db,
 		driverName: driverName,
 		cache:      NewCacheMemory(),
+		logger:     NewLogger(LogLevelInfo),
 	}
 }
 
@@ -68,4 +70,8 @@ func (t *Transaction) Raw(query string, args ...any) *RawQuery {
 
 func (q *QueryBuilder) GetDB() DBInterface {
 	return q.db
+}
+
+func (q *QueryBuilder) SetLogger(logger Logger) {
+	q.logger = logger
 }

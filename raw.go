@@ -18,16 +18,30 @@ type RawQuery struct {
 
 // Exec выполняет запрос без возврата результатов
 func (r *RawQuery) Exec() error {
+	r.db.(interface{ GetLogger() Logger }).GetLogger().Debug(r.query, r.args...)
 	_, err := r.db.Exec(r.query, r.args...)
+	if err != nil {
+		r.db.(interface{ GetLogger() Logger }).GetLogger().Error(r.query, r.args...)
+	}
 	return err
 }
 
 // Query выполняет запрос и сканирует результаты в slice
 func (r *RawQuery) Query(dest any) error {
-	return r.db.Select(dest, r.query, r.args...)
+	r.db.(interface{ GetLogger() Logger }).GetLogger().Debug(r.query, r.args...)
+	err := r.db.Select(dest, r.query, r.args...)
+	if err != nil {
+		r.db.(interface{ GetLogger() Logger }).GetLogger().Error(r.query, r.args...)
+	}
+	return err
 }
 
 // QueryRow выполняет запрос и сканирует один результат
 func (r *RawQuery) QueryRow(dest any) error {
-	return r.db.Get(dest, r.query, r.args...)
+	r.db.(interface{ GetLogger() Logger }).GetLogger().Debug(r.query, r.args...)
+	err := r.db.Get(dest, r.query, r.args...)
+	if err != nil {
+		r.db.(interface{ GetLogger() Logger }).GetLogger().Error(r.query, r.args...)
+	}
+	return err
 }
