@@ -6,77 +6,40 @@ import (
 	"time"
 )
 
-type LogLevel int
-
-const (
-	LogLevelDebug LogLevel = iota
-	LogLevelInfo
-	LogLevelWarn
-	LogLevelError
-)
-
-type Logger interface {
-	Debug(duration time.Time, query string, args ...any)
-	Info(duration time.Time, query string, args ...any)
-	Warn(duration time.Time, query string, args ...any)
-	Error(duration time.Time, query string, args ...any)
+func NewDefaultLogger() *slog.Logger {
+	return slog.New(
+		slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+	)
 }
 
-type DefaultLogger struct {
-	level  LogLevel
-	logger *slog.Logger
+func (l *QueryBuilder) Debug(start time.Time, query string, args ...any) {
+	l.logger.Debug("SQL",
+		slog.String("query", query),
+		slog.Any("arg", args),
+		slog.String("mc", time.Since(start).String()),
+	)
 }
 
-func NewLogger(level LogLevel) *DefaultLogger {
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == slog.TimeKey {
-				return slog.Attr{
-					Key:   slog.TimeKey,
-					Value: slog.StringValue(time.Now().Format("2006-01-02 15:04:05")),
-				}
-			}
-			return a
-		},
-	}
-	handler := slog.NewJSONHandler(os.Stdout, opts)
-	logger := slog.New(handler)
-
-	return &DefaultLogger{
-		level:  level,
-		logger: logger,
-	}
+func (l *QueryBuilder) Info(start time.Time, query string, args ...any) {
+	l.logger.Info("SQL",
+		slog.String("query", query),
+		slog.Any("arg", args),
+		slog.String("mc", time.Since(start).String()),
+	)
 }
 
-func (l *DefaultLogger) Debug(start time.Time, query string, args ...any) {
-	l.logger.Debug("SQL", map[string]any{
-		"query": query,
-		"args":  args,
-		"time":  time.Since(start).String(),
-	})
+func (l *QueryBuilder) Warn(start time.Time, query string, args ...any) {
+	l.logger.Warn("SQL",
+		slog.String("query", query),
+		slog.Any("arg", args),
+		slog.String("mc", time.Since(start).String()),
+	)
 }
 
-func (l *DefaultLogger) Info(start time.Time, query string, args ...any) {
-	l.logger.Debug("SQL", map[string]any{
-		"query": query,
-		"args":  args,
-		"time":  time.Since(start).String(),
-	})
-}
-
-func (l *DefaultLogger) Warn(start time.Time, query string, args ...any) {
-	l.logger.Debug("SQL", map[string]any{
-		"query": query,
-		"args":  args,
-		"time":  time.Since(start).String(),
-	})
-}
-
-func (l *DefaultLogger) Error(start time.Time, query string, args ...any) {
-	l.logger.Debug("SQL", map[string]any{
-		"query": query,
-		"args":  args,
-		"time":  time.Since(start).String(),
-	})
+func (l *QueryBuilder) Error(start time.Time, query string, args ...any) {
+	l.logger.Error("SQL",
+		slog.String("query", query),
+		slog.Any("arg", args),
+		slog.String("mc", time.Since(start).String()),
+	)
 }

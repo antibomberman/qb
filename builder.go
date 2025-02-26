@@ -57,9 +57,9 @@ func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
 
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Get(dest, query, args...)
-	qb.queryBuilder.logger.Debug(start, query, args...)
+	qb.queryBuilder.Debug(start, query, args)
 	if err != nil {
-		qb.queryBuilder.logger.Error(start, query, args...)
+		qb.queryBuilder.Error(start, query, args)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
@@ -72,9 +72,9 @@ func (qb *Builder) execSelect(dest any, query string, args ...any) (bool, error)
 	start := time.Now()
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Select(dest, query, args...)
-	qb.queryBuilder.logger.Debug(start, query, args...)
+	qb.queryBuilder.Debug(start, query, args)
 	if err != nil {
-		qb.queryBuilder.logger.Error(start, query, args...)
+		qb.queryBuilder.Error(start, query, args)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
@@ -87,9 +87,9 @@ func (qb *Builder) execExec(query string, args ...any) error {
 	start := time.Now()
 	query = qb.rebindQuery(query)
 	_, err := qb.getExecutor().Exec(query, args...)
-	qb.queryBuilder.logger.Debug(start, query, args...)
+	qb.queryBuilder.logger.Debug(time.Since(start).String(), query, args)
 	if err != nil {
-		qb.queryBuilder.logger.Error(start, query, args...)
+		qb.queryBuilder.logger.Error(time.Since(start).String(), query, args)
 	}
 	return err
 }
@@ -99,9 +99,9 @@ func (qb *Builder) execGetContext(ctx context.Context, dest any, query string, a
 	start := time.Now()
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().GetContext(ctx, dest, query, args...)
-	qb.queryBuilder.logger.Debug(start, query, args...)
+	qb.queryBuilder.logger.Debug(time.Since(start).String(), query, args)
 	if err != nil {
-		qb.queryBuilder.logger.Error(start, query, args...)
+		qb.queryBuilder.logger.Error(time.Since(start).String(), query, args)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
@@ -114,9 +114,9 @@ func (qb *Builder) execSelectContext(ctx context.Context, dest any, query string
 	start := time.Now()
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().SelectContext(ctx, dest, query, args...)
-	qb.queryBuilder.logger.Debug(start, query, args...)
+	qb.queryBuilder.Debug(start, query, args)
 	if err != nil {
-		qb.queryBuilder.logger.Error(start, query, args...)
+		qb.queryBuilder.Error(start, query, args)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
@@ -129,9 +129,9 @@ func (qb *Builder) execExecContext(ctx context.Context, query string, args ...an
 	start := time.Now()
 	query = qb.rebindQuery(query)
 	_, err := qb.getExecutor().ExecContext(ctx, query, args...)
-	qb.queryBuilder.logger.Debug(start, query, args...)
+	qb.queryBuilder.Debug(start, query, args)
 	if err != nil {
-		qb.queryBuilder.logger.Error(start, query, args...)
+		qb.queryBuilder.Error(start, query, args)
 	}
 	return err
 }

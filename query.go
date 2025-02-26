@@ -3,8 +3,8 @@ package qb
 import (
 	"context"
 	"database/sql"
-
 	"github.com/jmoiron/sqlx"
+	"log/slog"
 )
 
 type DBInterface interface {
@@ -39,7 +39,7 @@ type QueryBuilder struct {
 	db         DBInterface
 	driverName string
 	cache      CacheInterface
-	logger     Logger
+	logger     *slog.Logger
 }
 
 func New(driverName string, db *sql.DB) *QueryBuilder {
@@ -50,7 +50,7 @@ func NewX(driverName string, db *sqlx.DB) *QueryBuilder {
 		db:         db,
 		driverName: driverName,
 		cache:      NewCacheMemory(),
-		logger:     NewLogger(LogLevelDebug),
+		logger:     NewDefaultLogger(),
 	}
 }
 
@@ -85,6 +85,6 @@ func (q *QueryBuilder) GetDB() DBInterface {
 	return q.db
 }
 
-func (q *QueryBuilder) SetLogger(logger Logger) {
+func (q *QueryBuilder) SetLogger(logger *slog.Logger) {
 	q.logger = logger
 }
