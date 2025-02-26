@@ -50,7 +50,7 @@ func NewX(driverName string, db *sqlx.DB) *QueryBuilder {
 		db:         db,
 		driverName: driverName,
 		cache:      NewCacheMemory(),
-		logger:     NewLogger(LogLevelInfo),
+		logger:     NewLogger(LogLevelDebug),
 	}
 }
 

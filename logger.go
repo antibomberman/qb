@@ -1,7 +1,7 @@
 package qb
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 	"time"
 )
@@ -16,54 +16,67 @@ const (
 )
 
 type Logger interface {
-	Debug(query string, args ...any)
-	Info(query string, args ...any)
-	Warn(query string, args ...any)
-	Error(query string, args ...any)
-	QueryTiming(duration time.Duration, query string, args ...any)
+	Debug(duration time.Time, query string, args ...any)
+	Info(duration time.Time, query string, args ...any)
+	Warn(duration time.Time, query string, args ...any)
+	Error(duration time.Time, query string, args ...any)
 }
 
 type DefaultLogger struct {
-	level LogLevel
+	level  LogLevel
+	logger *slog.Logger
 }
 
 func NewLogger(level LogLevel) *DefaultLogger {
-	return &DefaultLogger{level: level}
-}
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == slog.TimeKey {
+				return slog.Attr{
+					Key:   slog.TimeKey,
+					Value: slog.StringValue(time.Now().Format("2006-01-02 15:04:05")),
+				}
+			}
+			return a
+		},
+	}
+	handler := slog.NewJSONHandler(os.Stdout, opts)
+	logger := slog.New(handler)
 
-func (l *DefaultLogger) log(level LogLevel, query string, args ...any) {
-	if level >= l.level {
-		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		message := fmt.Sprintf("[%s] %s; args: %v\n", timestamp, query, args)
-		fmt.Fprint(os.Stdout, message)
+	return &DefaultLogger{
+		level:  level,
+		logger: logger,
 	}
 }
 
-func (l *DefaultLogger) QueryTiming(duration time.Duration, query string, args ...any) {
-	if l.level <= LogLevelDebug {
-		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		message := fmt.Sprintf("[%s] Query took %s: %s; args: %v\n",
-			timestamp,
-			duration.String(),
-			query,
-			args,
-		)
-		fmt.Fprint(os.Stdout, message)
-	}
+func (l *DefaultLogger) Debug(start time.Time, query string, args ...any) {
+	l.logger.Debug("SQL", map[string]any{
+		"query": query,
+		"args":  args,
+		"time":  time.Since(start).String(),
+	})
 }
 
-func (l *DefaultLogger) Debug(query string, args ...any) {
-	l.log(LogLevelDebug, query, args...)
+func (l *DefaultLogger) Info(start time.Time, query string, args ...any) {
+	l.logger.Debug("SQL", map[string]any{
+		"query": query,
+		"args":  args,
+		"time":  time.Since(start).String(),
+	})
 }
 
-func (l *DefaultLogger) Info(query string, args ...any) {
-	l.log(LogLevelInfo, query, args...)
+func (l *DefaultLogger) Warn(start time.Time, query string, args ...any) {
+	l.logger.Debug("SQL", map[string]any{
+		"query": query,
+		"args":  args,
+		"time":  time.Since(start).String(),
+	})
 }
 
-func (l *DefaultLogger) Warn(query string, args ...any) {
-	l.log(LogLevelWarn, query, args...)
-}
-
-func (l *DefaultLogger) Error(query string, args ...any) {
-	l.log(LogLevelError, query, args...)
+func (l *DefaultLogger) Error(start time.Time, query string, args ...any) {
+	l.logger.Debug("SQL", map[string]any{
+		"query": query,
+		"args":  args,
+		"time":  time.Since(start).String(),
+	})
 }
