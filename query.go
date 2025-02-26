@@ -54,10 +54,10 @@ type QueryBuilderInterface interface {
 	TransactionContext(ctx context.Context, fn func(*Transaction) error) error
 
 	// Логирование
-	Debug(start time.Time, query string, args ...any)
-	Info(start time.Time, query string, args ...any)
-	Warn(start time.Time, query string, args ...any)
-	Error(start time.Time, query string, args ...any)
+	Debug(msg string, start time.Time, query string, args ...any)
+	Info(msg string, start time.Time, query string, args ...any)
+	Warn(msg string, start time.Time, query string, args ...any)
+	Error(msg string, start time.Time, query string, args ...any)
 }
 
 //go:generate mockery --name BuilderInterface

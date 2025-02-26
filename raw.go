@@ -23,10 +23,10 @@ type RawQuery struct {
 // Exec выполняет запрос без возврата результатов
 func (r *RawQuery) Exec() error {
 	start := time.Now()
-	r.queryBuilder.logger.Debug(time.Since(start).String(), r.query, r.args)
+	r.queryBuilder.logger.Debug("RawQuery", start, r.query, r.args)
 	_, err := r.db.Exec(r.query, r.args...)
 	if err != nil {
-		r.queryBuilder.Error(start, r.query, r.args)
+		r.queryBuilder.Error(err.Error(), start, r.query, r.args)
 	}
 	return err
 }
@@ -34,10 +34,10 @@ func (r *RawQuery) Exec() error {
 // Query выполняет запрос и сканирует результаты в slice
 func (r *RawQuery) Query(dest any) error {
 	start := time.Now()
-	r.queryBuilder.Debug(start, r.query, r.args)
+	r.queryBuilder.Debug("RawQuery", start, r.query, r.args)
 	err := r.db.Select(dest, r.query, r.args...)
 	if err != nil {
-		r.queryBuilder.Error(start, r.query, r.args)
+		r.queryBuilder.Error(err.Error(), start, r.query, r.args)
 	}
 	return err
 }
@@ -45,10 +45,10 @@ func (r *RawQuery) Query(dest any) error {
 // QueryRow выполняет запрос и сканирует один результат
 func (r *RawQuery) QueryRow(dest any) error {
 	start := time.Now()
-	r.queryBuilder.Debug(start, r.query, r.args)
+	r.queryBuilder.Debug("QueryRow", start, r.query, r.args)
 	err := r.db.Get(dest, r.query, r.args...)
 	if err != nil {
-		r.queryBuilder.Error(start, r.query, r.args)
+		r.queryBuilder.Error(err.Error(), start, r.query, r.args)
 	}
 	return err
 }
