@@ -1,8 +1,8 @@
-# DBLayer
-### DBLayer is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQ, PostgreSQL and SQLite databases.
+# QueryBuilder
+### QueryBuilder is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQ, PostgreSQL and SQLite databases.
 
 ## Installation
-### go get github.com/antibomberman/dblayer@v1.1.66
+### go get github.com/antibomberman/dblayer@v1.1.68
 
 ## Key Features
 
@@ -24,11 +24,11 @@ Detailed documentation on using Query is available in the [query documentation](
 Detailed documentation on using Table is available in the [table documentation](docs/table_en).
 
 
-# DBLayer
-### DBLayer - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
+# QueryBuilder
+### QueryBuilder - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
 
 ## Установка
-### go get github.com/antibomberman/dblayer@v1.1.60
+### go get github.com/antibomberman/dblayer@v1.1.68
 
 ## Основные возможности
 
