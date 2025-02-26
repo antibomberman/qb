@@ -9,7 +9,7 @@ func (q *QueryBuilder) Raw(query string, args ...any) *RawQuery {
 	return &RawQuery{
 		query: query,
 		args:  args,
-		db:    q.db,
+		db:    q.db.(sqlx.Ext),
 	}
 }
 
@@ -28,10 +28,10 @@ func (r *RawQuery) Exec() error {
 
 // Query выполняет запрос и сканирует результаты в slice
 func (r *RawQuery) Query(dest any) error {
-	return sqlx.Select(r.db, dest, r.query, r.args...)
+	return sqlx.Select(r.db.(sqlx.Queryer), dest, r.query, r.args...)
 }
 
 // QueryRow выполняет запрос и сканирует один результат
 func (r *RawQuery) QueryRow(dest any) error {
-	return sqlx.Get(r.db, dest, r.query, r.args...)
+	return sqlx.Get(r.db.(sqlx.Queryer), dest, r.query, r.args...)
 }

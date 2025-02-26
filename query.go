@@ -7,17 +7,26 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type QueryBuilder struct {
-	db         *sqlx.DB
-	driverName string
-	cache      CacheDriver
+type DBInterface interface {
+	sqlx.Ext
+	Get(dest interface{}, query string, args ...interface{}) error
+	Select(dest interface{}, query string, args ...interface{}) error
+	Beginx() (*sqlx.Tx, error)
+	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
 }
 
-func (q *QueryBuilder) CacheRedisDriver(addr string, password string, db int) {
-	q.cache = NewCacheRedis(addr, password, db)
+type TxInterface interface {
+	sqlx.Ext
+	Get(dest interface{}, query string, args ...interface{}) error
+	Select(dest interface{}, query string, args ...interface{}) error
+	Commit() error
+	Rollback() error
 }
-func (q *QueryBuilder) CacheMemoryDriver() {
-	q.cache = NewCacheMemory()
+
+type QueryBuilder struct {
+	db         DBInterface
+	driverName string
+	cache      CacheInterface
 }
 
 func New(driverName string, db *sql.DB) *QueryBuilder {
@@ -57,20 +66,6 @@ func (t *Transaction) Raw(query string, args ...any) *RawQuery {
 	}
 }
 
-//func (d *DBL) AuditTableCreate() error {
-//	err := d.CreateTableIfNotExists("audits", func(schema *schema2.Schema) {
-//		schema.ID()
-//		schema.String("table_name", 20)
-//		schema.BigInteger("record_id").Unsigned()
-//		schema.String("action", 10)
-//		schema.Json("old_data").Nullable()
-//		schema.Json("new_data").Nullable()
-//		schema.BigInteger("user_id").Unsigned()
-//		schema.Timestamps()
-//	})
-//	if err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
+func (q *QueryBuilder) GetDB() DBInterface {
+	return q.db
+}

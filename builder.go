@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"log"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Condition struct {
@@ -20,7 +21,7 @@ type Condition struct {
 }
 
 type Builder struct {
-	db           any // может быть *sqlx.DB или *sqlx.Tx
+	db           Executor
 	tableName    string
 	queryBuilder *QueryBuilder
 	ctx          context.Context
@@ -42,13 +43,8 @@ type Builder struct {
 // Executor интерфейс для выполнения запросов
 type Executor interface {
 	sqlx.Ext
-	sqlx.ExtContext
-	DriverName() string
 	Get(dest any, query string, args ...any) error
 	Select(dest any, query string, args ...any) error
-	NamedExec(query string, arg any) (sql.Result, error)
-	NamedExecContext(ctx context.Context, query string, arg any) (sql.Result, error)
-	SelectContext(ctx context.Context, dest any, query string, args ...any) error
 }
 
 // execGet выполняет запрос и получает одну запись
@@ -139,14 +135,7 @@ func (qb *Builder) Trigger(event EventType, data any) {
 
 // getExecutor возвращает исполнитель запросов
 func (qb *Builder) getExecutor() Executor {
-	switch db := qb.db.(type) {
-	case *sqlx.Tx:
-		return db
-	case *sqlx.DB:
-		return db
-	default:
-		panic("invalid database executor")
-	}
+	return qb.db
 }
 
 // rebindQuery преобразует плейсхолдеры под нужный диалект SQL
