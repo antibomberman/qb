@@ -10,18 +10,27 @@ import (
 type DBInterface interface {
 	sqlx.Ext
 	Get(dest interface{}, query string, args ...interface{}) error
+	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 	Select(dest interface{}, query string, args ...interface{}) error
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
+
 	Beginx() (*sqlx.Tx, error)
 	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
 }
 
 type TxInterface interface {
 	sqlx.Ext
 	Get(dest interface{}, query string, args ...interface{}) error
+	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
 	Select(dest interface{}, query string, args ...interface{}) error
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
+
 	Commit() error
 	Rollback() error
 }
