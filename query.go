@@ -13,6 +13,9 @@ type DBInterface interface {
 	Select(dest interface{}, query string, args ...interface{}) error
 	Beginx() (*sqlx.Tx, error)
 	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
 }
 
 type TxInterface interface {
