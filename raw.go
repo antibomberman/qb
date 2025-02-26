@@ -34,10 +34,10 @@ func (r *RawQuery) Exec() error {
 // Query выполняет запрос и сканирует результаты в slice
 func (r *RawQuery) Query(dest any) error {
 	start := time.Now()
-	r.queryBuilder.logger.Debug(time.Since(start).String(), r.query, r.args)
+	r.queryBuilder.Debug(start, r.query, r.args)
 	err := r.db.Select(dest, r.query, r.args...)
 	if err != nil {
-		r.queryBuilder.logger.Error(time.Since(start).String(), r.query, r.args)
+		r.queryBuilder.Error(start, r.query, r.args)
 	}
 	return err
 }
