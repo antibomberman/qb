@@ -5,7 +5,7 @@ import (
 )
 
 // Raw выполняет сырой SQL-запрос
-func (q *QueryBuilder) Raw(query string, args ...interface{}) *RawQuery {
+func (q *QueryBuilder) Raw(query string, args ...any) *RawQuery {
 	return &RawQuery{
 		query: query,
 		args:  args,
@@ -16,7 +16,7 @@ func (q *QueryBuilder) Raw(query string, args ...interface{}) *RawQuery {
 // RawQuery представляет сырой SQL-запрос
 type RawQuery struct {
 	query string
-	args  []interface{}
+	args  []any
 	db    sqlx.Ext
 }
 
@@ -27,11 +27,11 @@ func (r *RawQuery) Exec() error {
 }
 
 // Query выполняет запрос и сканирует результаты в slice
-func (r *RawQuery) Query(dest interface{}) error {
+func (r *RawQuery) Query(dest any) error {
 	return sqlx.Select(r.db, dest, r.query, r.args...)
 }
 
 // QueryRow выполняет запрос и сканирует один результат
-func (r *RawQuery) QueryRow(dest interface{}) error {
+func (r *RawQuery) QueryRow(dest any) error {
 	return sqlx.Get(r.db, dest, r.query, r.args...)
 }

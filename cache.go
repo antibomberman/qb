@@ -12,8 +12,8 @@ import (
 //add  optional driver // redis | memcached | map
 
 type CacheDriver interface {
-	Get(key string) (interface{}, bool)
-	Set(key string, value interface{}, expiration time.Duration)
+	Get(key string) (any, bool)
+	Set(key string, value any, expiration time.Duration)
 	Delete(key string)
 	Clear() error
 }
@@ -26,7 +26,7 @@ func (qb *Builder) Remember(key string, duration time.Duration) *Builder {
 }
 
 // GetCached получает данные с учетом кеша
-func (qb *Builder) GetCached(dest interface{}) (bool, error) {
+func (qb *Builder) GetCached(dest any) (bool, error) {
 	// Проверяем наличие ключа кеша
 	if qb.cacheKey != "" {
 		// Пытаемся получить из кеша
@@ -58,7 +58,7 @@ func (qb *Builder) GetCached(dest interface{}) (bool, error) {
 }
 
 type cacheItem struct {
-	value      interface{}
+	value      any
 	expiration time.Time
 }
 
@@ -76,7 +76,7 @@ func NewCacheMemory() *MemoryCache {
 	return cache
 }
 
-func (c *MemoryCache) Get(key string) (interface{}, bool) {
+func (c *MemoryCache) Get(key string) (any, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -93,7 +93,7 @@ func (c *MemoryCache) Get(key string) (interface{}, bool) {
 	return item.value, true
 }
 
-func (c *MemoryCache) Set(key string, value interface{}, expiration time.Duration) {
+func (c *MemoryCache) Set(key string, value any, expiration time.Duration) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -150,13 +150,13 @@ func NewCacheRedis(addr string, password string, db int) *RedisCache {
 	}
 }
 
-func (c *RedisCache) Get(key string) (interface{}, bool) {
+func (c *RedisCache) Get(key string) (any, bool) {
 	val, err := c.client.Get(c.ctx, key).Result()
 	if err != nil {
 		return nil, false
 	}
 
-	var result interface{}
+	var result any
 	if err := json.Unmarshal([]byte(val), &result); err != nil {
 		return nil, false
 	}
@@ -164,7 +164,7 @@ func (c *RedisCache) Get(key string) (interface{}, bool) {
 	return result, true
 }
 
-func (c *RedisCache) Set(key string, value interface{}, expiration time.Duration) {
+func (c *RedisCache) Set(key string, value any, expiration time.Duration) {
 	data, err := json.Marshal(value)
 	if err != nil {
 		return

@@ -49,7 +49,7 @@ func (t *Transaction) Query(table string) *Builder {
 	}
 }
 
-func (t *Transaction) Raw(query string, args ...interface{}) *RawQuery {
+func (t *Transaction) Raw(query string, args ...any) *RawQuery {
 	return &RawQuery{
 		query: query,
 		args:  args,

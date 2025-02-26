@@ -11,7 +11,7 @@ const (
 	AfterDelete  EventType = "after_delete"
 )
 
-type EventHandler func(interface{}) error
+type EventHandler func(any) error
 
 // Events добавляет поддержку событий
 type Events struct {
@@ -27,7 +27,7 @@ func (e *Events) On(event EventType, handler EventHandler) {
 }
 
 // Trigger вызывает обработчики события
-func (e *Events) Trigger(event EventType, data interface{}) error {
+func (e *Events) Trigger(event EventType, data any) error {
 	if handlers, ok := e.handlers[event]; ok {
 		for _, handler := range handlers {
 			if err := handler(data); err != nil {

@@ -16,11 +16,11 @@ type Condition struct {
 	operator string
 	clause   string
 	nested   []Condition
-	args     []interface{}
+	args     []any
 }
 
 type Builder struct {
-	db           interface{} // может быть *sqlx.DB или *sqlx.Tx
+	db           any // может быть *sqlx.DB или *sqlx.Tx
 	tableName    string
 	queryBuilder *QueryBuilder
 	ctx          context.Context
@@ -44,15 +44,15 @@ type Executor interface {
 	sqlx.Ext
 	sqlx.ExtContext
 	DriverName() string
-	Get(dest interface{}, query string, args ...interface{}) error
-	Select(dest interface{}, query string, args ...interface{}) error
-	NamedExec(query string, arg interface{}) (sql.Result, error)
-	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+	Get(dest any, query string, args ...any) error
+	Select(dest any, query string, args ...any) error
+	NamedExec(query string, arg any) (sql.Result, error)
+	NamedExecContext(ctx context.Context, query string, arg any) (sql.Result, error)
+	SelectContext(ctx context.Context, dest any, query string, args ...any) error
 }
 
 // execGet выполняет запрос и получает одну запись
-func (qb *Builder) execGet(dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Get(dest, query, args...)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -62,7 +62,7 @@ func (qb *Builder) execGet(dest interface{}, query string, args ...interface{}) 
 }
 
 // execSelect выполняет запрос и получает множество записей
-func (qb *Builder) execSelect(dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execSelect(dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Select(dest, query, args...)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -72,17 +72,17 @@ func (qb *Builder) execSelect(dest interface{}, query string, args ...interface{
 }
 
 // execExec выполняет запрос без возврата данных
-func (qb *Builder) execExec(query string, args ...interface{}) error {
+func (qb *Builder) execExec(query string, args ...any) error {
 	query = qb.rebindQuery(query)
 	_, err := qb.getExecutor().Exec(query, args...)
 	return err
 }
 
 // execGetContext выполняет запрос с контекстом и получает одну запись
-func (qb *Builder) execGetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execGetContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
 	if ex, ok := qb.getExecutor().(interface {
-		GetContext(context.Context, interface{}, string, ...interface{}) error
+		GetContext(context.Context, any, string, ...any) error
 	}); ok {
 		err := ex.GetContext(ctx, dest, query, args...)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -94,10 +94,10 @@ func (qb *Builder) execGetContext(ctx context.Context, dest interface{}, query s
 }
 
 // execSelectContext выполняет запрос с контекстом и получает множество записей
-func (qb *Builder) execSelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) (bool, error) {
+func (qb *Builder) execSelectContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
 	query = qb.rebindQuery(query)
 	if ex, ok := qb.getExecutor().(interface {
-		SelectContext(context.Context, interface{}, string, ...interface{}) error
+		SelectContext(context.Context, any, string, ...any) error
 	}); ok {
 		err := ex.SelectContext(ctx, dest, query, args...)
 		if errors.Is(err, sql.ErrNoRows) {
@@ -109,10 +109,10 @@ func (qb *Builder) execSelectContext(ctx context.Context, dest interface{}, quer
 }
 
 // execExecContext выполняет запрос с контекстом
-func (qb *Builder) execExecContext(ctx context.Context, query string, args ...interface{}) error {
+func (qb *Builder) execExecContext(ctx context.Context, query string, args ...any) error {
 	query = qb.rebindQuery(query)
 	if ex, ok := qb.getExecutor().(interface {
-		ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
+		ExecContext(context.Context, string, ...any) (sql.Result, error)
 	}); ok {
 		_, err := ex.ExecContext(ctx, query, args...)
 		return err
@@ -127,7 +127,7 @@ func (qb *Builder) On(event EventType, handler EventHandler) {
 	}
 	qb.events[event] = append(qb.events[event], handler)
 }
-func (qb *Builder) Trigger(event EventType, data interface{}) {
+func (qb *Builder) Trigger(event EventType, data any) {
 	if handlers, ok := qb.events[event]; ok {
 		for _, handler := range handlers {
 			if err := handler(data); err != nil {
@@ -178,8 +178,8 @@ func buildConditions(conditions []Condition) string {
 	return strings.Join(parts, " ")
 }
 
-func (qb *Builder) getStructInfo(data interface{}) (fields []string, placeholders []string, values map[string]interface{}) {
-	values = make(map[string]interface{})
+func (qb *Builder) getStructInfo(data any) (fields []string, placeholders []string, values map[string]any) {
+	values = make(map[string]any)
 	v := reflect.ValueOf(data)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -201,8 +201,8 @@ func (qb *Builder) getDriverName() string {
 	return qb.queryBuilder.driverName
 }
 
-func (qb *Builder) buildBodyQuery() (string, []interface{}) {
-	var args []interface{}
+func (qb *Builder) buildBodyQuery() (string, []any) {
+	var args []any
 	var sql strings.Builder
 
 	for _, join := range qb.joins {
@@ -246,7 +246,7 @@ func (qb *Builder) buildBodyQuery() (string, []interface{}) {
 }
 
 // buildQuery собирает полный SQL запрос
-func (qb *Builder) buildSelectQuery() (string, []interface{}) {
+func (qb *Builder) buildSelectQuery() (string, []any) {
 	selectClause := "*"
 	if len(qb.columns) > 0 {
 		selectClause = strings.Join(qb.columns, ", ")
@@ -262,10 +262,10 @@ func (qb *Builder) buildSelectQuery() (string, []interface{}) {
 }
 
 // buildUpdateQuery собирает SQL запрос для UPDATE
-func (qb *Builder) buildUpdateQuery(data interface{}, fields []string) (string, []interface{}) {
+func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 
 	var sets []string
-	var args []interface{}
+	var args []any
 
 	if len(fields) > 0 {
 		for _, field := range fields {
@@ -300,10 +300,10 @@ func (qb *Builder) buildUpdateQuery(data interface{}, fields []string) (string, 
 }
 
 // buildInsertQuery собирает SQL запрос для INSERT
-func (qb *Builder) buildUpdateMapQuery(data map[string]interface{}) (string, []interface{}) {
+func (qb *Builder) buildUpdateMapQuery(data map[string]any) (string, []any) {
 
 	var sets []string
-	var args []interface{}
+	var args []any
 
 	for col, val := range data {
 		sets = append(sets, col+" = ?")
