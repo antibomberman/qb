@@ -9,8 +9,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/jmoiron/sqlx"
 )
 
 type Condition struct {
@@ -40,15 +38,28 @@ type Builder struct {
 	events        map[EventType][]EventHandler
 }
 
-// Executor интерфейс для выполнения запросов
-type Executor interface {
-	sqlx.Ext
-	Get(dest any, query string, args ...any) error
-	Select(dest any, query string, args ...any) error
-	NamedExecContext(ctx context.Context, query string, arg any) (sql.Result, error)
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	SelectContext(ctx context.Context, dest any, query string, args ...any) error
-	GetContext(ctx context.Context, dest any, query string, args ...any) error
+// buildConditions собирает условия WHERE в строку
+func buildConditions(conditions []Condition) string {
+	var parts []string
+
+	for i, cond := range conditions {
+		var part string
+
+		if len(cond.nested) > 0 {
+			nestedSQL := buildConditions(cond.nested)
+			part = "(" + nestedSQL + ")"
+		} else {
+			part = cond.clause
+		}
+
+		if i == 0 {
+			parts = append(parts, part)
+		} else {
+			parts = append(parts, cond.operator+" "+part)
+		}
+	}
+
+	return strings.Join(parts, " ")
 }
 
 // execGet выполняет запрос и получает одну запись
@@ -143,6 +154,7 @@ func (qb *Builder) On(event EventType, handler EventHandler) {
 	}
 	qb.events[event] = append(qb.events[event], handler)
 }
+
 func (qb *Builder) Trigger(event EventType, data any) {
 	if handlers, ok := qb.events[event]; ok {
 		for _, handler := range handlers {
@@ -161,30 +173,6 @@ func (qb *Builder) getExecutor() Executor {
 // rebindQuery преобразует плейсхолдеры под нужный диалект SQL
 func (qb *Builder) rebindQuery(query string) string {
 	return qb.getExecutor().Rebind(query)
-}
-
-// buildConditions собирает условия WHERE в строку
-func buildConditions(conditions []Condition) string {
-	var parts []string
-
-	for i, cond := range conditions {
-		var part string
-
-		if len(cond.nested) > 0 {
-			nestedSQL := buildConditions(cond.nested)
-			part = "(" + nestedSQL + ")"
-		} else {
-			part = cond.clause
-		}
-
-		if i == 0 {
-			parts = append(parts, part)
-		} else {
-			parts = append(parts, cond.operator+" "+part)
-		}
-	}
-
-	return strings.Join(parts, " ")
 }
 
 func (qb *Builder) getStructInfo(data any) (fields []string, placeholders []string, values map[string]any) {

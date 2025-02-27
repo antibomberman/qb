@@ -1613,7 +1613,7 @@ func (qb *Builder) WithAudit(userID any) *Builder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.queryBuilder.Query("audits").Create(&AuditLog{
+		_, err = qb.queryBuilder.From("audits").Create(&AuditLog{
 			tableName: qb.tableName,
 			RecordID:  recordID,
 			Action:    "update",
@@ -1648,7 +1648,7 @@ func (qb *Builder) WithAudit(userID any) *Builder {
 			return err
 		}
 
-		return qb.queryBuilder.Query("audits").
+		return qb.queryBuilder.From("audits").
 			Where("table_name = ?", qb.tableName).
 			Where("record_id = ?", recordID).
 			OrderBy("id", "DESC").
@@ -1685,7 +1685,7 @@ func (qb *Builder) WithAudit(userID any) *Builder {
 		}
 
 		// Создаем запись в таблице audits
-		_, err = qb.queryBuilder.Query("audits").Create(&AuditLog{
+		_, err = qb.queryBuilder.From("audits").Create(&AuditLog{
 			tableName: qb.tableName,
 			RecordID:  recordID,
 			Action:    "create",
@@ -1809,4 +1809,43 @@ func (qb *Builder) WithMetrics(collector *MetricsCollector) *Builder {
 	})
 
 	return qb
+}
+
+// Remember включает кеширование для запроса
+func (qb *Builder) Remember(key string, duration time.Duration) *Builder {
+	qb.cacheKey = key
+	qb.cacheDuration = duration
+	return qb
+}
+
+// GetCached получает данные с учетом кеша
+func (qb *Builder) GetCached(dest any) (bool, error) {
+	// Проверяем наличие ключа кеша
+	if qb.cacheKey != "" {
+		// Пытаемся получить из кеша
+		if cached, ok := qb.queryBuilder.cache.Get(qb.cacheKey); ok {
+			// Копируем закешированные данные
+			if data, ok := cached.([]byte); ok {
+				return true, json.Unmarshal(data, dest)
+			}
+		}
+	}
+
+	// Если в кеше нет, получаем из БД
+	found, err := qb.Get(dest)
+	if err != nil {
+		return false, err
+	}
+
+	// Сохраняем результат в кеш
+	if found && qb.cacheKey != "" {
+		// Сериализуем данные перед сохранением
+		data, err := json.Marshal(dest)
+		if err != nil {
+			return false, err
+		}
+		qb.queryBuilder.cache.Set(qb.cacheKey, data, qb.cacheDuration)
+	}
+
+	return found, nil
 }

@@ -12,32 +12,32 @@ func NewDefaultLogger() *slog.Logger {
 	)
 }
 
-func (l *QueryBuilder) Debug(msg string, start time.Time, query string, args ...any) {
-	l.logger.Debug(msg,
+func (q *QueryBuilder) Debug(msg string, start time.Time, query string, args ...any) {
+	q.logger.Debug(msg,
 		slog.String("query", query),
 		slog.Any("arg", args),
 		slog.String("mc", time.Since(start).String()),
 	)
 }
 
-func (l *QueryBuilder) Info(msg string, start time.Time, query string, args ...any) {
-	l.logger.Info(msg,
+func (q *QueryBuilder) Info(msg string, start time.Time, query string, args ...any) {
+	q.logger.Info(msg,
 		slog.String("query", query),
 		slog.Any("arg", args),
 		slog.String("mc", time.Since(start).String()),
 	)
 }
 
-func (l *QueryBuilder) Warn(msg string, start time.Time, query string, args ...any) {
-	l.logger.Warn(msg,
+func (q *QueryBuilder) Warn(msg string, start time.Time, query string, args ...any) {
+	q.logger.Warn(msg,
 		slog.String("query", query),
 		slog.Any("arg", args),
 		slog.String("mc", time.Since(start).String()),
 	)
 }
 
-func (l *QueryBuilder) Error(msg string, start time.Time, query string, args ...any) {
-	l.logger.Error(msg,
+func (q *QueryBuilder) Error(msg string, start time.Time, query string, args ...any) {
+	q.logger.Error(msg,
 		slog.String("query", query),
 		slog.Any("arg", args),
 		slog.String("mc", time.Since(start).String()),
