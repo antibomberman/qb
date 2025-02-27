@@ -23,7 +23,6 @@ func NewX(driverName string, db *sqlx.DB) QueryBuilderInterface {
 		db:         db,
 		driverName: driverName,
 		cache:      NewCacheMemory(),
-		logger:     NewDefaultLogger(),
 	}
 }
 
