@@ -78,18 +78,18 @@ func (_m *QueryBuilderInterface) BeginContext(ctx context.Context) (*qb.Transact
 	return r0, r1
 }
 
-// Debug provides a mock function with given fields: start, query, args
-func (_m *QueryBuilderInterface) Debug(start time.Time, query string, args ...interface{}) {
+// Debug provides a mock function with given fields: msg, start, query, args
+func (_m *QueryBuilderInterface) Debug(msg string, start time.Time, query string, args ...interface{}) {
 	var _ca []interface{}
-	_ca = append(_ca, start, query)
+	_ca = append(_ca, msg, start, query)
 	_ca = append(_ca, args...)
 	_m.Called(_ca...)
 }
 
-// Error provides a mock function with given fields: start, query, args
-func (_m *QueryBuilderInterface) Error(start time.Time, query string, args ...interface{}) {
+// Error provides a mock function with given fields: msg, start, query, args
+func (_m *QueryBuilderInterface) Error(msg string, start time.Time, query string, args ...interface{}) {
 	var _ca []interface{}
-	_ca = append(_ca, start, query)
+	_ca = append(_ca, msg, start, query)
 	_ca = append(_ca, args...)
 	_m.Called(_ca...)
 }
@@ -114,10 +114,10 @@ func (_m *QueryBuilderInterface) GetDB() qb.DBInterface {
 	return r0
 }
 
-// Info provides a mock function with given fields: start, query, args
-func (_m *QueryBuilderInterface) Info(start time.Time, query string, args ...interface{}) {
+// Info provides a mock function with given fields: msg, start, query, args
+func (_m *QueryBuilderInterface) Info(msg string, start time.Time, query string, args ...interface{}) {
 	var _ca []interface{}
-	_ca = append(_ca, start, query)
+	_ca = append(_ca, msg, start, query)
 	_ca = append(_ca, args...)
 	_m.Called(_ca...)
 }
@@ -206,10 +206,10 @@ func (_m *QueryBuilderInterface) TransactionContext(ctx context.Context, fn func
 	return r0
 }
 
-// Warn provides a mock function with given fields: start, query, args
-func (_m *QueryBuilderInterface) Warn(start time.Time, query string, args ...interface{}) {
+// Warn provides a mock function with given fields: msg, start, query, args
+func (_m *QueryBuilderInterface) Warn(msg string, start time.Time, query string, args ...interface{}) {
 	var _ca []interface{}
-	_ca = append(_ca, start, query)
+	_ca = append(_ca, msg, start, query)
 	_ca = append(_ca, args...)
 	_m.Called(_ca...)
 }
