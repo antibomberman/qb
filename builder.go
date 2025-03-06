@@ -192,6 +192,19 @@ func (qb *Builder) getStructInfo(data any) (fields []string, placeholders []stri
 	}
 	return
 }
+func getFieldNameByDBTag(structType reflect.Type) map[string]string {
+	tagToField := make(map[string]string)
+
+	for i := 0; i < structType.NumField(); i++ {
+		field := structType.Field(i)
+		tag := field.Tag.Get("db")
+		if tag != "" && tag != "-" && tag != "id" {
+			tagToField[tag] = field.Name
+		}
+	}
+
+	return tagToField
+}
 
 // getDriverName возвращает имя драйвера базы данных
 func (qb *Builder) getDriverName() string {
@@ -265,15 +278,32 @@ func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 	var args []any
 
 	if len(fields) > 0 {
-		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = ?", field))
-			val := reflect.ValueOf(data)
-			if val.Kind() == reflect.Ptr {
-				val = val.Elem()
+		t := reflect.TypeOf(data)
+		if t.Kind() == reflect.Ptr {
+			t = t.Elem()
+		}
+
+		tagToField := getFieldNameByDBTag(t)
+
+		for _, dbTag := range fields {
+
+			fieldName, ok := tagToField[dbTag]
+			if !ok {
+				qb.queryBuilder.Error(fmt.Sprintf("tag %s not found", dbTag), time.Now(), "update")
+				continue // Пропускаем, если тег не найден
 			}
-			field_val := val.FieldByName(field)
-			if field_val.IsValid() {
-				args = append(args, field_val.Interface())
+			sets = append(sets, fmt.Sprintf("%s = ?", dbTag))
+
+			v := reflect.ValueOf(data)
+			if v.Kind() == reflect.Ptr {
+				v = v.Elem()
+			}
+
+			fieldVal := v.FieldByName(fieldName)
+			fmt.Println(dbTag, ":", fieldVal)
+
+			if fieldVal.IsValid() {
+				args = append(args, fieldVal.Interface())
 			}
 		}
 	} else {
@@ -292,6 +322,7 @@ func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
+	fmt.Println(head + body)
 	return head + body, args
 
 }
