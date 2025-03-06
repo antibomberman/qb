@@ -1,34 +1,8 @@
 # QueryBuilder
-### QueryBuilder is a powerful and flexible SQL builder for Go, providing a convenient interface for working with MySQ, PostgreSQL and SQLite databases.
-
-## Installation
-### go get github.com/antibomberman/dblayer@v1.1.91
-
-## Key Features
-
-- Building SQL queries through method chaining
-- Transaction support 
-- Query result caching Memory | Redis
-- Batch insert and update operations
-- Date and time handling
-- Raw SQL query support
-- Various types of JOIN operations
-- WHERE conditions with nested groups
-- Subquery support
-- Window functions
-- Soft delete records
-
-## Documentation
-
-Detailed documentation on using Query is available in the [query documentation](docs/query_en).
-Detailed documentation on using Table is available in the [table documentation](docs/table_en).
-
-
-# QueryBuilder
 ### QueryBuilder - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
 
 ## Установка
-### go get github.com/antibomberman/dblayer@v1.1.91
+### go get github.com/antibomberman/QueryBuilder@v1.1.91
 
 ## Основные возможности
 
@@ -44,11 +18,27 @@ Detailed documentation on using Table is available in the [table documentation](
 - Оконные функции
 - Мягкое удаление записей
 
-
+```go
+    db, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
+    if err != nil {
+        panic(err)
+    }
+    queryBuilder := qb.New("mysql", db)
+    
+    products := Product{}
+    found, err := queryBuilder.From("products").Where("active = ?", 1).Get(&products)
+    if err != nil {
+        log.Fatal(err)
+    }
+    if !found {
+        log.Println("No products found")
+        return
+    }
+    log.Printf("Found product: %+v", products)
+```
 
 
 ## Документация
 
-Подробная документация по использованию Query доступна в [документации по запросам](docs/query_ru).
-Подробная документация по использованию Table доступна в [документации по запросам](docs/table_ru).
+Подробная документация [документации по запросам](docs/query_ru).
 
