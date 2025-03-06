@@ -26,7 +26,11 @@
     queryBuilder := qb.New("mysql", db)
     
     products := Product{}
-    found, err := queryBuilder.From("products").Where("active = ?", 1).Get(&products)
+    found, err := queryBuilder.From("products").Where("active = ?", true).
+        WhereNull("orders.deleted_at").
+		OrderBy("created_at", "DESC").
+		Get(&products)
+	
     if err != nil {
         log.Fatal(err)
     }
