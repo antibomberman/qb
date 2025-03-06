@@ -40,5 +40,5 @@
 
 ## Документация
 
-Подробная документация [документации по запросам](docs/query_ru).
+Подробная документация [документации по запросам](https://github.com/antibomberman/qb/blob/main/docs/query_ru.md).
 
