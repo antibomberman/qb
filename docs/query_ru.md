@@ -6,7 +6,6 @@
 
 #### Основные методы:
 - `New(driverName string, db *sql.DB)` - создает новый экземпляр QueryBuilder
-- `NewX(driverName string, db *sqlx.DB)` - создает новый экземпляр с расширенной функциональностью
 - `From(table string)` - указывает таблицу для запроса
 - `SetLogger(logger *slog.Logger)` - устанавливает логгер
 - `SetCache(cache CacheInterface)` - устанавливает систему кеширования
@@ -20,6 +19,9 @@
 - `Get(dest any)` - получение всех записей
 - `Pluck(column string, dest any)` - получение значений одной колонки
 - `Value(column string)` - получение значения одного поля
+
+
+
 
 #### Методы условий:
 - `Where(condition string, args ...any)` - добавление условия AND
@@ -35,6 +37,7 @@
 - `Update(data any, fields ...string)` - обновление записей
 - `UpdateMap(data map[string]any)` - обновление записей используя map
 - `Delete()` - удаление записей
+
 
 #### Методы агрегации:
 - `Count()` - подсчет количества записей

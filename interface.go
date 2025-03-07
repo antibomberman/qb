@@ -9,6 +9,17 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Основные интерфейсы для работы с базой данных
+type Executor interface {
+	sqlx.Ext
+	Get(dest any, query string, args ...any) error
+	Select(dest any, query string, args ...any) error
+	NamedExecContext(ctx context.Context, query string, arg any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	SelectContext(ctx context.Context, dest any, query string, args ...any) error
+	GetContext(ctx context.Context, dest any, query string, args ...any) error
+}
+
 type DBInterface interface {
 	sqlx.Ext
 	Get(dest interface{}, query string, args ...interface{}) error
@@ -18,11 +29,11 @@ type DBInterface interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
-
 	Beginx() (*sqlx.Tx, error)
 	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
 }
 
+// Интерфейс для работы с транзакциями
 type TxInterface interface {
 	sqlx.Ext
 	Get(dest interface{}, query string, args ...interface{}) error
@@ -32,11 +43,11 @@ type TxInterface interface {
 	Exec(query string, args ...interface{}) (sql.Result, error)
 	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
 	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
-
 	Commit() error
 	Rollback() error
 }
 
+// Основной интерфейс построителя запросов
 type QueryBuilderInterface interface {
 	// Основные методы
 	From(table string) BuilderInterface
@@ -57,42 +68,68 @@ type QueryBuilderInterface interface {
 	Error(msg string, start time.Time, query string, args ...any)
 }
 
+// Интерфейс построителя запросов
 type BuilderInterface interface {
-	// Построение запросов
+	CrudInterface
+	WhereInterface
+	DateInterface
+	WindowInterface
+	LockInterface
+	AggregateInterface
+	SoftDeleteInterface
+	JoinInterface
+	PaginationInterface
+	GroupSortInterface
+	SubQueryInterface
+	QueryOptionsInterface
+	QueueInterface
+	EventInterface
+	SpecialQueriesInterface
+
+	// Базовые операции
 	Select(columns ...string) *Builder
-	Where(condition string, args ...any) *Builder
-	WhereId(id any) *Builder
-	OrWhere(condition string, args ...any) *Builder
-	WhereIn(column string, values ...any) *Builder
-	WhereGroup(fn func(*Builder)) *Builder
-	OrWhereGroup(fn func(*Builder)) *Builder
-	WhereExists(subQuery *Builder) *Builder
-	WhereNotExists(subQuery *Builder) *Builder
-	WhereNull(column string) *Builder
-	WhereNotNull(column string) *Builder
-	WhereBetween(column string, start, end any) *Builder
-	WhereNotBetween(column string, start, end any) *Builder
-	WhereRaw(sql string, args ...any) *Builder
-	OrWhereRaw(sql string, args ...any) *Builder
-
-	// Джойны
-	Join(table string, condition string) *Builder
-	LeftJoin(table string, condition string) *Builder
-	RightJoin(table string, condition string) *Builder
-	CrossJoin(table string) *Builder
-	As(alias string) *Builder
-
-	// Группировка и сортировка
-	OrderBy(column string, direction string) *Builder
-	GroupBy(columns ...string) *Builder
-	Having(condition string) *Builder
-	HavingRaw(sql string, args ...any) *Builder
-
-	// Лимиты и смещение
 	Limit(limit int) *Builder
 	Offset(offset int) *Builder
 
-	// CRUD операции
+	// Подзапросы
+	SubQuery(alias string) *Builder
+	WhereSubQuery(column string, operator string, subQuery *Builder) *Builder
+	Union(other *Builder) *Builder
+	UnionAll(other *Builder) *Builder
+
+	// Дополнительные операции
+	Pluck(column string, dest any) error
+	Value(column string) (any, error)
+	Values(column string) ([]any, error)
+	Chunk(size int, fn func(items any) error) error
+	ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error) error
+	WithinGroup(column string, window string) *Builder
+	Distinct(columns ...string) *Builder
+	WithTransaction(tx *Transaction) *Builder
+
+	// Специальные запросы
+	GeoSearch(column string, point Point, radius float64) *Builder
+	Search(columns []string, query string) *Builder
+
+	// Дополнительный функционал
+	WithAudit(userID any) *Builder
+	ProcessQueue(handler func(QueuedOperation) error) error
+	Queue(operation string, data any, runAt time.Time) error
+	WithMetrics(collector *MetricsCollector) *Builder
+	On(event EventType, handler EventHandler)
+	Trigger(event EventType, data any)
+	Context(ctx context.Context) *Builder
+}
+
+// Вспомогательные интерфейсы
+type CacheInterface interface {
+	Get(key string) (any, bool)
+	Set(key string, value any, expiration time.Duration)
+	Delete(key string)
+	Clear() error
+}
+
+type CrudInterface interface {
 	Find(id any, dest any) (bool, error)
 	FindAsync(id any, dest any) (chan bool, chan error)
 	Get(dest any) (bool, error)
@@ -109,8 +146,8 @@ type BuilderInterface interface {
 	UpdateMapAsync(data map[string]any) chan error
 	Delete() error
 	DeleteAsync() chan error
-
-	// Пакетные операции
+	Increment(column string, value any) error
+	Decrement(column string, value any) error
 	BatchInsert(records []map[string]any) error
 	BatchInsertAsync(records []map[string]any) chan error
 	BulkInsert(records []map[string]any) error
@@ -118,81 +155,40 @@ type BuilderInterface interface {
 	BulkUpdate(records []map[string]any, keyColumn string) error
 	BulkUpdateAsync(records []map[string]any, keyColumn string) chan error
 	BatchUpdate(records []map[string]any, keyColumn string, batchSize int) error
+}
 
-	// Подзапросы и объединения
-	SubQuery(alias string) *Builder
-	WhereSubQuery(column string, operator string, subQuery *Builder) *Builder
-	Union(other *Builder) *Builder
-	UnionAll(other *Builder) *Builder
+type GroupSortInterface interface {
+	// Группировка и сортировка
+	OrderBy(column string, direction string) *Builder
+	GroupBy(columns ...string) *Builder
+	Having(condition string) *Builder
+	HavingRaw(sql string, args ...any) *Builder
+}
 
-	// Блокировки
-	LockForUpdate() *Builder
-	LockForShare() *Builder
-	SkipLocked() *Builder
-	NoWait() *Builder
-	Lock(mode string) *Builder
-
-	// Оконные функции
-	Window(column string, partition string, orderBy string) *Builder
-	RowNumber(partition string, orderBy string, alias string) *Builder
-	Rank(partition string, orderBy string, alias string) *Builder
-	DenseRank(partition string, orderBy string, alias string) *Builder
-
-	// Дополнительные операции
-	Increment(column string, value any) error
-	Decrement(column string, value any) error
-	Pluck(column string, dest any) error
-	Value(column string) (any, error)
-	Values(column string) ([]any, error)
-	Chunk(size int, fn func(items any) error) error
-	ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error) error
-	WithinGroup(column string, window string) *Builder
-	Distinct(columns ...string) *Builder
-	WithTransaction(tx *Transaction) *Builder
-
-	// Геопространственные запросы
-	GeoSearch(column string, point Point, radius float64) *Builder
-
-	// Полнотекстовый поиск
-	Search(columns []string, query string) *Builder
-
-	// Soft Delete
-	WithTrashed() *Builder
-	OnlyTrashed() *Builder
-	SoftDelete() error
-	Restore() error
-
-	// Аудит
-	WithAudit(userID any) *Builder
-
-	// Очереди
-	ProcessQueue(handler func(QueuedOperation) error) error
-
-	// Очереди
-	Queue(operation string, data any, runAt time.Time) error
-
-	// Метрики
-	WithMetrics(collector *MetricsCollector) *Builder
-	// События
-	On(event EventType, handler EventHandler)
-	Trigger(event EventType, data any)
-
-	// Контекст
-	Context(ctx context.Context) *Builder
-
-	// Агрегатные функции
-	Avg(column string) (float64, error)
-	Sum(column string) (float64, error)
-	Min(column string) (float64, error)
-	Max(column string) (float64, error)
-	Count() (int64, error)
-	Exists() (bool, error)
-
-	// Пагинация
-	Paginate(page int, perPage int, dest any) (*PaginationResult, error)
-	PaginateWithToken(token string, limit int, dest any) (*PaginationTokenResult, error)
-	PaginateWithCursor(cursor string, limit int, dest any) (*CursorPagination, error)
-
+type WhereInterface interface {
+	Where(condition string, args ...any) *Builder
+	WhereId(id any) *Builder
+	OrWhere(condition string, args ...any) *Builder
+	WhereIn(column string, values ...any) *Builder
+	WhereGroup(fn func(*Builder)) *Builder
+	OrWhereGroup(fn func(*Builder)) *Builder
+	WhereExists(subQuery *Builder) *Builder
+	WhereNotExists(subQuery *Builder) *Builder
+	WhereNull(column string) *Builder
+	WhereNotNull(column string) *Builder
+	WhereBetween(column string, start, end any) *Builder
+	WhereNotBetween(column string, start, end any) *Builder
+	WhereRaw(sql string, args ...any) *Builder
+	OrWhereRaw(sql string, args ...any) *Builder
+}
+type JoinInterface interface {
+	Join(table string, condition string) *Builder
+	LeftJoin(table string, condition string) *Builder
+	RightJoin(table string, condition string) *Builder
+	CrossJoin(table string) *Builder
+	As(alias string) *Builder
+}
+type DateInterface interface {
 	// Методы для работы с датами
 	WhereDate(column string, operator string, value time.Time) *Builder
 	WhereBetweenDates(column string, start time.Time, end time.Time) *Builder
@@ -220,20 +216,69 @@ type BuilderInterface interface {
 	WhereDateFormat(column string, format string, operator string, value string) *Builder
 	WhereTimeZone(column string, operator string, value time.Time, timezone string) *Builder
 }
-type CacheInterface interface {
-	Get(key string) (any, bool)
-	Set(key string, value any, expiration time.Duration)
-	Delete(key string)
-	Clear() error
+type WindowInterface interface {
+	Window(column string, partition string, orderBy string) *Builder
+	RowNumber(partition string, orderBy string, alias string) *Builder
+	Rank(partition string, orderBy string, alias string) *Builder
+	DenseRank(partition string, orderBy string, alias string) *Builder
+}
+type LockInterface interface {
+	LockForUpdate() *Builder
+	LockForShare() *Builder
+	SkipLocked() *Builder
+	NoWait() *Builder
+	Lock(mode string) *Builder
+}
+type AggregateInterface interface {
+	Avg(column string) (float64, error)
+	Sum(column string) (float64, error)
+	Min(column string) (float64, error)
+	Max(column string) (float64, error)
+	Count() (int64, error)
+}
+type SoftDeleteInterface interface {
+	WithTrashed() *Builder
+	OnlyTrashed() *Builder
+	SoftDelete() error
+	Restore() error
+}
+type PaginationInterface interface {
+	Paginate(page int, perPage int, dest any) (*PaginationResult, error)
+	PaginateWithToken(token string, limit int, dest any) (*PaginationTokenResult, error)
+	PaginateWithCursor(cursor string, limit int, dest any) (*CursorPagination, error)
 }
 
-// Executor интерфейс для выполнения запросов
-type Executor interface {
-	sqlx.Ext
-	Get(dest any, query string, args ...any) error
-	Select(dest any, query string, args ...any) error
-	NamedExecContext(ctx context.Context, query string, arg any) (sql.Result, error)
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	SelectContext(ctx context.Context, dest any, query string, args ...any) error
-	GetContext(ctx context.Context, dest any, query string, args ...any) error
+// Создадим новый интерфейс для работы с подзапросами
+type SubQueryInterface interface {
+	SubQuery(alias string) *Builder
+	WhereSubQuery(column string, operator string, subQuery *Builder) *Builder
+	Union(other *Builder) *Builder
+	UnionAll(other *Builder) *Builder
+}
+
+// Создадим интерфейс для дополнительных опций запроса
+type QueryOptionsInterface interface {
+	Distinct(columns ...string) *Builder
+	WithTransaction(tx *Transaction) *Builder
+	WithAudit(userID any) *Builder
+	WithMetrics(collector *MetricsCollector) *Builder
+	Context(ctx context.Context) *Builder
+}
+
+// Создадим интерфейс для работы с очередями
+type QueueInterface interface {
+	ProcessQueue(handler func(QueuedOperation) error) error
+	Queue(operation string, data any, runAt time.Time) error
+}
+
+// Создадим интерфейс для работы с событиями
+type EventInterface interface {
+	On(event EventType, handler EventHandler)
+	Trigger(event EventType, data any)
+}
+
+// Создадим интерфейс для специальных запросов
+type SpecialQueriesInterface interface {
+	GeoSearch(column string, point Point, radius float64) *Builder
+	Search(columns []string, query string) *Builder
 }

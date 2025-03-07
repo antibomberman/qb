@@ -16,10 +16,19 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// ============= Базовые методы =============
 func (qb *Builder) Context(ctx context.Context) *Builder {
 	qb.ctx = ctx
 	return qb
 }
+
+// Select указывает колонки для выборки
+func (qb *Builder) Select(columns ...string) *Builder {
+	qb.columns = columns
+	return qb
+}
+
+// ============= Методы чтения (READ) =============
 
 // Find ищет запись по id
 func (qb *Builder) Find(id any, dest any) (bool, error) {
@@ -69,6 +78,78 @@ func (qb *Builder) FirstAsync(dest any) (chan bool, chan error) {
 	}()
 	return foundCh, errorCh
 }
+
+// Value получает значение одного поля
+func (qb *Builder) Value(column string) (any, error) {
+	var result any
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
+	qb.Limit(1)
+
+	body, args := qb.buildBodyQuery()
+
+	_, err := qb.execGet(&result, head+body, args...)
+	return result, err
+}
+
+// Values получает значения одного поля для всех записей
+func (qb *Builder) Values(column string) ([]any, error) {
+	var result []any
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
+
+	body, args := qb.buildBodyQuery()
+
+	_, err := qb.execSelect(&result, head+body, args...)
+	return result, err
+}
+
+// Pluck получает значения одной колонки
+func (qb *Builder) Pluck(column string, dest any) error {
+	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
+
+	body, args := qb.buildBodyQuery()
+	_, err := qb.execSelect(dest, head+body, args...)
+	return err
+}
+
+// Chunk обрабатывает записи чанками
+func (qb *Builder) Chunk(size int, fn func(items any) error) error {
+	return qb.ChunkContext(context.Background(), size, func(_ context.Context, items any) error {
+		return fn(items)
+	})
+}
+
+// ChunkContext обрабатывает записи чанками с контекстом
+func (qb *Builder) ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error) error {
+	offset := 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		dest := make([]map[string]any, 0, size)
+
+		query, args := qb.buildSelectQuery()
+		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
+
+		found, err := qb.execSelectContext(ctx, &dest, query, args...)
+		if err != nil {
+			return err
+		}
+
+		if !found || len(dest) == 0 {
+			break
+		}
+
+		if err := fn(ctx, dest); err != nil {
+			return err
+		}
+
+		offset += size
+	}
+	return nil
+}
+
+// ============= Методы создания (CREATE) =============
 
 func (qb *Builder) Create(data any, fields ...string) (any, error) {
 	go qb.Trigger(BeforeCreate, data)
@@ -202,7 +283,6 @@ func (qb *Builder) BatchInsertAsync(records []map[string]any) chan error {
 		ch <- err
 	}()
 	return ch
-
 }
 
 // BulkInsert выполняет массовую вставку записей с возвратом ID
@@ -281,6 +361,8 @@ func (qb *Builder) BulkInsertAsync(records []map[string]any) chan error {
 	}()
 	return errorCh
 }
+
+// ============= Методы обновления (UPDATE) =============
 
 // Update обновляет записи используя структуру
 func (qb *Builder) Update(data any, fields ...string) error {
@@ -415,6 +497,29 @@ func (qb *Builder) BatchUpdateAsync(records []map[string]any, keyColumn string, 
 	return ch
 }
 
+// Increment увеличивает значение поля
+func (qb *Builder) Increment(column string, value any) error {
+	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.tableName, column, column)
+
+	body, args := qb.buildBodyQuery()
+
+	args = append([]any{value}, args...)
+
+	return qb.execExecContext(qb.ctx, head+body, args...)
+}
+
+// Decrement уменьшает значение поля
+func (qb *Builder) Decrement(column string, value any) error {
+	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.tableName, column, column)
+
+	body, args := qb.buildBodyQuery()
+	args = append([]any{value}, args...)
+
+	return qb.execExecContext(qb.ctx, head+body, args...)
+}
+
+// ============= Методы удаления (DELETE) =============
+
 func (qb *Builder) Delete() error {
 	if len(qb.conditions) == 0 {
 		return errors.New("delete without conditions is not allowed")
@@ -434,11 +539,7 @@ func (qb *Builder) DeleteAsync() chan error {
 	return ch
 }
 
-// Select указывает колонки для выборки
-func (qb *Builder) Select(columns ...string) *Builder {
-	qb.columns = columns
-	return qb
-}
+// ============= WHERE условия =============
 
 // Where добавляет условие AND
 func (qb *Builder) Where(condition string, args ...any) *Builder {
@@ -571,27 +672,6 @@ func (qb *Builder) Offset(offset int) *Builder {
 func (qb *Builder) As(alias string) *Builder {
 	qb.alias = alias
 	return qb
-}
-
-// Increment увеличивает значение поля
-func (qb *Builder) Increment(column string, value any) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s + ?", qb.tableName, column, column)
-
-	body, args := qb.buildBodyQuery()
-
-	args = append([]any{value}, args...)
-
-	return qb.execExecContext(qb.ctx, head+body, args...)
-}
-
-// Decrement уменьшает значение поля
-func (qb *Builder) Decrement(column string, value any) error {
-	head := fmt.Sprintf("UPDATE %s SET %s = %s - ?", qb.tableName, column, column)
-
-	body, args := qb.buildBodyQuery()
-	args = append([]any{value}, args...)
-
-	return qb.execExecContext(qb.ctx, head+body, args...)
 }
 
 // SubQuery создает подзапрос
@@ -777,53 +857,6 @@ func (qb *Builder) OrWhereRaw(sql string, args ...any) *Builder {
 	return qb
 }
 
-// Pluck получает значения одной колонки
-func (qb *Builder) Pluck(column string, dest any) error {
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
-
-	body, args := qb.buildBodyQuery()
-	_, err := qb.execSelect(dest, head+body, args...)
-	return err
-}
-
-// Chunk обрабатывает записи чанками
-func (qb *Builder) Chunk(size int, fn func(items any) error) error {
-	return qb.ChunkContext(context.Background(), size, func(_ context.Context, items any) error {
-		return fn(items)
-	})
-}
-
-// ChunkContext обрабатывает записи чанками с контекстом
-func (qb *Builder) ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error) error {
-	offset := 0
-	for {
-		if err := ctx.Err(); err != nil {
-			return err
-		}
-
-		dest := make([]map[string]any, 0, size)
-
-		query, args := qb.buildSelectQuery()
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
-
-		found, err := qb.execSelectContext(ctx, &dest, query, args...)
-		if err != nil {
-			return err
-		}
-
-		if !found || len(dest) == 0 {
-			break
-		}
-
-		if err := fn(ctx, dest); err != nil {
-			return err
-		}
-
-		offset += size
-	}
-	return nil
-}
-
 // WithinGroup выполняет оконную функцию
 func (qb *Builder) WithinGroup(column string, window string) *Builder {
 	qb.columns = append(qb.columns, fmt.Sprintf("%s WITHIN GROUP (%s)", column, window))
@@ -838,29 +871,6 @@ func (qb *Builder) Distinct(columns ...string) *Builder {
 		qb.columns = append(qb.columns, "DISTINCT "+strings.Join(columns, ", "))
 	}
 	return qb
-}
-
-// Value получает значение одного поля
-func (qb *Builder) Value(column string) (any, error) {
-	var result any
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
-	qb.Limit(1)
-
-	body, args := qb.buildBodyQuery()
-
-	_, err := qb.execGet(&result, head+body, args...)
-	return result, err
-}
-
-// Values получает значения одного поля для всех записей
-func (qb *Builder) Values(column string) ([]any, error) {
-	var result []any
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
-
-	body, args := qb.buildBodyQuery()
-
-	_, err := qb.execSelect(&result, head+body, args...)
-	return result, err
 }
 
 // SoftDelete добавляет поддержку мягкого удаления
