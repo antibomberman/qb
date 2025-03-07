@@ -19,6 +19,9 @@
 - `Get(dest any)` - получение всех записей
 - `Pluck(column string, dest any)` - получение значений одной колонки
 - `Value(column string)` - получение значения одного поля
+- `Values(column string)` - получение массива значений
+- `Chunk(size int, fn func(items any) error)` - обработка чанками
+- `ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error)` - обработка чанками с контекстом
 
 
 
@@ -30,6 +33,13 @@
 - `WhereNull(column string)` - проверка на NULL
 - `WhereNotNull(column string)` - проверка на NOT NULL
 - `WhereBetween(column string, start, end any)` - условие BETWEEN
+- `WhereGroup(fn func(*Builder))` - группа AND условий
+- `OrWhereGroup(fn func(*Builder))` - группа OR условий
+- `WhereExists(subQuery *Builder)` - условие EXISTS
+- `WhereNotExists(subQuery *Builder)` - условие NOT EXISTS
+- `WhereRaw(sql string, args ...any)` - сырое условие WHERE
+- `OrWhereRaw(sql string, args ...any)` - сырое условие OR WHERE
+- `WhereNotBetween(column string, start, end any)` - условие NOT BETWEEN
 
 #### Методы модификации данных:
 - `Create(data any, fields ...string)` - создание новой записи
@@ -70,6 +80,53 @@
 - `WhereYear(column string, operator string, year int)` - условие по году
 - `WhereMonth(column string, operator string, month int)` - условие по месяцу
 - `WhereDay(column string, operator string, day int)` - условие по дню
+- `WhereBetweenDates(column string, start time.Time, end time.Time)` - между датами
+- `WhereBetweenDateTime(column string, start time.Time, end time.Time)` - между датами и временем
+- `WhereDateIsNull(column string)` - проверка на NULL дату
+- `WhereDateIsNotNull(column string)` - проверка на NOT NULL дату
+- `WhereCurrentDate(column string, operator string)` - сравнение с текущей датой
+- `WhereLastDays(column string, days int)` - за последние N дней
+- `WhereWeekday(column string, operator string, weekday int)` - по дню недели
+- `WhereQuarter(column string, operator string, quarter int)` - по кварталу
+- `WhereWeek(column string, operator string, week int)` - по номеру недели
+- `WhereDateRange(column string, start time.Time, end time.Time, inclusive bool)` - диапазон дат
+- `WhereNextDays(column string, days int)` - на следующие N дней
+- `WhereDateBetweenColumns(dateColumn, startColumn, endColumn string)` - между датами в колонках
+- `WhereAge(column string, operator string, age int)` - по возрасту
+- `WhereDateDiff(column1, column2 string, operator string, days int)` - разница между датами
+- `WhereDateTrunc(part string, column string, operator string, value time.Time)` - усечение даты
+- `WhereTimeWindow(column string, startTime, endTime time.Time)` - временное окно
+- `WhereBusinessDays(column string)` - только рабочие дни
+- `WhereDateFormat(column string, format string, operator string, value string)` - форматированная дата
+- `WhereTimeZone(column string, operator string, value time.Time, timezone string)` - с учетом временной зоны
+
+#### Методы пакетной обработки:
+- `BatchInsert(records []map[string]any)` - пакетная вставка
+- `BatchInsertAsync(records []map[string]any)` - асинхронная пакетная вставка
+- `BulkInsert(records []map[string]any)` - массовая вставка
+- `BulkInsertAsync(records []map[string]any)` - асинхронная массовая вставка
+- `BulkUpdate(records []map[string]any, keyColumn string)` - массовое обновление
+- `BulkUpdateAsync(records []map[string]any, keyColumn string)` - асинхронное массовое обновление
+- `BatchUpdate(records []map[string]any, keyColumn string, batchSize int)` - пакетное обновление
+
+#### Оконные функции:
+- `Window(column string, partition string, orderBy string)` - оконная функция
+- `RowNumber(partition string, orderBy string, alias string)` - номер строки
+- `Rank(partition string, orderBy string, alias string)` - ранг
+- `DenseRank(partition string, orderBy string, alias string)` - плотный ранг
+- `WithinGroup(column string, window string)` - группировка с окном
+
+#### Методы блокировок:
+- `LockForUpdate()` - блокировка для обновления
+- `LockForShare()` - блокировка для чтения
+- `SkipLocked()` - пропуск заблокированных записей
+- `NoWait()` - без ожидания
+- `Lock(mode string)` - произвольная блокировка
+
+#### Специальные запросы:
+- `GeoSearch(column string, point Point, radius float64)` - геопространственный поиск
+- `Search(columns []string, query string)` - полнотекстовый поиск
+- `Distinct(columns ...string)` - уникальные записи
 
 #### Асинхронные методы:
 Большинство методов имеют асинхронные версии с суффиксом `Async`, например:
