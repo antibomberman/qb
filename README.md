@@ -2,7 +2,7 @@
 ### QueryBuilder - это мощный и гибкий SQL-билдер для Go, предоставляющий удобный интерфейс для работы с базами данных MySQL, PostgreSQL и SQLite.
 
 ## Установка
-### go get github.com/antibomberman/QueryBuilder@v1.1.91
+### go get github.com/antibomberman/QueryBuilder@v1.1.93
 
 ## Основные возможности
 
