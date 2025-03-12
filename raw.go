@@ -23,7 +23,7 @@ type RawQuery struct {
 // Exec выполняет запрос без возврата результатов
 func (r *RawQuery) Exec() error {
 	start := time.Now()
-	r.queryBuilder.logger.Debug("RawQuery", start, r.query, r.args)
+	r.queryBuilder.Debug("RawQuery", start, r.query, r.args)
 	_, err := r.db.Exec(r.query, r.args...)
 	if err != nil {
 		r.queryBuilder.Error(err.Error(), start, r.query, r.args)
