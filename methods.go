@@ -62,10 +62,23 @@ func (qb *Builder) GetAsync(dest any) (chan bool, chan error) {
 	return foundCh, errorCh
 }
 func (qb *Builder) Rows() ([]map[string]any, error) {
-	var result []map[string]any
 	query, args := qb.buildSelectQuery()
-	_, err := qb.execSelectContext(qb.ctx, &result, query, args...)
-	return result, err
+	rows, err := qb.getExecutor().Queryx(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []map[string]any
+	for rows.Next() {
+		row := make(map[string]any)
+		if err := rows.MapScan(row); err != nil {
+			return nil, err
+		}
+		result = append(result, row)
+	}
+
+	return result, rows.Err()
 }
 
 // First получает первую запись
