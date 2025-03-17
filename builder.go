@@ -66,7 +66,6 @@ func buildConditions(conditions []Condition) string {
 func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
 	start := time.Now()
 
-	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Get(dest, query, args...)
 	qb.queryBuilder.Debug("execGet", start, query, args)
 	if err != nil {
@@ -81,7 +80,6 @@ func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
 // execSelect выполняет запрос и получает множество записей
 func (qb *Builder) execSelect(dest any, query string, args ...any) (bool, error) {
 	start := time.Now()
-	query = qb.rebindQuery(query)
 	err := qb.getExecutor().Select(dest, query, args...)
 	qb.queryBuilder.Debug("execSelect", start, query, args)
 	if err != nil {
@@ -96,7 +94,6 @@ func (qb *Builder) execSelect(dest any, query string, args ...any) (bool, error)
 // execExec выполняет запрос без возврата данных
 func (qb *Builder) execExec(query string, args ...any) error {
 	start := time.Now()
-	query = qb.rebindQuery(query)
 	_, err := qb.getExecutor().Exec(query, args...)
 	qb.queryBuilder.Debug("execExec", start, query, args)
 	if err != nil {
@@ -108,7 +105,6 @@ func (qb *Builder) execExec(query string, args ...any) error {
 // execGetContext выполняет запрос с контекстом и получает одну запись
 func (qb *Builder) execGetContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
 	start := time.Now()
-	query = qb.rebindQuery(query)
 	err := qb.getExecutor().GetContext(ctx, dest, query, args...)
 	qb.queryBuilder.Debug("execGetContext", start, query, args)
 	if err != nil {
@@ -123,7 +119,6 @@ func (qb *Builder) execGetContext(ctx context.Context, dest any, query string, a
 // execSelectContext выполняет запрос с контекстом и получает множество записей
 func (qb *Builder) execSelectContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
 	start := time.Now()
-	query = qb.rebindQuery(query)
 	err := qb.getExecutor().SelectContext(ctx, dest, query, args...)
 	qb.queryBuilder.Debug("execSelectContext", start, query, args)
 	if err != nil {
@@ -138,7 +133,6 @@ func (qb *Builder) execSelectContext(ctx context.Context, dest any, query string
 // execExecContext выполняет запрос с контекстом
 func (qb *Builder) execExecContext(ctx context.Context, query string, args ...any) error {
 	start := time.Now()
-	query = qb.rebindQuery(query)
 	_, err := qb.getExecutor().ExecContext(ctx, query, args...)
 	qb.queryBuilder.Debug("execExecContext", start, query, args)
 	if err != nil {
@@ -322,7 +316,6 @@ func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
-	fmt.Println(head + body)
 	return head + body, args
 
 }

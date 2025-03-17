@@ -49,6 +49,7 @@ func (qb *Builder) FindAsync(id any, dest any) (chan bool, chan error) {
 // Get получает все записи
 func (qb *Builder) Get(dest any) (bool, error) {
 	query, args := qb.buildSelectQuery()
+	query = qb.rebindQuery(query)
 	return qb.execSelectContext(qb.ctx, dest, query, args...)
 }
 func (qb *Builder) GetAsync(dest any) (chan bool, chan error) {
@@ -63,6 +64,7 @@ func (qb *Builder) GetAsync(dest any) (chan bool, chan error) {
 }
 func (qb *Builder) Rows() ([]map[string]any, error) {
 	query, args := qb.buildSelectQuery()
+	query = qb.rebindQuery(query)
 	rows, err := qb.getExecutor().Queryx(query, args...)
 	if err != nil {
 		return nil, err
@@ -85,6 +87,7 @@ func (qb *Builder) Rows() ([]map[string]any, error) {
 func (qb *Builder) First(dest any) (bool, error) {
 	qb.Limit(1)
 	query, args := qb.buildSelectQuery()
+	query = qb.rebindQuery(query)
 	return qb.execGetContext(qb.ctx, dest, query, args...)
 }
 func (qb *Builder) FirstAsync(dest any) (chan bool, chan error) {
@@ -106,7 +109,7 @@ func (qb *Builder) Value(column string) (any, error) {
 
 	body, args := qb.buildBodyQuery()
 
-	_, err := qb.execGet(&result, head+body, args...)
+	_, err := qb.execGet(&result, qb.rebindQuery(head+body), args...)
 	return result, err
 }
 
@@ -117,7 +120,7 @@ func (qb *Builder) Values(column string) ([]any, error) {
 
 	body, args := qb.buildBodyQuery()
 
-	_, err := qb.execSelect(&result, head+body, args...)
+	_, err := qb.execSelect(&result, qb.rebindQuery(head+body), args...)
 	return result, err
 }
 
@@ -126,7 +129,7 @@ func (qb *Builder) Pluck(column string, dest any) error {
 	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
-	_, err := qb.execSelect(dest, head+body, args...)
+	_, err := qb.execSelect(dest, qb.rebindQuery(head+body), args...)
 	return err
 }
 
@@ -194,6 +197,7 @@ func (qb *Builder) Create(data any, fields ...string) (any, error) {
 		strings.Join(insertFields, ", "),
 		strings.Join(placeholders, ", "))
 
+	query = qb.rebindQuery(query)
 	if qb.getDriverName() == "postgres" {
 		var id any
 		query += " RETURNING id"
@@ -236,6 +240,7 @@ func (qb *Builder) CreateMap(data map[string]any) (any, error) {
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "))
 
+	query = qb.rebindQuery(query)
 	if qb.getDriverName() == "postgres" {
 		var id any
 		query = qb.rebindQuery(query + " RETURNING id")
@@ -243,7 +248,7 @@ func (qb *Builder) CreateMap(data map[string]any) (any, error) {
 		return id, err
 	}
 
-	result, err := qb.getExecutor().ExecContext(qb.ctx, qb.rebindQuery(query), values...)
+	result, err := qb.getExecutor().ExecContext(qb.ctx, query, values...)
 	if err != nil {
 		return 0, err
 	}
@@ -292,6 +297,7 @@ func (qb *Builder) BatchInsert(records []map[string]any) error {
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
+	query = qb.rebindQuery(query)
 
 	return qb.execExecContext(qb.ctx, query, values...)
 }
@@ -348,8 +354,8 @@ func (qb *Builder) BulkInsert(records []map[string]any) error {
 		strings.Join(columns, ", "),
 		strings.Join(placeholders, ", "),
 	)
-
-	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(qb.ctx, qb.rebindQuery(query), values...)
+	query = qb.rebindQuery(query)
+	result, err := qb.getExecutor().(sqlx.ExtContext).ExecContext(qb.ctx, query, values...)
 	if err != nil {
 		return err
 	}
@@ -390,6 +396,7 @@ func (qb *Builder) Update(data any, fields ...string) error {
 		go qb.Trigger(AfterUpdate, data)
 	}()
 	query, args := qb.buildUpdateQuery(data, fields)
+	query = qb.rebindQuery(query)
 	return qb.execExecContext(qb.ctx, query, args...)
 }
 func (qb *Builder) UpdateAsync(data any, fields ...string) chan error {
@@ -408,7 +415,7 @@ func (qb *Builder) UpdateMap(data map[string]any) error {
 		go qb.Trigger(AfterUpdate, data)
 	}()
 	query, args := qb.buildUpdateMapQuery(data)
-	fmt.Println(query)
+	query = qb.rebindQuery(query)
 	return qb.execExecContext(qb.ctx, query, args...)
 }
 func (qb *Builder) UpdateMapAsync(data map[string]any) chan error {
@@ -463,7 +470,7 @@ func (qb *Builder) BulkUpdate(records []map[string]any, keyColumn string) error 
 		keyColumn,
 		strings.Repeat("?,", len(records)-1)+"?",
 	)
-
+	query = qb.rebindQuery(query)
 	// Объединяем все аргументы
 	args := make([]any, 0, len(valueArgs)+len(keyValues))
 	args = append(args, valueArgs...)
@@ -523,8 +530,8 @@ func (qb *Builder) Increment(column string, value any) error {
 	body, args := qb.buildBodyQuery()
 
 	args = append([]any{value}, args...)
-
-	return qb.execExecContext(qb.ctx, head+body, args...)
+	query := qb.rebindQuery(head + body)
+	return qb.execExecContext(qb.ctx, query, args...)
 }
 
 // Decrement уменьшает значение поля
@@ -534,7 +541,8 @@ func (qb *Builder) Decrement(column string, value any) error {
 	body, args := qb.buildBodyQuery()
 	args = append([]any{value}, args...)
 
-	return qb.execExecContext(qb.ctx, head+body, args...)
+	query := qb.rebindQuery(head + body)
+	return qb.execExecContext(qb.ctx, query, args...)
 }
 
 // ============= Методы удаления (DELETE) =============
@@ -547,7 +555,8 @@ func (qb *Builder) Delete() error {
 	head := fmt.Sprintf("DELETE FROM %s", qb.tableName)
 	body, args := qb.buildBodyQuery()
 
-	return qb.execExecContext(qb.ctx, head+body, args...)
+	query := qb.rebindQuery(head + body)
+	return qb.execExecContext(qb.ctx, query, args...)
 }
 func (qb *Builder) DeleteAsync() chan error {
 	ch := make(chan error, 1)
