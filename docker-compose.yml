@@ -1,9 +1,9 @@
 version: '3.9'
 
 services:
-  mysql:
+  qb_mysql:
     image: mysql:8.0.31
-    container_name: test_mysql_db
+    container_name: qb_mysql
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: test_db
@@ -13,9 +13,9 @@ services:
       - "3316:3306"
     volumes:
       - ./tmp/mysql:/var/lib/mysql
-  postgres:
+  qb_postgres:
     image: postgres:14.8-alpine3.18
-    container_name: test_postgres_db
+    container_name: qb_postgres
     environment:
       POSTGRES_DB:  test_db
       POSTGRES_USER: test_user
@@ -24,9 +24,9 @@ services:
       - ./tmp/postgres:/var/lib/postgresql/data
     ports:
       - "5442:5432"
-  redis:
+  qb_redis:
     image: redis:latest
-    container_name: test_redis_cache
+    container_name: qb_redis
     ports:
       - "6389:6379"
     volumes:

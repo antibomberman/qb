@@ -21,33 +21,56 @@ type Product struct {
 	UpdatedAt sql.NullTime `db:"updated_at" json:"updated_at"`
 }
 
-func connectMysql() qb.QueryBuilderInterface {
+func connectMysql() (string, *sql.DB, error) {
+	op := "examples.connectMysql"
 	db, err := sql.Open("mysql", "test_user:test_password@tcp(localhost:3316)/test_db")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(op, err)
+		return "", nil, err
 	}
+
 	db.SetMaxOpenConns(100) // Было 25000
 	db.SetMaxIdleConns(10)  // Было 50000
 	db.SetConnMaxLifetime(5 * time.Minute)
-	return qb.New("mysql", db)
+	err = db.Ping()
+	if err != nil {
+		log.Println(op+"ping ", err)
+		return "", nil, err
+	}
+	return "mysql", db, nil
 }
-func connectPostgres() qb.QueryBuilderInterface {
+func connectPostgres() (string, *sql.DB, error) {
+	op := "examples.connectPostgres"
 	db, err := sql.Open("postgres", "postgres://test_user:test_password@localhost:5442/test_db")
 	if err != nil {
-		log.Fatal(err)
+		log.Println(op, err)
 	}
+
 	db.SetMaxOpenConns(250)                // Максимум 25 открытых соединений
 	db.SetMaxIdleConns(50)                 // Поддерживать 5 соединений в режиме ожидания
 	db.SetConnMaxLifetime(5 * time.Minute) // Максимальное время жизни соединения
-	return qb.New("postgres", db)
+
+	err = db.Ping()
+	if err != nil {
+		log.Println(op+"ping ", err)
+		return "", nil, err
+	}
+
+	return "postgres", db, nil
 }
 
 func main() {
 
-	queryBuilder := connectMysql()
+	driver, db, err := connectMysql()
+
+	if err != nil {
+		log.Fatal("connect", err)
+	}
+	queryBuilder := qb.New(driver, db)
+
 	fake := faker.New()
 
-	err := queryBuilder.Raw(`
+	err = queryBuilder.Raw(`
 		CREATE TABLE IF NOT EXISTS products (
 			id BIGINT AUTO_INCREMENT PRIMARY KEY,
 			name VARCHAR(255),
@@ -58,22 +81,22 @@ func main() {
 		);
 	`).Exec()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("create table", err)
 	}
 	err = queryBuilder.Raw("truncate table products").Exec()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("truncate", err)
 	}
 
-	startTime := time.Now()
-	createFromMap(queryBuilder, fake)
-	elapsed := time.Since(startTime)
-	log.Println("createFromMap", elapsed)
+	//startTime := time.Now()
+	//createFromMap(queryBuilder, fake)
+	//elapsed := time.Since(startTime)
+	//log.Println("createFromMap", elapsed)
 	//
-	//startTime = time.Now()
-	//createFromStruct(queryBuilder, fake)
-	//elapsed = time.Since(startTime)
-	//log.Println("createFromStruct", elapsed)
+	startTime := time.Now()
+	createFromStruct(queryBuilder, fake)
+	elapsed := time.Since(startTime)
+	log.Println("createFromStruct", elapsed)
 
 	//startTime := time.Now()
 	//createFromMapWg(queryBuilder, fake)

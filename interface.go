@@ -134,6 +134,7 @@ type CrudInterface interface {
 	FindAsync(id any, dest any) (chan bool, chan error)
 	Get(dest any) (bool, error)
 	GetAsync(dest any) (chan bool, chan error)
+	Rows() ([]map[string]any, error)
 	First(dest any) (bool, error)
 	FirstAsync(dest any) (chan bool, chan error)
 	Create(data any, fields ...string) (any, error)

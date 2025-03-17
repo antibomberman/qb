@@ -61,6 +61,12 @@ func (qb *Builder) GetAsync(dest any) (chan bool, chan error) {
 	}()
 	return foundCh, errorCh
 }
+func (qb *Builder) Rows() ([]map[string]any, error) {
+	var result []map[string]any
+	query, args := qb.buildSelectQuery()
+	_, err := qb.execSelectContext(qb.ctx, &result, query, args...)
+	return result, err
+}
 
 // First получает первую запись
 func (qb *Builder) First(dest any) (bool, error) {
