@@ -236,7 +236,7 @@ type AggregateInterface interface {
 	Min(column string) (float64, error)
 	Max(column string) (float64, error)
 	Count() (int64, error)
-	Exists( (bool, error)
+	Exists(bool, error)
 }
 type SoftDeleteInterface interface {
 	WithTrashed() *Builder
