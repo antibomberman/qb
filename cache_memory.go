@@ -15,11 +15,12 @@ type cacheItem struct {
 	expiration time.Time
 }
 
-func NewCacheMemory() *MemoryCache {
+func (q *QueryBuilder) SetMemoryCache() *MemoryCache {
 	cache := &MemoryCache{
 		data: make(map[string]cacheItem),
 	}
 	go cache.startCleanup()
+	q.cache = cache
 	return cache
 }
 

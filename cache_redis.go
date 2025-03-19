@@ -3,6 +3,7 @@ package qb
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -13,17 +14,22 @@ type RedisCache struct {
 	ctx    context.Context
 }
 
-func NewCacheRedis(addr string, password string, db int) *RedisCache {
+func (q *QueryBuilder) SetRedisCache(addr string, password string, db int) *RedisCache {
+	ctx := context.TODO()
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: password,
 		DB:       db,
 	})
-
-	return &RedisCache{
-		client: client,
-		ctx:    context.Background(),
+	if client.Ping(ctx).Err() != nil {
+		log.Fatal("redis ping failed")
 	}
+	rc := &RedisCache{
+		client: client,
+		ctx:    ctx,
+	}
+	q.cache = rc
+	return rc
 }
 
 func (c *RedisCache) Get(key string) (any, bool) {

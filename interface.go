@@ -54,7 +54,8 @@ type QueryBuilderInterface interface {
 	Raw(query string, args ...any) *RawQuery
 	GetDB() DBInterface
 	SetLogger(logger *slog.Logger)
-
+	SetMemoryCache() *MemoryCache
+	SetRedisCache(addr string, password string, db int) *RedisCache
 	// Транзакции
 	Begin() (*Transaction, error)
 	BeginContext(ctx context.Context) (*Transaction, error)

@@ -3,6 +3,7 @@ package qb
 import (
 	"context"
 	"database/sql"
+	"github.com/redis/go-redis/v9"
 	"log/slog"
 
 	"github.com/jmoiron/sqlx"
@@ -59,11 +60,4 @@ func (q *QueryBuilder) GetDB() DBInterface {
 
 func (q *QueryBuilder) SetLogger(logger *slog.Logger) {
 	q.logger = logger
-}
-
-func (q *QueryBuilder) SetCache(cache CacheInterface) {
-	q.cache = cache
-}
-func (q *QueryBuilder) GetCache() CacheInterface {
-	return q.cache
 }
