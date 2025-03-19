@@ -3,7 +3,6 @@ package qb
 import (
 	"context"
 	"database/sql"
-	"github.com/redis/go-redis/v9"
 	"log/slog"
 
 	"github.com/jmoiron/sqlx"
@@ -20,11 +19,12 @@ func New(driverName string, db *sql.DB) QueryBuilderInterface {
 	return NewX(driverName, sqlx.NewDb(db, driverName))
 }
 func NewX(driverName string, db *sqlx.DB) QueryBuilderInterface {
-	return &QueryBuilder{
+	queryBuilder := &QueryBuilder{
 		db:         db,
 		driverName: driverName,
-		cache:      NewCacheMemory(),
 	}
+	queryBuilder.SetMemoryCache()
+	return queryBuilder
 }
 
 func (q *QueryBuilder) From(table string) BuilderInterface {
