@@ -250,10 +250,14 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 }
 
 // buildQuery собирает полный SQL запрос
-func (qb *Builder) buildSelectQuery() (string, []any) {
+func (qb *Builder) buildSelectQuery(dest *any) (string, []any) {
 	selectClause := "*"
 	if len(qb.columns) > 0 {
 		selectClause = strings.Join(qb.columns, ", ")
+	}
+	if dest != nil {
+		fields, placeholders, values := qb.getStructInfo(&dest)
+		fmt.Println(fields, placeholders, values)
 	}
 	tableName := qb.tableName
 	if qb.alias != "" {

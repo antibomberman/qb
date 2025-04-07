@@ -48,7 +48,7 @@ func (qb *Builder) FindAsync(id any, dest any) (chan bool, chan error) {
 
 // Get получает все записи
 func (qb *Builder) Get(dest any) (bool, error) {
-	query, args := qb.buildSelectQuery()
+	query, args := qb.buildSelectQuery(nil)
 	query = qb.rebindQuery(query)
 	return qb.execSelectContext(qb.ctx, dest, query, args...)
 }
@@ -63,7 +63,7 @@ func (qb *Builder) GetAsync(dest any) (chan bool, chan error) {
 	return foundCh, errorCh
 }
 func (qb *Builder) Rows() ([]map[string]any, error) {
-	query, args := qb.buildSelectQuery()
+	query, args := qb.buildSelectQuery(nil)
 	query = qb.rebindQuery(query)
 	rows, err := qb.getExecutor().Queryx(query, args...)
 	if err != nil {
@@ -86,7 +86,7 @@ func (qb *Builder) Rows() ([]map[string]any, error) {
 // First получает первую запись
 func (qb *Builder) First(dest any) (bool, error) {
 	qb.Limit(1)
-	query, args := qb.buildSelectQuery()
+	query, args := qb.buildSelectQuery(&dest)
 	query = qb.rebindQuery(query)
 	return qb.execGetContext(qb.ctx, dest, query, args...)
 }
@@ -150,7 +150,7 @@ func (qb *Builder) ChunkContext(ctx context.Context, size int, fn func(context.C
 
 		dest := make([]map[string]any, 0, size)
 
-		query, args := qb.buildSelectQuery()
+		query, args := qb.buildSelectQuery(nil)
 		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
 
 		found, err := qb.execSelectContext(ctx, &dest, query, args...)
@@ -646,7 +646,7 @@ func (qb *Builder) OrWhereGroup(fn func(*Builder)) *Builder {
 
 // WhereExists добавляет условие EXISTS
 func (qb *Builder) WhereExists(subQuery *Builder) *Builder {
-	sql, args := subQuery.buildSelectQuery()
+	sql, args := subQuery.buildSelectQuery(nil)
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("EXISTS (%s)", sql),
@@ -657,7 +657,7 @@ func (qb *Builder) WhereExists(subQuery *Builder) *Builder {
 
 // WhereNotExists добавляет условие NOT EXISTS
 func (qb *Builder) WhereNotExists(subQuery *Builder) *Builder {
-	sql, args := subQuery.buildSelectQuery()
+	sql, args := subQuery.buildSelectQuery(nil)
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("NOT EXISTS (%s)", sql),
@@ -704,7 +704,7 @@ func (qb *Builder) As(alias string) *Builder {
 
 // SubQuery создает подзапрос
 func (qb *Builder) SubQuery(alias string) *Builder {
-	sql, args := qb.buildSelectQuery()
+	sql, args := qb.buildSelectQuery(nil)
 	return &Builder{
 		columns: []string{fmt.Sprintf("(%s) AS %s", sql, alias)},
 		db:      qb.db,
@@ -716,7 +716,7 @@ func (qb *Builder) SubQuery(alias string) *Builder {
 
 // WhereSubQuery добавляет условие подзапросом
 func (qb *Builder) WhereSubQuery(column string, operator string, subQuery *Builder) *Builder {
-	sql, args := subQuery.buildSelectQuery()
+	sql, args := subQuery.buildSelectQuery(nil)
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   fmt.Sprintf("%s %s (%s)", column, operator, sql),
@@ -727,8 +727,8 @@ func (qb *Builder) WhereSubQuery(column string, operator string, subQuery *Build
 
 // Union объединяет запросы через UNION
 func (qb *Builder) Union(other *Builder) *Builder {
-	sql1, args1 := qb.buildSelectQuery()
-	sql2, args2 := other.buildSelectQuery()
+	sql1, args1 := qb.buildSelectQuery(nil)
+	sql2, args2 := other.buildSelectQuery(nil)
 
 	return &Builder{
 		db:      qb.db,
@@ -741,8 +741,8 @@ func (qb *Builder) Union(other *Builder) *Builder {
 
 // UnionAll объединяет запросы через UNION ALL
 func (qb *Builder) UnionAll(other *Builder) *Builder {
-	sql1, args1 := qb.buildSelectQuery()
-	sql2, args2 := other.buildSelectQuery()
+	sql1, args1 := qb.buildSelectQuery(nil)
+	sql2, args2 := other.buildSelectQuery(nil)
 
 	return &Builder{
 		db:      qb.db,
