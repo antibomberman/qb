@@ -104,7 +104,7 @@ func (qb *Builder) FirstAsync(dest any) (chan bool, chan error) {
 // Value получает значение одного поля
 func (qb *Builder) Value(column string) (any, error) {
 	var result any
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
+	head := fmt.Sprintf("SELECT %s FROM `%s`", column, qb.tableName)
 	qb.Limit(1)
 
 	body, args := qb.buildBodyQuery()
@@ -116,7 +116,7 @@ func (qb *Builder) Value(column string) (any, error) {
 // Values получает значения одного поля для всех записей
 func (qb *Builder) Values(column string) ([]any, error) {
 	var result []any
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
+	head := fmt.Sprintf("SELECT %s FROM `%s`", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
 
@@ -126,7 +126,7 @@ func (qb *Builder) Values(column string) ([]any, error) {
 
 // Pluck получает значения одной колонки
 func (qb *Builder) Pluck(column string, dest any) error {
-	head := fmt.Sprintf("SELECT %s FROM %s", column, qb.tableName)
+	head := fmt.Sprintf("SELECT %s FROM `%s`", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execSelect(dest, qb.rebindQuery(head+body), args...)
@@ -552,7 +552,7 @@ func (qb *Builder) Delete() error {
 		return errors.New("delete without conditions is not allowed")
 	}
 
-	head := fmt.Sprintf("DELETE FROM %s", qb.tableName)
+	head := fmt.Sprintf("DELETE FROM `%s`", qb.tableName)
 	body, args := qb.buildBodyQuery()
 
 	query := qb.rebindQuery(head + body)
@@ -1559,7 +1559,7 @@ func (qb *Builder) PaginateWithCursor(cursor string, limit int, dest any) (*Curs
 // Avg вычисляет среднее значение колонки
 func (qb *Builder) Avg(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT AVG(%s) FROM %s", column, qb.tableName)
+	head := fmt.Sprintf("SELECT AVG(%s) FROM `%s`", column, qb.tableName)
 
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
@@ -1569,7 +1569,7 @@ func (qb *Builder) Avg(column string) (float64, error) {
 // Sum вычисляет сумму значений колонки
 func (qb *Builder) Sum(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT SUM(%s) FROM %s", column, qb.tableName)
+	head := fmt.Sprintf("SELECT SUM(%s) FROM `%s`", column, qb.tableName)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
 	return result, err
@@ -1578,7 +1578,7 @@ func (qb *Builder) Sum(column string) (float64, error) {
 // Min находит минимальное значение колонки
 func (qb *Builder) Min(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MIN(%s) FROM %s", column, qb.tableName)
+	head := fmt.Sprintf("SELECT MIN(%s) FROM `%s`", column, qb.tableName)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
 	return result, err
@@ -1587,7 +1587,7 @@ func (qb *Builder) Min(column string) (float64, error) {
 // Max находит максимальное значение колонки
 func (qb *Builder) Max(column string) (float64, error) {
 	var result float64
-	head := fmt.Sprintf("SELECT MAX(%s) FROM %s", column, qb.tableName)
+	head := fmt.Sprintf("SELECT MAX(%s) FROM `%s`", column, qb.tableName)
 	body, args := qb.buildBodyQuery()
 	_, err := qb.execGetContext(qb.ctx, &result, head+body, args...)
 	return result, err
@@ -1596,7 +1596,7 @@ func (qb *Builder) Max(column string) (float64, error) {
 // Count возвращает количество записей
 func (qb *Builder) Count() (int64, error) {
 	var count int64
-	head := fmt.Sprintf("SELECT COUNT(*) FROM %s", qb.tableName)
+	head := fmt.Sprintf("SELECT COUNT(*) FROM `%s`", qb.tableName)
 
 	body, args := qb.buildBodyQuery()
 	fmt.Println(head+body, args)

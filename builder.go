@@ -322,10 +322,10 @@ func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 	}
 	tableName := qb.tableName
 	if qb.alias != "" {
-		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
+		tableName = fmt.Sprintf("`%s` AS %s", tableName, qb.alias)
 	}
 
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.tableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE `%s` SET %s", qb.tableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
@@ -346,9 +346,9 @@ func (qb *Builder) buildUpdateMapQuery(data map[string]any) (string, []any) {
 
 	tableName := qb.tableName
 	if qb.alias != "" {
-		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
+		tableName = fmt.Sprintf("`%s` AS %s", tableName, qb.alias)
 	}
-	head := fmt.Sprintf("UPDATE %s SET %s", qb.tableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE `%s` SET %s", qb.tableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
