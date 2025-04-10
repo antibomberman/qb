@@ -86,7 +86,7 @@ func (qb *Builder) Rows() ([]map[string]any, error) {
 // First получает первую запись
 func (qb *Builder) First(dest any) (bool, error) {
 	qb.Limit(1)
-	query, args := qb.buildSelectQuery(&dest)
+	query, args := qb.buildSelectQuery(dest)
 	query = qb.rebindQuery(query)
 	return qb.execGetContext(qb.ctx, dest, query, args...)
 }
