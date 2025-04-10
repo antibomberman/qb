@@ -172,11 +172,19 @@ func (qb *Builder) rebindQuery(query string) string {
 func (qb *Builder) getStructInfo(data any) (fields []string, placeholders []string, values map[string]any) {
 	values = make(map[string]any)
 	v := reflect.ValueOf(data)
-	if v.Kind() == reflect.Ptr {
+	if v.IsZero() {
+		return fields, placeholders, values
+	}
+
+	for v.Kind() == reflect.Ptr && !v.IsNil() {
 		v = v.Elem()
 	}
-	t := v.Type()
 
+	if v.Kind() != reflect.Struct {
+		return fields, placeholders, values
+	}
+
+	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
 		if tag := t.Field(i).Tag.Get("db"); tag != "" && tag != "-" && tag != "id" {
 			fields = append(fields, tag)
@@ -184,7 +192,7 @@ func (qb *Builder) getStructInfo(data any) (fields []string, placeholders []stri
 			values[tag] = v.Field(i).Interface()
 		}
 	}
-	return
+	return fields, placeholders, values
 }
 func getFieldNameByDBTag(structType reflect.Type) map[string]string {
 	tagToField := make(map[string]string)
