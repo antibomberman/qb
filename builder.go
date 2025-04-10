@@ -256,14 +256,16 @@ func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
 		selectClause = strings.Join(qb.columns, ", ")
 	} else if dest != nil {
 		fields, _, _ := qb.getStructInfo(dest)
-		selectClause = strings.Join(fields, ", ")
+		if len(fields) > 0 {
+			selectClause = strings.Join(fields, ", ")
+		}
 	}
 	tableName := qb.tableName
 	if qb.alias != "" {
-		tableName = fmt.Sprintf("%s AS %s", tableName, qb.alias)
+		tableName = fmt.Sprintf("`%s` AS %s", tableName, qb.alias)
 	}
 
-	head := fmt.Sprintf("SELECT %s FROM %s", selectClause, tableName)
+	head := fmt.Sprintf("SELECT %s FROM `%s`", selectClause, tableName)
 	body, args := qb.buildBodyQuery()
 	return head + body, args
 }
