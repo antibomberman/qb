@@ -186,7 +186,7 @@ func (qb *Builder) getStructInfo(data any) (fields []string, placeholders []stri
 
 	t := v.Type()
 	for i := 0; i < t.NumField(); i++ {
-		if tag := t.Field(i).Tag.Get("db"); tag != "" && tag != "-" && tag != "id" {
+		if tag := t.Field(i).Tag.Get("db"); tag != "" && tag != "-" {
 			fields = append(fields, tag)
 			placeholders = append(placeholders, ":"+tag)
 			values[tag] = v.Field(i).Interface()
