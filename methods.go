@@ -391,6 +391,7 @@ func (qb *Builder) BulkInsertAsync(records []map[string]any) chan error {
 
 // Update обновляет записи используя структуру
 func (qb *Builder) Update(data any, fields ...string) error {
+	//TODO нужно убрать ID из set
 	go qb.Trigger(BeforeUpdate, data)
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)

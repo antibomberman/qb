@@ -259,21 +259,44 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 
 // buildQuery собирает полный SQL запрос
 func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
+	// Determine the table reference (either table name or alias)
+	tableRef := qb.tableName
+	if qb.alias != "" {
+		tableRef = qb.alias
+	}
+
+	// Build the SELECT clause
 	selectClause := "*"
 	if len(qb.columns) > 0 {
-		selectClause = strings.Join(qb.columns, ", ")
+		// Prepend table reference to each column
+		qualifiedColumns := make([]string, len(qb.columns))
+		for i, col := range qb.columns {
+			qualifiedColumns[i] = fmt.Sprintf("%s.%s", tableRef, col)
+		}
+		selectClause = strings.Join(qualifiedColumns, ", ")
 	} else if dest != nil {
+		// Get fields from struct
 		fields, _, _ := qb.getStructInfo(dest)
 		if len(fields) > 0 {
-			selectClause = strings.Join(fields, ", ")
+			// Prepend table reference to each field
+			qualifiedFields := make([]string, len(fields))
+			for i, field := range fields {
+				qualifiedFields[i] = fmt.Sprintf("%s.%s", tableRef, field)
+			}
+			selectClause = strings.Join(qualifiedFields, ", ")
 		}
 	}
+
+	// Build the table clause
 	tableName := qb.tableName
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("`%s` AS %s", tableName, qb.alias)
 	}
 
+	// Construct the query head
 	head := fmt.Sprintf("SELECT %s FROM `%s`", selectClause, tableName)
+
+	// Build the rest of the query (WHERE, JOIN, etc.)
 	body, args := qb.buildBodyQuery()
 	return head + body, args
 }
