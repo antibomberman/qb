@@ -113,6 +113,7 @@ type BuilderInterface interface {
 	Search(columns []string, query string) *Builder
 
 	// Дополнительный функционал
+	ToSql() (string, []any)
 	WithAudit(userID any) *Builder
 	ProcessQueue(handler func(QueuedOperation) error) error
 	Queue(operation string, data any, runAt time.Time) error

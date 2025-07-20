@@ -5,14 +5,14 @@ import (
 	"log"
 
 	"github.com/antibomberman/qb"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func Connect() qb.QueryBuilderInterface {
-	db, err := sql.Open("mysql", "root:test_password@tcp(localhost:3316)/test_db")
+	db, err := sql.Open("mysql", "root:rootpassword@tcp(localhost:3316)/test_db")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
 
 	return qb.New("mysql", db)
 }

@@ -213,6 +213,12 @@ func (qb *Builder) getDriverName() string {
 	return qb.queryBuilder.driverName
 }
 
+// quoteIdentifier оборачивает идентификатор в кавычки, специфичные для драйвера
+func (qb *Builder) quoteIdentifier(name string) string {
+	// TODO: Добавить логику для разных драйверов, используя qb.getDriverName()
+	return "`" + name + "`"
+}
+
 func (qb *Builder) buildBodyQuery() (string, []any) {
 	var args []any
 	var sql strings.Builder
@@ -268,12 +274,13 @@ func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
 			selectClause = strings.Join(fields, ", ")
 		}
 	}
-	tableName := qb.tableName
+
+	tableName := qb.quoteIdentifier(qb.tableName)
 	if qb.alias != "" {
-		tableName = fmt.Sprintf("`%s` AS %s", tableName, qb.alias)
+		tableName = fmt.Sprintf("%s AS %s", tableName, qb.quoteIdentifier(qb.alias))
 	}
 
-	head := fmt.Sprintf("SELECT %s FROM `%s`", selectClause, tableName)
+	head := fmt.Sprintf("SELECT %s FROM %s", selectClause, tableName)
 	body, args := qb.buildBodyQuery()
 	return head + body, args
 }
@@ -320,12 +327,12 @@ func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 			args = append(args, values[field])
 		}
 	}
-	tableName := qb.tableName
+	tableName := qb.quoteIdentifier(qb.tableName)
 	if qb.alias != "" {
-		tableName = fmt.Sprintf("`%s` AS %s", tableName, qb.alias)
+		tableName = fmt.Sprintf("%s AS %s", tableName, qb.quoteIdentifier(qb.alias))
 	}
 
-	head := fmt.Sprintf("UPDATE `%s` SET %s", qb.tableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", tableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
@@ -344,14 +351,20 @@ func (qb *Builder) buildUpdateMapQuery(data map[string]any) (string, []any) {
 		args = append(args, val)
 	}
 
-	tableName := qb.tableName
+	tableName := qb.quoteIdentifier(qb.tableName)
 	if qb.alias != "" {
-		tableName = fmt.Sprintf("`%s` AS %s", tableName, qb.alias)
+		tableName = fmt.Sprintf("%s AS %s", tableName, qb.quoteIdentifier(qb.alias))
 	}
-	head := fmt.Sprintf("UPDATE `%s` SET %s", qb.tableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", tableName, strings.Join(sets, ", "))
 
 	body, bodyArgs := qb.buildBodyQuery()
 	args = append(args, bodyArgs...)
 	return head + body, args
 
+}
+
+// ToSql возвращает сгенерированный SQL-запрос и его аргументы.
+func (qb *Builder) ToSql() (string, []any) {
+	query, args := qb.buildSelectQuery(nil) // dest is nil as we don't execute
+	return qb.rebindQuery(query), args
 }
