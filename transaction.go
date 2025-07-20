@@ -10,6 +10,7 @@ import (
 type Transaction struct {
 	Tx           *sqlx.Tx
 	QueryBuilder *QueryBuilder
+	ctx          context.Context
 }
 
 // Begin начинает новую транзакцию
@@ -27,34 +28,30 @@ func (q *QueryBuilder) BeginContext(ctx context.Context) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Transaction{Tx: tx, QueryBuilder: q}, nil
+	return &Transaction{Tx: tx, QueryBuilder: q, ctx: ctx}, nil
 }
 
 // Transaction выполняет функцию в транзакции
 func (q *QueryBuilder) Transaction(fn func(*Transaction) error) error {
-	tx, err := q.Begin()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if p := recover(); p != nil {
-			tx.Rollback()
-			panic(p)
-		}
-	}()
-
-	if err := fn(tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
+	return q.runInTransaction(nil, fn)
 }
 
 // TransactionContext выполняет функцию в транзакции с контекстом
 func (q *QueryBuilder) TransactionContext(ctx context.Context, fn func(*Transaction) error) error {
-	tx, err := q.BeginContext(ctx)
+	return q.runInTransaction(ctx, fn)
+}
+
+// runInTransaction - вспомогательная функция для выполнения операций в транзакции
+func (q *QueryBuilder) runInTransaction(ctx context.Context, fn func(*Transaction) error) error {
+	var tx *Transaction
+	var err error
+
+	if ctx != nil {
+		tx, err = q.BeginContext(ctx)
+	} else {
+		tx, err = q.Begin()
+	}
+
 	if err != nil {
 		return err
 	}

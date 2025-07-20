@@ -1,6 +1,9 @@
 package qb
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Raw выполняет сырой SQL-запрос
 func (q *QueryBuilder) Raw(query string, args ...any) *RawQuery {
@@ -9,6 +12,7 @@ func (q *QueryBuilder) Raw(query string, args ...any) *RawQuery {
 		args:         args,
 		db:           q.db,
 		queryBuilder: q,
+		ctx:          context.TODO(), // Default context
 	}
 }
 
@@ -16,15 +20,16 @@ func (q *QueryBuilder) Raw(query string, args ...any) *RawQuery {
 type RawQuery struct {
 	query        string
 	args         []any
-	db           Executor
+	db           Executor // Use Executor interface
 	queryBuilder *QueryBuilder
+	ctx          context.Context // Add context field
 }
 
 // Exec выполняет запрос без возврата результатов
 func (r *RawQuery) Exec() error {
 	start := time.Now()
-	r.queryBuilder.Debug("RawQuery", start, r.query, r.args)
-	_, err := r.db.Exec(r.query, r.args...)
+	_, err := r.db.ExecContext(r.ctx, r.query, r.args...)
+	r.queryBuilder.Debug("RawQuery.Exec", start, r.query, r.args)
 	if err != nil {
 		r.queryBuilder.Error(err.Error(), start, r.query, r.args)
 	}
@@ -34,8 +39,8 @@ func (r *RawQuery) Exec() error {
 // Query выполняет запрос и сканирует результаты в slice
 func (r *RawQuery) Query(dest any) error {
 	start := time.Now()
-	r.queryBuilder.Debug("RawQuery", start, r.query, r.args)
-	err := r.db.Select(dest, r.query, r.args...)
+	err := r.db.SelectContext(r.ctx, dest, r.query, r.args...)
+	r.queryBuilder.Debug("RawQuery.Query", start, r.query, r.args)
 	if err != nil {
 		r.queryBuilder.Error(err.Error(), start, r.query, r.args)
 	}
@@ -45,8 +50,8 @@ func (r *RawQuery) Query(dest any) error {
 // QueryRow выполняет запрос и сканирует один результат
 func (r *RawQuery) QueryRow(dest any) error {
 	start := time.Now()
-	r.queryBuilder.Debug("QueryRow", start, r.query, r.args)
-	err := r.db.Get(dest, r.query, r.args...)
+	err := r.db.GetContext(r.ctx, dest, r.query, r.args...)
+	r.queryBuilder.Debug("RawQuery.QueryRow", start, r.query, r.args)
 	if err != nil {
 		r.queryBuilder.Error(err.Error(), start, r.query, r.args)
 	}

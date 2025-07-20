@@ -1,5 +1,9 @@
 package qb
 
+import (
+	"sync"
+)
+
 type EventType string
 
 const (
@@ -16,10 +20,14 @@ type EventHandler func(any) error
 // Events добавляет поддержку событий
 type Events struct {
 	handlers map[EventType][]EventHandler
+	mu       sync.RWMutex
 }
 
 // On регистрирует обработчик события
 func (e *Events) On(event EventType, handler EventHandler) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
 	if e.handlers == nil {
 		e.handlers = make(map[EventType][]EventHandler)
 	}
@@ -28,6 +36,9 @@ func (e *Events) On(event EventType, handler EventHandler) {
 
 // Trigger вызывает обработчики события
 func (e *Events) Trigger(event EventType, data any) error {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
 	if handlers, ok := e.handlers[event]; ok {
 		for _, handler := range handlers {
 			if err := handler(data); err != nil {

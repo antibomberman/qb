@@ -23,7 +23,6 @@ func NewX(driverName string, db *sqlx.DB) QueryBuilderInterface {
 		db:         db,
 		driverName: driverName,
 	}
-	queryBuilder.SetMemoryCache()
 	return queryBuilder
 }
 
@@ -51,6 +50,7 @@ func (t *Transaction) Raw(query string, args ...any) *RawQuery {
 		args:         args,
 		db:           t.Tx,
 		queryBuilder: t.QueryBuilder,
+		ctx:          t.ctx,
 	}
 }
 

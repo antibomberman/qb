@@ -18,17 +18,19 @@ type Executor interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	SelectContext(ctx context.Context, dest any, query string, args ...any) error
 	GetContext(ctx context.Context, dest any, query string, args ...any) error
+	QueryRowxContext(ctx context.Context, query string, args ...any) *sqlx.Row
 }
 
 type DBInterface interface {
 	sqlx.Ext
-	Get(dest interface{}, query string, args ...interface{}) error
-	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	Select(dest interface{}, query string, args ...interface{}) error
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
+	Get(dest any, query string, args ...any) error
+	GetContext(ctx context.Context, dest any, query string, args ...any) error
+	Select(dest any, query string, args ...any) error
+	SelectContext(ctx context.Context, dest any, query string, args ...any) error
+	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	NamedExecContext(ctx context.Context, query string, arg any) (sql.Result, error)
+	QueryRowxContext(ctx context.Context, query string, args ...any) *sqlx.Row
 	Beginx() (*sqlx.Tx, error)
 	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
 }
@@ -36,13 +38,13 @@ type DBInterface interface {
 // Интерфейс для работы с транзакциями
 type TxInterface interface {
 	sqlx.Ext
-	Get(dest interface{}, query string, args ...interface{}) error
-	GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	Select(dest interface{}, query string, args ...interface{}) error
-	SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
+	Get(dest any, query string, args ...any) error
+	GetContext(ctx context.Context, dest any, query string, args ...any) error
+	Select(dest any, query string, args ...any) error
+	SelectContext(ctx context.Context, dest any, query string, args ...any) error
+	Exec(query string, args ...any) (sql.Result, error)
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	NamedExecContext(ctx context.Context, query string, arg any) (sql.Result, error)
 	Commit() error
 	Rollback() error
 }
@@ -55,7 +57,7 @@ type QueryBuilderInterface interface {
 	GetDB() DBInterface
 	SetLogger(logger *slog.Logger)
 	SetMemoryCache() *MemoryCache
-	SetRedisCache(addr string, password string, db int) *RedisCache
+	SetRedisCache(addr string, password string, db int) (*RedisCache, error)
 	// Транзакции
 	Begin() (*Transaction, error)
 	BeginContext(ctx context.Context) (*Transaction, error)
@@ -125,10 +127,10 @@ type BuilderInterface interface {
 
 // Вспомогательные интерфейсы
 type CacheInterface interface {
-	Get(key string) (any, bool)
+	Get(key string, dest any) bool
 	Set(key string, value any, expiration time.Duration)
 	Delete(key string)
-	Clear() error
+	Clear()
 }
 
 type CrudInterface interface {

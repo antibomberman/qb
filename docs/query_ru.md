@@ -8,7 +8,8 @@
 - `New(driverName string, db *sql.DB)` - создает новый экземпляр QueryBuilder
 - `From(table string)` - указывает таблицу для запроса
 - `SetLogger(logger *slog.Logger)` - устанавливает логгер
-- `SetCache(cache CacheInterface)` - устанавливает систему кеширования
+- `SetMemoryCache()` - устанавливает кеширование в памяти
+- `SetRedisCache(addr string, password string, db int)` - устанавливает кеширование в Redis
 
 ### Builder
 Структура для построения SQL-запросов.
@@ -22,6 +23,7 @@
 - `Values(column string)` - получение массива значений
 - `Chunk(size int, fn func(items any) error)` - обработка чанками
 - `ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error)` - обработка чанками с контекстом
+- `ToSql() (string, []any)` - возвращает сгенерированный SQL-запрос и его аргументы
 
 
 
@@ -103,7 +105,7 @@
 #### Методы пакетной обработки:
 - `BatchInsert(records []map[string]any)` - пакетная вставка
 - `BatchInsertAsync(records []map[string]any)` - асинхронная пакетная вставка
-- `BulkInsert(records []map[string]any)` - массовая вставка
+- `BulkInsert(records []map[string]any)` - массовая вставка (не возвращает ID для MySQL)
 - `BulkInsertAsync(records []map[string]any)` - асинхронная массовая вставка
 - `BulkUpdate(records []map[string]any, keyColumn string)` - массовое обновление
 - `BulkUpdateAsync(records []map[string]any, keyColumn string)` - асинхронное массовое обновление
@@ -138,7 +140,7 @@
 
 #### Дополнительные возможности:
 - `WithAudit(userID any)` - включение аудита изменений
-- `WithMetrics(collector *MetricsCollector)` - сбор метрик
+- `WithMetrics(collector *MetricsCollector)` - сбор метрик (теперь собираются после операций CREATE и UPDATE)
 - `Remember(key string, duration time.Duration)` - кеширование
 - `Queue(operation string, data any, runAt time.Time)` - отложенные операции
 
@@ -218,22 +220,26 @@ result, err := qb.From("users").
 - Рекомендуется использовать подготовленные выражения для предотвращения SQL-инъекций
 
 ## Кеширование
+
+Пакет `qb` поддерживает кеширование результатов запросов как в памяти, так и с использованием Redis. Кеширование теперь инициализируется явно через методы `QueryBuilder`.
+
+### Использование кеша
 ```go
 // Использование кеша в памяти
-qb.SetCache(NewCacheMemory())
+qb.SetMemoryCache()
+
+// Использование кеша Redis
+// qb.SetRedisCache("localhost:6379", "", 0)
 
 // Кеширование запроса
 var users []User
 found, err := qb.From("users").
     Remember("users_list", time.Minute).
-    Get(&users)
+    GetCached(&users) // Используйте GetCached для получения данных из кеша
 ```
+
 ### MemoryCache
 Реализация кеша в памяти.
-
-```go
-cache := NewCacheMemory()
-```
 
 Основные характеристики:
 - Хранение данных в памяти процесса
@@ -243,10 +249,6 @@ cache := NewCacheMemory()
 
 ### RedisCache
 Реализация кеша с использованием Redis.
-
-```go
-cache := NewCacheRedis("localhost:6379", "", 0)
-```
 
 Особенности:
 - Персистентное хранение данных
@@ -308,7 +310,7 @@ err := qb.Transaction(func(tx *Transaction) error {
 ### Особенности транзакций:
 - Поддержка вложенных транзакций
 - Автоматический откат при панике
-- Контекстная поддержка через `BeginContext` и `TransactionContext`
+- Контекстная поддержка через `BeginContext` и `TransactionContext` (теперь `*Transaction` содержит `context.Context`)
 - Безопасность для горутин
 
 

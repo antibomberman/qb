@@ -201,7 +201,7 @@ func (qb *Builder) Create(data any, fields ...string) (any, error) {
 	if qb.getDriverName() == "postgres" {
 		var id any
 		query += " RETURNING id"
-		err := qb.getExecutor().QueryRowx(query, data).Scan(&id)
+		err := qb.getExecutor().QueryRowxContext(qb.ctx, query, data).Scan(&id)
 		return id, err
 	}
 
@@ -225,6 +225,9 @@ func (qb *Builder) CreateAsync(data any, fields ...string) (chan any, chan error
 // CreateMap создает новую запись из map и возвращает её id
 func (qb *Builder) CreateMap(data map[string]any) (any, error) {
 	go qb.Trigger(BeforeCreate, data)
+	defer func() {
+		go qb.Trigger(AfterCreate, data)
+	}()
 	columns := make([]string, 0, len(data))
 	placeholders := make([]string, 0, len(data))
 	values := make([]any, 0, len(data))
@@ -244,7 +247,7 @@ func (qb *Builder) CreateMap(data map[string]any) (any, error) {
 	if qb.getDriverName() == "postgres" {
 		var id any
 		query = qb.rebindQuery(query + " RETURNING id")
-		err := qb.getExecutor().(sqlx.QueryerContext).QueryRowxContext(qb.ctx, query, values...).Scan(&id)
+		err := qb.getExecutor().QueryRowxContext(qb.ctx, query, values...).Scan(&id)
 		return id, err
 	}
 
@@ -252,7 +255,6 @@ func (qb *Builder) CreateMap(data map[string]any) (any, error) {
 	if err != nil {
 		return 0, err
 	}
-	go qb.Trigger(AfterCreate, data)
 	return result.LastInsertId()
 }
 func (qb *Builder) CreateMapAsync(data map[string]any) (chan any, chan error) {
@@ -360,19 +362,14 @@ func (qb *Builder) BulkInsert(records []map[string]any) error {
 		return err
 	}
 
-	lastID, err := result.LastInsertId()
+	_, err = result.LastInsertId()
 	if err != nil {
 		return err
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	_, err = result.RowsAffected()
 	if err != nil {
 		return err
-	}
-
-	ids := make([]any, rowsAffected)
-	for i := range ids {
-		ids[i] = lastID
 	}
 
 	return nil
@@ -1633,11 +1630,9 @@ func (qb *Builder) WithAudit(userID any) *Builder {
 		var recordID any
 		var err error
 
-		for _, cond := range qb.conditions {
-			if cond.clause == "id = ?" {
-				recordID = cond.args[0]
-				break
-			}
+		recordID, _ = qb.getRecordIDFromConditions()
+		if recordID == nil {
+			recordID = extractIDFromData(data)
 		}
 
 		switch v := data.(type) {
@@ -1668,12 +1663,10 @@ func (qb *Builder) WithAudit(userID any) *Builder {
 		var recordID any
 		var err error
 
-		// Получаем ID из условий WHERE
-		for _, cond := range qb.conditions {
-			if cond.clause == "id = ?" {
-				recordID = any(cond.args[0].(int))
-				break
-			}
+		// Получаем ID из условий WHERE или из данных
+		recordID, _ = qb.getRecordIDFromConditions()
+		if recordID == nil {
+			recordID = extractIDFromData(data)
 		}
 
 		switch v := data.(type) {
@@ -1702,22 +1695,7 @@ func (qb *Builder) WithAudit(userID any) *Builder {
 		var recordID any
 		var err error
 
-		switch v := data.(type) {
-		case map[string]any:
-			newData, err = json.Marshal(v)
-			if id, ok := v["id"]; ok {
-				recordID = id
-			}
-		default:
-			val := reflect.ValueOf(data)
-			if val.Kind() == reflect.Ptr {
-				val = val.Elem()
-			}
-			if val.Kind() == reflect.Struct {
-				recordID = val.FieldByName("ID").Int()
-			}
-			newData, err = json.Marshal(data)
-		}
+		recordID = extractIDFromData(data)
 
 		if err != nil {
 			return err
@@ -1835,15 +1813,13 @@ func (mc *MetricsCollector) Track(query string, duration time.Duration, err erro
 
 // WithMetrics добавляет сбор метрик
 func (qb *Builder) WithMetrics(collector *MetricsCollector) *Builder {
-	qb.On(BeforeCreate, func(data any) error {
-		start := time.Now()
-		collector.Track("CREATE", time.Since(start), nil)
+	qb.On(AfterCreate, func(data any) error {
+		collector.Track("CREATE", time.Since(time.Now()), nil) // Placeholder for actual duration
 		return nil
 	})
 
-	qb.On(BeforeUpdate, func(data any) error {
-		start := time.Now()
-		collector.Track("UPDATE", time.Since(start), nil)
+	qb.On(AfterUpdate, func(data any) error {
+		collector.Track("UPDATE", time.Since(time.Now()), nil) // Placeholder for actual duration
 		return nil
 	})
 
@@ -1859,14 +1835,11 @@ func (qb *Builder) Remember(key string, duration time.Duration) *Builder {
 
 // GetCached получает данные с учетом кеша
 func (qb *Builder) GetCached(dest any) (bool, error) {
-	// Проверяем наличие ключа кеша
-	if qb.cacheKey != "" {
+	// Проверяем наличие ключа кеша и инициализирован ли кеш
+	if qb.cacheKey != "" && qb.queryBuilder.cache != nil {
 		// Пытаемся получить из кеша
-		if cached, ok := qb.queryBuilder.cache.Get(qb.cacheKey); ok {
-			// Копируем закешированные данные
-			if data, ok := cached.([]byte); ok {
-				return true, json.Unmarshal(data, dest)
-			}
+		if cached := qb.queryBuilder.cache.Get(qb.cacheKey, dest); cached {
+			return true, nil
 		}
 	}
 
@@ -1876,8 +1849,8 @@ func (qb *Builder) GetCached(dest any) (bool, error) {
 		return false, err
 	}
 
-	// Сохраняем результат в кеш
-	if found && qb.cacheKey != "" {
+	// Сохраняем результат в кеш, если кеш инициализирован
+	if found && qb.cacheKey != "" && qb.queryBuilder.cache != nil {
 		// Сериализуем данные перед сохранением
 		data, err := json.Marshal(dest)
 		if err != nil {
@@ -1887,4 +1860,38 @@ func (qb *Builder) GetCached(dest any) (bool, error) {
 	}
 
 	return found, nil
+}
+
+// getRecordIDFromConditions attempts to extract the record ID from the builder's conditions.
+// It primarily looks for "id = ?" conditions.
+func (qb *Builder) getRecordIDFromConditions() (any, bool) {
+	for _, cond := range qb.conditions {
+		if strings.HasPrefix(cond.clause, "id = ?") && len(cond.args) > 0 {
+			return cond.args[0], true
+		}
+	}
+	return nil, false
+}
+
+// extractIDFromData attempts to extract an ID from a struct or map.
+// It looks for a field named "ID" or "id".
+func extractIDFromData(data any) any {
+	val := reflect.ValueOf(data)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() == reflect.Struct {
+		if field := val.FieldByName("ID"); field.IsValid() {
+			return field.Interface()
+		}
+	} else if val.Kind() == reflect.Map {
+		if idVal := val.MapIndex(reflect.ValueOf("id")); idVal.IsValid() {
+			return idVal.Interface()
+		}
+		if idVal := val.MapIndex(reflect.ValueOf("ID")); idVal.IsValid() {
+			return idVal.Interface()
+		}
+	}
+	return nil
 }

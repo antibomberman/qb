@@ -1,6 +1,8 @@
 package qb
 
 import (
+	"encoding/json"
+	"log"
 	"sync"
 	"time"
 )
@@ -9,6 +11,7 @@ import (
 type MemoryCache struct {
 	data map[string]cacheItem
 	mu   sync.RWMutex
+	stop chan struct{} // Channel to signal cleanup goroutine to stop
 }
 type cacheItem struct {
 	value      any
@@ -16,29 +19,50 @@ type cacheItem struct {
 }
 
 func (q *QueryBuilder) SetMemoryCache() *MemoryCache {
+	// If a cache already exists and it's a MemoryCache, stop its cleanup goroutine
+	if oldCache, ok := q.cache.(*MemoryCache); ok && oldCache != nil {
+		oldCache.StopCleanup()
+	}
+
 	cache := &MemoryCache{
 		data: make(map[string]cacheItem),
+		stop: make(chan struct{}),
 	}
 	go cache.startCleanup()
 	q.cache = cache
 	return cache
 }
 
-func (c *MemoryCache) Get(key string) (any, bool) {
+// StopCleanup signals the cleanup goroutine to stop.
+func (c *MemoryCache) StopCleanup() {
+	close(c.stop)
+}
+
+func (c *MemoryCache) Get(key string, dest any) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
 	item, exists := c.data[key]
 	if !exists {
-		return nil, false
+		return false
 	}
 
 	if time.Now().After(item.expiration) {
-		go c.Delete(key)
-		return nil, false
+		return false // Item expired, let cleanup goroutine handle deletion
 	}
 
-	return item.value, true
+	// Marshal and Unmarshal to ensure type safety and deep copy
+	data, err := json.Marshal(item.value)
+	if err != nil {
+		log.Printf("Error marshalling cached value: %v", err)
+		return false
+	}
+	if err := json.Unmarshal(data, dest); err != nil {
+		log.Printf("Error unmarshalling cached value to dest: %v", err)
+		return false
+	}
+
+	return true
 }
 
 func (c *MemoryCache) Set(key string, value any, expiration time.Duration) {
@@ -57,23 +81,29 @@ func (c *MemoryCache) Delete(key string) {
 	delete(c.data, key)
 }
 
-func (c *MemoryCache) Clear() error {
+func (c *MemoryCache) Clear() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.data = make(map[string]cacheItem)
-	return nil
 }
 
 func (c *MemoryCache) startCleanup() {
 	ticker := time.NewTicker(time.Minute)
-	for range ticker.C {
-		c.mu.Lock()
-		now := time.Now()
-		for key, item := range c.data {
-			if now.After(item.expiration) {
-				delete(c.data, key)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			c.mu.Lock()
+			now := time.Now()
+			for key, item := range c.data {
+				if now.After(item.expiration) {
+					delete(c.data, key)
+				}
 			}
+			c.mu.Unlock()
+		case <-c.stop:
+			return // Stop the goroutine
 		}
-		c.mu.Unlock()
 	}
 }

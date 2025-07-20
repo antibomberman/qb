@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"reflect"
 	"strings"
 	"time"
@@ -64,77 +63,90 @@ func buildConditions(conditions []Condition) string {
 
 // execGet выполняет запрос и получает одну запись
 func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
-	start := time.Now()
-
-	err := qb.getExecutor().Get(dest, query, args...)
-	qb.queryBuilder.Debug("execGet", start, query, args)
-	if err != nil {
-		qb.queryBuilder.Error(err.Error(), start, query, args)
-	}
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	return err == nil, err
+	return qb.executeQuery(nil, "execGet", dest, query, args, true)
 }
 
 // execSelect выполняет запрос и получает множество записей
 func (qb *Builder) execSelect(dest any, query string, args ...any) (bool, error) {
-	start := time.Now()
-	err := qb.getExecutor().Select(dest, query, args...)
-	qb.queryBuilder.Debug("execSelect", start, query, args)
-	if err != nil {
-		qb.queryBuilder.Error(err.Error(), start, query, args)
-	}
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	return err == nil, err
+	return qb.executeQuery(nil, "execSelect", dest, query, args, false)
 }
 
 // execExec выполняет запрос без возврата данных
 func (qb *Builder) execExec(query string, args ...any) error {
-	start := time.Now()
-	_, err := qb.getExecutor().Exec(query, args...)
-	qb.queryBuilder.Debug("execExec", start, query, args)
-	if err != nil {
-		qb.queryBuilder.Error(err.Error(), start, query, args)
-	}
-	return err
+	return qb.executeExec(nil, "execExec", query, args)
 }
 
 // execGetContext выполняет запрос с контекстом и получает одну запись
 func (qb *Builder) execGetContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
-	start := time.Now()
-	err := qb.getExecutor().GetContext(ctx, dest, query, args...)
-	qb.queryBuilder.Debug("execGetContext", start, query, args)
-	if err != nil {
-		qb.queryBuilder.Error(err.Error(), start, query, args)
-	}
-	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
-	}
-	return err == nil, err
+	return qb.executeQuery(ctx, "execGetContext", dest, query, args, true)
 }
 
 // execSelectContext выполняет запрос с контекстом и получает множество записей
 func (qb *Builder) execSelectContext(ctx context.Context, dest any, query string, args ...any) (bool, error) {
+	return qb.executeQuery(ctx, "execSelectContext", dest, query, args, false)
+}
+
+// execExecContext выполняет запрос с контекстом
+func (qb *Builder) execExecContext(ctx context.Context, query string, args ...any) error {
+	return qb.executeExec(ctx, "execExecContext", query, args)
+}
+
+// executeQuery performs a Get or Select operation, handles logging, and checks for sql.ErrNoRows.
+func (qb *Builder) executeQuery(
+	ctx context.Context,
+	opName string,
+	dest any,
+	query string,
+	args []any,
+	isGet bool, // true for Get, false for Select
+) (bool, error) {
 	start := time.Now()
-	err := qb.getExecutor().SelectContext(ctx, dest, query, args...)
-	qb.queryBuilder.Debug("execSelectContext", start, query, args)
+	var err error
+
+	executor := qb.getExecutor()
+	if ctx != nil {
+		if isGet {
+			err = executor.GetContext(ctx, dest, query, args...)
+		} else {
+			err = executor.SelectContext(ctx, dest, query, args...)
+		}
+	} else {
+		if isGet {
+			err = executor.Get(dest, query, args...)
+		} else {
+			err = executor.Select(dest, query, args...)
+		}
+	}
+
+	qb.queryBuilder.Debug(opName, start, query, args)
 	if err != nil {
 		qb.queryBuilder.Error(err.Error(), start, query, args)
 	}
+
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 	return err == nil, err
 }
 
-// execExecContext выполняет запрос с контекстом
-func (qb *Builder) execExecContext(ctx context.Context, query string, args ...any) error {
+// executeExec performs an Exec operation and handles logging.
+func (qb *Builder) executeExec(
+	ctx context.Context,
+	opName string,
+	query string,
+	args []any,
+) error {
 	start := time.Now()
-	_, err := qb.getExecutor().ExecContext(ctx, query, args...)
-	qb.queryBuilder.Debug("execExecContext", start, query, args)
+	var err error
+
+	executor := qb.getExecutor()
+	if ctx != nil {
+		_, err = executor.ExecContext(ctx, query, args...)
+	} else {
+		_, err = executor.Exec(query, args...)
+	}
+
+	qb.queryBuilder.Debug(opName, start, query, args)
 	if err != nil {
 		qb.queryBuilder.Error(err.Error(), start, query, args)
 	}
@@ -153,7 +165,8 @@ func (qb *Builder) Trigger(event EventType, data any) {
 	if handlers, ok := qb.events[event]; ok {
 		for _, handler := range handlers {
 			if err := handler(data); err != nil {
-				log.Fatalln(err)
+				// Log the error instead of fataling
+				qb.queryBuilder.Error(err.Error(), time.Now(), fmt.Sprintf("Event Trigger: %s", event), data)
 			}
 		}
 	}
@@ -314,7 +327,6 @@ func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 			}
 
 			fieldVal := v.FieldByName(fieldName)
-			fmt.Println(dbTag, ":", fieldVal)
 
 			if fieldVal.IsValid() {
 				args = append(args, fieldVal.Interface())
