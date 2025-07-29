@@ -237,10 +237,22 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 	var sql strings.Builder
 
 	for _, join := range qb.joins {
-		if join.Type == CrossJoin {
-			sql.WriteString(fmt.Sprintf(" %s %s", join.Type, join.tableName))
+		parts := strings.Fields(join.tableName)
+		var quotedTableName string
+		if len(parts) == 1 {
+			quotedTableName = qb.quoteIdentifier(parts[0])
+		} else if len(parts) == 2 {
+			quotedTableName = fmt.Sprintf("%s %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[1]))
+		} else if len(parts) == 3 && strings.ToLower(parts[1]) == "as" {
+			quotedTableName = fmt.Sprintf("%s AS %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[2]))
 		} else {
-			sql.WriteString(fmt.Sprintf(" %s %s ON %s", join.Type, join.tableName, join.Condition))
+			quotedTableName = join.tableName // Keep original for complex cases
+		}
+
+		if join.Type == CrossJoin {
+			sql.WriteString(fmt.Sprintf(" %s %s", join.Type, quotedTableName))
+		} else {
+			sql.WriteString(fmt.Sprintf(" %s %s ON %s", join.Type, quotedTableName, join.Condition))
 		}
 	}
 
