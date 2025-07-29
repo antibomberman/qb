@@ -246,7 +246,7 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 		} else if len(parts) == 3 && strings.ToLower(parts[1]) == "as" {
 			quotedTableName = fmt.Sprintf("%s AS %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[2]))
 		} else {
-			quotedTableName = join.tableName // Keep original for complex cases
+			quotedTableName = join.tableName
 		}
 
 		if join.Type == CrossJoin {
