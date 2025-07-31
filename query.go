@@ -16,7 +16,7 @@ type QueryBuilder struct {
 }
 
 func New(driverName string, db *sql.DB) QueryBuilderInterface {
-	return NewX(driverName, sqlx.NewDb(db, driverName))
+	return NewX(driverName, sqlx.NewDb(db, driverName).Unsafe())
 }
 func NewX(driverName string, db *sqlx.DB) QueryBuilderInterface {
 	queryBuilder := &QueryBuilder{
