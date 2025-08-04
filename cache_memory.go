@@ -3,6 +3,7 @@ package qb
 import (
 	"encoding/json"
 	"log"
+	"reflect"
 	"sync"
 	"time"
 )
@@ -51,7 +52,23 @@ func (c *MemoryCache) Get(key string, dest any) bool {
 		return false // Item expired, let cleanup goroutine handle deletion
 	}
 
-	// Marshal and Unmarshal to ensure type safety and deep copy
+	// Directly copy the value if possible, otherwise use JSON serialization
+	// as a fallback for deep copy.
+	srcVal := reflect.ValueOf(item.value)
+	destVal := reflect.ValueOf(dest)
+
+	if destVal.Kind() != reflect.Ptr || destVal.IsNil() {
+		log.Printf("Error: dest must be a non-nil pointer")
+		return false
+	}
+
+	// If the types are directly assignable, we can do a much faster copy.
+	if srcVal.Type().AssignableTo(destVal.Elem().Type()) {
+		destVal.Elem().Set(srcVal)
+		return true
+	}
+
+	// Fallback to JSON for deep copy if direct assignment is not possible.
 	data, err := json.Marshal(item.value)
 	if err != nil {
 		log.Printf("Error marshalling cached value: %v", err)

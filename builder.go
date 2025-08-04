@@ -228,8 +228,16 @@ func (qb *Builder) getDriverName() string {
 
 // quoteIdentifier оборачивает идентификатор в кавычки, специфичные для драйвера
 func (qb *Builder) quoteIdentifier(name string) string {
-	// TODO: Добавить логику для разных драйверов, используя qb.getDriverName()
-	return "`" + name + "`"
+	driver := qb.getDriverName()
+	switch driver {
+	case "mysql":
+		return "`" + name + "`"
+	case "postgres":
+		return `"` + name + `"`
+	default:
+		// По умолчанию используем стандартные двойные кавычки
+		return `"` + name + `"`
+	}
 }
 
 func (qb *Builder) buildBodyQuery() (string, []any) {
