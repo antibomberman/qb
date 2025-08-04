@@ -28,6 +28,7 @@ type Builder struct {
 	orderBy       []string
 	groupBy       []string
 	having        string
+	havingArgs    []any
 	limit         int
 	offset        int
 	joins         []Join
@@ -38,17 +39,21 @@ type Builder struct {
 }
 
 // buildConditions собирает условия WHERE в строку
-func buildConditions(conditions []Condition) string {
+func buildConditions(conditions []Condition) (string, []any) {
 	var parts []string
+	var args []any
 
 	for i, cond := range conditions {
 		var part string
+		var currentArgs []any
 
 		if len(cond.nested) > 0 {
-			nestedSQL := buildConditions(cond.nested)
+			nestedSQL, nestedArgs := buildConditions(cond.nested)
 			part = "(" + nestedSQL + ")"
+			currentArgs = nestedArgs
 		} else {
 			part = cond.clause
+			currentArgs = cond.args
 		}
 
 		if i == 0 {
@@ -56,9 +61,10 @@ func buildConditions(conditions []Condition) string {
 		} else {
 			parts = append(parts, cond.operator+" "+part)
 		}
+		args = append(args, currentArgs...)
 	}
 
-	return strings.Join(parts, " ")
+	return strings.Join(parts, " "), args
 }
 
 // execGet выполняет запрос и получает одну запись
@@ -229,15 +235,77 @@ func (qb *Builder) getDriverName() string {
 // quoteIdentifier оборачивает идентификатор в кавычки, специфичные для драйвера
 func (qb *Builder) quoteIdentifier(name string) string {
 	driver := qb.getDriverName()
-	switch driver {
-	case "mysql":
-		return "`" + name + "`"
-	case "postgres":
-		return `"` + name + `"`
-	default:
-		// По умолчанию используем стандартные двойные кавычки
-		return `"` + name + `"`
+	parts := strings.Split(name, ".")
+	quotedParts := make([]string, len(parts))
+	for i, part := range parts {
+		switch driver {
+		case "mysql":
+			quotedParts[i] = "`" + part + "`"
+		case "postgres":
+			quotedParts[i] = "`" + part + "`"
+		default:
+			quotedParts[i] = "`" + part + "`"
+		}
 	}
+	return strings.Join(quotedParts, ".")
+}
+
+// buildSetClause формирует SET-часть SQL-запроса для UPDATE
+func (qb *Builder) buildSetClause(data any, fields []string) (string, []any, error) {
+	var sets []string
+	var args []any
+
+	if len(fields) > 0 { // Обновление полей структуры
+		v := reflect.ValueOf(data)
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+		if v.Kind() != reflect.Struct {
+			return "", nil, errors.New("data must be a struct or a pointer to a struct when fields are specified")
+		}
+
+		t := v.Type()
+		tagToField := getFieldNameByDBTag(t)
+
+		for _, dbTag := range fields {
+			fieldName, ok := tagToField[dbTag]
+			if !ok {
+				// Log this error, but don't stop the process
+				qb.queryBuilder.Error(fmt.Sprintf("tag %s not found in struct for update", dbTag), time.Now(), "buildSetClause")
+				continue
+			}
+			sets = append(sets, fmt.Sprintf("%s = ?", qb.quoteIdentifier(dbTag)))
+			fieldVal := v.FieldByName(fieldName)
+			if fieldVal.IsValid() {
+				args = append(args, fieldVal.Interface())
+			} else {
+				// This case should ideally not happen if tagToField is correct
+				qb.queryBuilder.Error(fmt.Sprintf("field %s not found in struct for update", fieldName), time.Now(), "buildSetClause")
+				args = append(args, nil)
+			}
+		}
+	} else { // Обновление из map[string]any или всех полей структуры
+		val := reflect.ValueOf(data)
+		if val.Kind() == reflect.Map && val.Type().Key().Kind() == reflect.String { // map[string]any
+			for _, key := range val.MapKeys() {
+				col := key.String()
+				sets = append(sets, fmt.Sprintf("%s = ?", qb.quoteIdentifier(col)))
+				args = append(args, val.MapIndex(key).Interface())
+			}
+		} else { // Все поля структуры
+			fields, _, values := qb.getStructInfo(data)
+			for _, field := range fields {
+				sets = append(sets, fmt.Sprintf("%s = ?", qb.quoteIdentifier(field)))
+				args = append(args, values[field])
+			}
+		}
+	}
+
+	if len(sets) == 0 {
+		return "", nil, errors.New("no fields to update")
+	}
+
+	return strings.Join(sets, ", "), args, nil
 }
 
 func (qb *Builder) buildBodyQuery() (string, []any) {
@@ -245,16 +313,15 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 	var sql strings.Builder
 
 	for _, join := range qb.joins {
-		parts := strings.Fields(join.tableName)
-		var quotedTableName string
-		if len(parts) == 1 {
-			quotedTableName = qb.quoteIdentifier(parts[0])
-		} else if len(parts) == 2 {
-			quotedTableName = fmt.Sprintf("%s %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[1]))
-		} else if len(parts) == 3 && strings.ToLower(parts[1]) == "as" {
-			quotedTableName = fmt.Sprintf("%s AS %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[2]))
-		} else {
-			quotedTableName = join.tableName
+		// Упрощенная обработка quotedTableName
+		quotedTableName := qb.quoteIdentifier(join.tableName)
+		if strings.Contains(join.tableName, " ") { // Проверяем, есть ли алиас
+			parts := strings.Fields(join.tableName)
+			if len(parts) == 2 { // table alias
+				quotedTableName = fmt.Sprintf("%s %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[1]))
+			} else if len(parts) == 3 && strings.ToLower(parts[1]) == "as" { // table AS alias
+				quotedTableName = fmt.Sprintf("%s AS %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[2]))
+			}
 		}
 
 		if join.Type == CrossJoin {
@@ -265,12 +332,9 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 	}
 
 	if len(qb.conditions) > 0 {
-		whereSQL := buildConditions(qb.conditions)
+		whereSQL, whereArgs := buildConditions(qb.conditions)
 		sql.WriteString(" WHERE " + whereSQL)
-
-		for _, cond := range qb.conditions {
-			args = append(args, cond.args...)
-		}
+		args = append(args, whereArgs...)
 	}
 
 	if len(qb.groupBy) > 0 {
@@ -279,6 +343,7 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 
 	if qb.having != "" {
 		sql.WriteString(" HAVING " + qb.having)
+		args = append(args, qb.havingArgs...)
 	}
 
 	if len(qb.orderBy) > 0 {
@@ -298,14 +363,32 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 
 // buildQuery собирает полный SQL запрос
 func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
-	selectClause := "*"
+	var selectColumns []string
 	if len(qb.columns) > 0 {
-		selectClause = strings.Join(qb.columns, ", ")
+		for _, col := range qb.columns {
+			parts := strings.Fields(col)
+			if len(parts) >= 3 && strings.ToLower(parts[len(parts)-2]) == "as" {
+				// This is a "column AS alias" case
+				columnPart := strings.Join(parts[:len(parts)-2], " ") // Reconstruct column part
+				aliasPart := parts[len(parts)-1]
+				selectColumns = append(selectColumns, fmt.Sprintf("%s AS %s", qb.quoteIdentifier(columnPart), qb.quoteIdentifier(aliasPart)))
+			} else {
+				// No "AS" or not in the expected format, just quote the whole thing
+				selectColumns = append(selectColumns, qb.quoteIdentifier(col))
+			}
+		}
 	} else if dest != nil {
 		fields, _, _ := qb.getStructInfo(dest)
 		if len(fields) > 0 {
-			selectClause = strings.Join(fields, ", ")
+			for _, field := range fields {
+				selectColumns = append(selectColumns, qb.quoteIdentifier(field))
+			}
 		}
+	}
+
+	selectClause := "*"
+	if len(selectColumns) > 0 {
+		selectClause = strings.Join(selectColumns, ", ")
 	}
 
 	tableName := qb.quoteIdentifier(qb.tableName)
@@ -373,26 +456,22 @@ func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
 }
 
 // buildInsertQuery собирает SQL запрос для INSERT
-func (qb *Builder) buildUpdateMapQuery(data map[string]any) (string, []any) {
-
-	var sets []string
-	var args []any
-
-	for col, val := range data {
-		sets = append(sets, col+" = ?")
-		args = append(args, val)
+func (qb *Builder) buildUpdateMapQuery(data map[string]any) (string, []any, error) {
+	setClause, setArgs, err := qb.buildSetClause(data, nil) // Pass nil for fields to indicate map processing
+	if err != nil {
+		return "", nil, err
 	}
 
 	tableName := qb.quoteIdentifier(qb.tableName)
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.quoteIdentifier(qb.alias))
 	}
-	head := fmt.Sprintf("UPDATE %s SET %s", tableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", tableName, setClause)
 
 	body, bodyArgs := qb.buildBodyQuery()
-	args = append(args, bodyArgs...)
-	return head + body, args
+	args := append(setArgs, bodyArgs...)
 
+	return head + body, args, nil
 }
 
 // ToSql возвращает сгенерированный SQL-запрос и его аргументы.

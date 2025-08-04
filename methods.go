@@ -449,7 +449,10 @@ func (qb *Builder) UpdateMap(data map[string]any) error {
 	defer func() {
 		go qb.Trigger(AfterUpdate, data)
 	}()
-	query, args := qb.buildUpdateMapQuery(data)
+	query, args, err := qb.buildUpdateMapQuery(data)
+	if err != nil {
+		return err
+	}
 	query = qb.rebindQuery(query)
 	return qb.execExecContext(qb.ctx, query, args...)
 }
@@ -842,7 +845,8 @@ func (qb *Builder) HavingRaw(sql string, args ...any) *Builder {
 		qb.having += " AND "
 	}
 	qb.having += sql
-	qb.conditions = append(qb.conditions, Condition{args: args})
+	qb.havingArgs = append(qb.havingArgs, args...)
+
 	return qb
 }
 
@@ -1174,7 +1178,7 @@ func getMySQLDateFormat(part string) string {
 func (qb *Builder) WhereDate(column string, operator string, value time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("DATE(%s) %s ?", column, operator),
+		clause:   fmt.Sprintf("DATE(%s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{value.Format("2006-01-02")},
 	})
 	return qb
@@ -1184,7 +1188,7 @@ func (qb *Builder) WhereDate(column string, operator string, value time.Time) *B
 func (qb *Builder) WhereBetweenDates(column string, start time.Time, end time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("DATE(%s) BETWEEN ? AND ?", column),
+		clause:   fmt.Sprintf("DATE(%s) BETWEEN ? AND ?", qb.quoteIdentifier(column)),
 		args:     []any{start.Format("2006-01-02"), end.Format("2006-01-02")},
 	})
 	return qb
@@ -1194,7 +1198,7 @@ func (qb *Builder) WhereBetweenDates(column string, start time.Time, end time.Ti
 func (qb *Builder) WhereDateTime(column string, operator string, value time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("%s %s ?", column, operator),
+		clause:   fmt.Sprintf("%s %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{value.Format("2006-01-02 15:04:05")},
 	})
 	return qb
@@ -1204,7 +1208,7 @@ func (qb *Builder) WhereDateTime(column string, operator string, value time.Time
 func (qb *Builder) WhereBetweenDateTime(column string, start time.Time, end time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("%s BETWEEN ? AND ?", column),
+		clause:   fmt.Sprintf("%s BETWEEN ? AND ?", qb.quoteIdentifier(column)),
 		args: []any{
 			start.Format("2006-01-02 15:04:05"),
 			end.Format("2006-01-02 15:04:05"),
@@ -1217,7 +1221,7 @@ func (qb *Builder) WhereBetweenDateTime(column string, start time.Time, end time
 func (qb *Builder) WhereYear(column string, operator string, year int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("EXTRACT(YEAR FROM %s) %s ?", column, operator),
+		clause:   fmt.Sprintf("EXTRACT(YEAR FROM %s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{year},
 	})
 	return qb
@@ -1227,7 +1231,7 @@ func (qb *Builder) WhereYear(column string, operator string, year int) *Builder 
 func (qb *Builder) WhereMonth(column string, operator string, month int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("EXTRACT(MONTH FROM %s) %s ?", column, operator),
+		clause:   fmt.Sprintf("EXTRACT(MONTH FROM %s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{month},
 	})
 	return qb
@@ -1237,7 +1241,7 @@ func (qb *Builder) WhereMonth(column string, operator string, month int) *Builde
 func (qb *Builder) WhereDay(column string, operator string, day int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("EXTRACT(DAY FROM %s) %s ?", column, operator),
+		clause:   fmt.Sprintf("EXTRACT(DAY FROM %s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{day},
 	})
 	return qb
@@ -1247,7 +1251,7 @@ func (qb *Builder) WhereDay(column string, operator string, day int) *Builder {
 func (qb *Builder) WhereTime(column string, operator string, value time.Time) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("TIME(%s) %s ?", column, operator),
+		clause:   fmt.Sprintf("TIME(%s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{value.Format("15:04:05")},
 	})
 	return qb
@@ -1255,19 +1259,19 @@ func (qb *Builder) WhereTime(column string, operator string, value time.Time) *B
 
 // WhereDateIsNull проверяет является ли дата NULL
 func (qb *Builder) WhereDateIsNull(column string) *Builder {
-	return qb.WhereNull(column)
+	return qb.WhereNull(qb.quoteIdentifier(column))
 }
 
 // WhereDateIsNotNull проверяет является ли дата NOT NULL
 func (qb *Builder) WhereDateIsNotNull(column string) *Builder {
-	return qb.WhereNotNull(column)
+	return qb.WhereNotNull(qb.quoteIdentifier(column))
 }
 
 // WhereCurrentDate добавляет условие на текущую дату
 func (qb *Builder) WhereCurrentDate(column string, operator string) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("DATE(%s) %s CURRENT_DATE", column, operator),
+		clause:   fmt.Sprintf("DATE(%s) %s CURRENT_DATE", qb.quoteIdentifier(column), operator),
 	})
 	return qb
 }
@@ -1276,7 +1280,7 @@ func (qb *Builder) WhereCurrentDate(column string, operator string) *Builder {
 func (qb *Builder) WhereLastDays(column string, days int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("DATE(%s) >= CURRENT_DATE - INTERVAL ? DAY", column),
+		clause:   fmt.Sprintf("DATE(%s) >= CURRENT_DATE - INTERVAL ? DAY", qb.quoteIdentifier(column)),
 		args:     []any{days},
 	})
 	return qb
@@ -1286,7 +1290,7 @@ func (qb *Builder) WhereLastDays(column string, days int) *Builder {
 func (qb *Builder) WhereWeekday(column string, operator string, weekday int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("EXTRACT(DOW FROM %s) %s ?", column, operator),
+		clause:   fmt.Sprintf("EXTRACT(DOW FROM %s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{weekday},
 	})
 	return qb
@@ -1296,7 +1300,7 @@ func (qb *Builder) WhereWeekday(column string, operator string, weekday int) *Bu
 func (qb *Builder) WhereQuarter(column string, operator string, quarter int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("EXTRACT(QUARTER FROM %s) %s ?", column, operator),
+		clause:   fmt.Sprintf("EXTRACT(QUARTER FROM %s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{quarter},
 	})
 	return qb
@@ -1306,7 +1310,7 @@ func (qb *Builder) WhereQuarter(column string, operator string, quarter int) *Bu
 func (qb *Builder) WhereWeek(column string, operator string, week int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("EXTRACT(WEEK FROM %s) %s ?", column, operator),
+		clause:   fmt.Sprintf("EXTRACT(WEEK FROM %s) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{week},
 	})
 	return qb
@@ -1320,7 +1324,7 @@ func (qb *Builder) WhereDateRange(column string, start time.Time, end time.Time,
 
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("DATE(%s) > ? AND DATE(%s) < ?", column, column),
+		clause:   fmt.Sprintf("DATE(%s) > ? AND DATE(%s) < ?", qb.quoteIdentifier(column), qb.quoteIdentifier(column)),
 		args:     []any{start.Format("2006-01-02"), end.Format("2006-01-02")},
 	})
 	return qb
@@ -1330,7 +1334,7 @@ func (qb *Builder) WhereDateRange(column string, start time.Time, end time.Time,
 func (qb *Builder) WhereNextDays(column string, days int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("DATE(%s) <= CURRENT_DATE + INTERVAL ? DAY AND DATE(%s) >= CURRENT_DATE", column, column),
+		clause:   fmt.Sprintf("DATE(%s) <= CURRENT_DATE + INTERVAL ? DAY AND DATE(%s) >= CURRENT_DATE", qb.quoteIdentifier(column), qb.quoteIdentifier(column)),
 		args:     []any{days},
 	})
 	return qb
@@ -1340,7 +1344,7 @@ func (qb *Builder) WhereNextDays(column string, days int) *Builder {
 func (qb *Builder) WhereDateBetweenColumns(dateColumn string, startColumn string, endColumn string) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("DATE(%s) BETWEEN DATE(%s) AND DATE(%s)", dateColumn, startColumn, endColumn),
+		clause:   fmt.Sprintf("DATE(%s) BETWEEN DATE(%s) AND DATE(%s)", qb.quoteIdentifier(dateColumn), qb.quoteIdentifier(startColumn), qb.quoteIdentifier(endColumn)),
 	})
 	return qb
 }
@@ -1349,7 +1353,7 @@ func (qb *Builder) WhereDateBetweenColumns(dateColumn string, startColumn string
 func (qb *Builder) WhereAge(column string, operator string, age int) *Builder {
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf("EXTRACT(YEAR FROM AGE(%s)) %s ?", column, operator),
+		clause:   fmt.Sprintf("EXTRACT(YEAR FROM AGE(%s)) %s ?", qb.quoteIdentifier(column), operator),
 		args:     []any{age},
 	})
 	return qb
@@ -1360,7 +1364,7 @@ func (qb *Builder) WhereDateDiff(column1 string, column2 string, operator string
 	df := qb.getDateFunctions()
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
-		clause:   fmt.Sprintf(df.DateDiff+" %s ?", column1, column2, operator),
+		clause:   fmt.Sprintf(df.DateDiff+" %s ?", qb.quoteIdentifier(column1), qb.quoteIdentifier(column2), operator),
 		args:     []any{days},
 	})
 	return qb
@@ -1373,12 +1377,12 @@ func (qb *Builder) WhereDateTrunc(part string, column string, operator string, v
 	var args []any
 
 	if qb.getDriverName() == "postgres" {
-		clause = fmt.Sprintf("%s(?, %s) %s ?", df.DateTrunc, column, operator)
+		clause = fmt.Sprintf("%s(?, %s) %s ?", df.DateTrunc, qb.quoteIdentifier(column), operator)
 		args = []any{part, value}
 	} else {
 		// Преобразуем part в формат MySQL
 		format := getMySQLDateFormat(part)
-		clause = fmt.Sprintf("%s(%s, ?) %s ?", df.DateTrunc, column, operator)
+		clause = fmt.Sprintf("%s(%s, ?) %s ?", df.DateTrunc, qb.quoteIdentifier(column), operator)
 		args = []any{format, value.Format(format)}
 	}
 
@@ -1395,7 +1399,7 @@ func (qb *Builder) WhereTimeWindow(column string, startTime, endTime time.Time) 
 	if qb.getDriverName() == "postgres" {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("EXTRACT(HOUR FROM %s) * 60 + EXTRACT(MINUTE FROM %s) BETWEEN ? AND ?", column, column),
+			clause:   fmt.Sprintf("EXTRACT(HOUR FROM %s) * 60 + EXTRACT(MINUTE FROM %s) BETWEEN ? AND ?", qb.quoteIdentifier(column), qb.quoteIdentifier(column)),
 			args: []any{
 				startTime.Hour()*60 + startTime.Minute(),
 				endTime.Hour()*60 + endTime.Minute(),
@@ -1404,7 +1408,7 @@ func (qb *Builder) WhereTimeWindow(column string, startTime, endTime time.Time) 
 	} else {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("TIME(%s) BETWEEN ? AND ?", column),
+			clause:   fmt.Sprintf("TIME(%s) BETWEEN ? AND ?", qb.quoteIdentifier(column)),
 			args: []any{
 				startTime.Format("15:04:05"),
 				endTime.Format("15:04:05"),
@@ -1419,12 +1423,12 @@ func (qb *Builder) WhereBusinessDays(column string) *Builder {
 	if qb.getDriverName() == "postgres" {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("EXTRACT(DOW FROM %s) BETWEEN 1 AND 5", column),
+			clause:   fmt.Sprintf("EXTRACT(DOW FROM %s) BETWEEN 1 AND 5", qb.quoteIdentifier(column)),
 		})
 	} else {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("WEEKDAY(%s) < 5", column),
+			clause:   fmt.Sprintf("WEEKDAY(%s) < 5", qb.quoteIdentifier(column)),
 		})
 	}
 	return qb
@@ -1439,13 +1443,13 @@ func (qb *Builder) WhereDateFormat(column string, format string, operator string
 		pgFormat := convertToPostgresFormat(format)
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("%s(%s, ?) %s ?", df.DateFormat, column, operator),
+			clause:   fmt.Sprintf("%s(%s, ?) %s ?", df.DateFormat, qb.quoteIdentifier(column), operator),
 			args:     []any{pgFormat, value},
 		})
 	} else {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("%s(%s, ?) %s ?", df.DateFormat, column, operator),
+			clause:   fmt.Sprintf("%s(%s, ?) %s ?", df.DateFormat, qb.quoteIdentifier(column), operator),
 			args:     []any{format, value},
 		})
 	}
@@ -1459,13 +1463,13 @@ func (qb *Builder) WhereTimeZone(column string, operator string, value time.Time
 	if qb.getDriverName() == "postgres" {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("%s %s ? %s ?", column, df.TimeZone, operator),
+			clause:   fmt.Sprintf("%s %s ? %s ?", qb.quoteIdentifier(column), df.TimeZone, operator),
 			args:     []any{timezone, value},
 		})
 	} else {
 		qb.conditions = append(qb.conditions, Condition{
 			operator: "AND",
-			clause:   fmt.Sprintf("%s(%s, 'UTC', ?) %s ?", df.TimeZone, column, operator),
+			clause:   fmt.Sprintf("%s(%s, 'UTC', ?) %s ?", df.TimeZone, qb.quoteIdentifier(column), operator),
 			args:     []any{timezone, value},
 		})
 	}
