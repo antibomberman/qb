@@ -165,6 +165,8 @@ type CrudInterface interface {
 type GroupSortInterface interface {
 	// Группировка и сортировка
 	OrderBy(column string, direction string) *Builder
+	OrderByAsc(column string) *Builder
+	OrderByDesc(column string) *Builder
 	GroupBy(columns ...string) *Builder
 	Having(condition string) *Builder
 	HavingRaw(sql string, args ...any) *Builder

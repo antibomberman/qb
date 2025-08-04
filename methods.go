@@ -142,33 +142,70 @@ func (qb *Builder) Chunk(size int, fn func(items any) error) error {
 
 // ChunkContext обрабатывает записи чанками с контекстом
 func (qb *Builder) ChunkContext(ctx context.Context, size int, fn func(context.Context, any) error) error {
-	offset := 0
+	var lastID any = 0
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
 
-		dest := make([]map[string]any, 0, size)
+		// Создаем клон строителя, чтобы не изменять исходный
+		chunkQb := qb.clone()
 
-		query, args := qb.buildSelectQuery(nil)
-		query += fmt.Sprintf(" LIMIT %d OFFSET %d", size, offset)
+		// Сбрасываем предыдущие условия сортировки и добавляем свою
+		chunkQb.orderBy = []string{}
+		chunkQb.OrderBy("id", "ASC")
 
-		found, err := qb.execSelectContext(ctx, &dest, query, args...)
+		// Добавляем условие для выборки следующего чанка
+		chunkQb.Where("id > ?", lastID)
+		chunkQb.Limit(size)
+
+		// Создаем слайс нужного типа для получения результатов
+		destVal := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(map[string]any{})), 0, size)
+		dest := destVal.Interface()
+
+		// Выполняем запрос
+		found, err := chunkQb.Get(&dest)
 		if err != nil {
 			return err
 		}
 
-		if !found || len(dest) == 0 {
+		if !found || len(dest.([]map[string]any)) == 0 {
 			break
 		}
 
+		// Обрабатываем чанк
 		if err := fn(ctx, dest); err != nil {
 			return err
 		}
 
-		offset += size
+		// Обновляем lastID для следующей итерации
+		items := dest.([]map[string]any)
+		lastItem := items[len(items)-1]
+		lastID = lastItem["id"]
+
+		// Если получили меньше записей, чем размер чанка, значит это последняя страница
+		if len(items) < size {
+			break
+		}
 	}
 	return nil
+}
+
+// clone создает поверхностную копию строителя
+func (qb *Builder) clone() *Builder {
+	newQb := *qb
+	// Копируем слайсы, чтобы избежать изменения оригинального строителя
+	newQb.conditions = make([]Condition, len(qb.conditions))
+	copy(newQb.conditions, qb.conditions)
+	newQb.columns = make([]string, len(qb.columns))
+	copy(newQb.columns, qb.columns)
+	newQb.orderBy = make([]string, len(qb.orderBy))
+	copy(newQb.orderBy, qb.orderBy)
+	newQb.groupBy = make([]string, len(qb.groupBy))
+	copy(newQb.groupBy, qb.groupBy)
+	newQb.joins = make([]Join, len(qb.joins))
+	copy(newQb.joins, qb.joins)
+	return &newQb
 }
 
 // ============= Методы создания (CREATE) =============
@@ -668,6 +705,16 @@ func (qb *Builder) WhereNotExists(subQuery *Builder) *Builder {
 func (qb *Builder) OrderBy(column string, direction string) *Builder {
 	qb.orderBy = append(qb.orderBy, fmt.Sprintf("%s %s", column, direction))
 	return qb
+}
+
+// OrderByAsc добавляет сортировку по возрастанию
+func (qb *Builder) OrderByAsc(column string) *Builder {
+	return qb.OrderBy(column, "ASC")
+}
+
+// OrderByDesc добавляет сортировку по убыванию
+func (qb *Builder) OrderByDesc(column string) *Builder {
+	return qb.OrderBy(column, "DESC")
 }
 
 // GroupBy добавляет группировку
