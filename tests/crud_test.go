@@ -269,3 +269,45 @@ func TestBatchUpdate(t *testing.T) {
 	assert.Equal(t, "Batch Updated Product 3", products[2].Name)
 	assert.Equal(t, 31, products[2].Quantity)
 }
+
+func TestUpdateMap(t *testing.T) {
+	testingDb := Connect()
+	testingDb.Raw("truncate table test_products").Exec()
+
+	product := Product{Name: "Original Name", Quantity: 5}
+	id, err := testingDb.From("test_products").Create(&product)
+	assert.NoError(t, err)
+
+	updateData := map[string]any{
+		"name":     "Updated Name via Map",
+		"quantity": 15,
+	}
+	err = testingDb.From("test_products").WhereId(id).UpdateMap(updateData)
+	assert.NoError(t, err)
+
+	var foundProduct Product
+	found, err := testingDb.From("test_products").Find(id, &foundProduct)
+	assert.NoError(t, err)
+	assert.True(t, found)
+	assert.Equal(t, "Updated Name via Map", foundProduct.Name)
+	assert.Equal(t, 15, foundProduct.Quantity)
+}
+
+func TestRows(t *testing.T) {
+	testingDb := Connect()
+	testingDb.Raw("truncate table test_products").Exec()
+
+	// Create some products
+	_, err := testingDb.From("test_products").Create(&Product{Name: "Product A", Quantity: 10})
+	assert.NoError(t, err)
+	_, err = testingDb.From("test_products").Create(&Product{Name: "Product B", Quantity: 20})
+	assert.NoError(t, err)
+
+	rows, err := testingDb.From("test_products").Rows()
+	assert.NoError(t, err)
+	assert.Len(t, rows, 2)
+	assert.Equal(t, "Product A", string(rows[0]["name"].([]uint8))) // Преобразование к string
+	assert.Equal(t, int64(10), rows[0]["quantity"])
+	assert.Equal(t, "Product B", string(rows[1]["name"].([]uint8))) // Преобразование к string
+	assert.Equal(t, int64(20), rows[1]["quantity"])
+}

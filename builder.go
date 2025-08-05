@@ -23,19 +23,24 @@ type Builder struct {
 	queryBuilder *QueryBuilder
 	ctx          context.Context
 
-	conditions    []Condition
-	columns       []string
-	orderBy       []string
-	groupBy       []string
-	having        string
-	havingArgs    []any
-	limit         int
-	offset        int
-	joins         []Join
-	alias         string
-	cacheKey      string
-	cacheDuration time.Duration
-	events        map[EventType][]EventHandler
+	conditions      []Condition
+	columns         []string
+	orderBy         []string
+	groupBy         []string
+	having          string
+	havingArgs      []any
+	limit           int
+	offset          int
+	joins           []Join
+	alias           string
+	cacheKey        string
+	cacheDuration   time.Duration
+	events          map[EventType][]EventHandler
+	distinctColumns []string // Новое поле для DISTINCT
+	rawQuery        string   // Для хранения уже сгенерированного SQL (для подзапросов/объединений)
+	rawArgs         []any    // Для хранения аргументов rawQuery
+	isDistinct      bool     // Флаг, указывающий, был ли вызван Distinct
+
 }
 
 // buildConditions собирает условия WHERE в строку
@@ -240,11 +245,23 @@ func (qb *Builder) quoteIdentifier(name string) string {
 	for i, part := range parts {
 		switch driver {
 		case "mysql":
-			quotedParts[i] = "`" + part + "`"
+			if !strings.HasPrefix(part, "`") && !strings.HasSuffix(part, "`") {
+				quotedParts[i] = "`" + part + "`"
+			} else {
+				quotedParts[i] = part
+			}
 		case "postgres":
-			quotedParts[i] = "`" + part + "`"
+			if !strings.HasPrefix(part, "\"") && !strings.HasSuffix(part, "\"") {
+				quotedParts[i] = `"` + part + `"`
+			} else {
+				quotedParts[i] = part
+			}
 		default:
-			quotedParts[i] = "`" + part + "`"
+			if !strings.HasPrefix(part, "`") && !strings.HasSuffix(part, "`") {
+				quotedParts[i] = "`" + part + "`"
+			} else {
+				quotedParts[i] = part
+			}
 		}
 	}
 	return strings.Join(quotedParts, ".")
@@ -318,9 +335,11 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 		if strings.Contains(join.tableName, " ") { // Проверяем, есть ли алиас
 			parts := strings.Fields(join.tableName)
 			if len(parts) == 2 { // table alias
-				quotedTableName = fmt.Sprintf("%s %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[1]))
+				// Оборачиваем только имя таблицы, алиас оставляем без кавычек
+				quotedTableName = fmt.Sprintf("%s %s", qb.quoteIdentifier(parts[0]), parts[1])
 			} else if len(parts) == 3 && strings.ToLower(parts[1]) == "as" { // table AS alias
-				quotedTableName = fmt.Sprintf("%s AS %s", qb.quoteIdentifier(parts[0]), qb.quoteIdentifier(parts[2]))
+				// Оборачиваем только имя таблицы, алиас оставляем без кавычек
+				quotedTableName = fmt.Sprintf("%s AS %s", qb.quoteIdentifier(parts[0]), parts[2])
 			}
 		}
 
@@ -363,20 +382,56 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 
 // buildQuery собирает полный SQL запрос
 func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
+	var selectClause string
 	var selectColumns []string
-	if len(qb.columns) > 0 {
+
+	if qb.isDistinct {
+		if len(qb.distinctColumns) == 0 {
+			selectClause = "DISTINCT *"
+		} else {
+			for _, col := range qb.distinctColumns {
+				selectColumns = append(selectColumns, qb.quoteIdentifier(col))
+			}
+			selectClause = "DISTINCT " + strings.Join(selectColumns, ", ")
+		}
+	} else if len(qb.columns) > 0 {
 		for _, col := range qb.columns {
 			parts := strings.Fields(col)
 			if len(parts) >= 3 && strings.ToLower(parts[len(parts)-2]) == "as" {
-				// This is a "column AS alias" case
-				columnPart := strings.Join(parts[:len(parts)-2], " ") // Reconstruct column part
-				aliasPart := parts[len(parts)-1]
-				selectColumns = append(selectColumns, fmt.Sprintf("%s AS %s", qb.quoteIdentifier(columnPart), qb.quoteIdentifier(aliasPart)))
+				// Это случай "column AS alias"
+				columnPart := strings.Join(parts[:len(parts)-2], " ") // Восстанавливаем часть с колонкой
+				aliasPart := parts[len(parts)-1]                      // Алиас
+
+				// Улучшенная эвристика для выражений
+				isExpression := strings.ContainsAny(columnPart, "()") ||
+					strings.ContainsAny(columnPart, "+*/") ||
+					strings.Contains(strings.ToUpper(columnPart), "CASE") ||
+					strings.Contains(strings.ToUpper(columnPart), "WHEN") ||
+					strings.Contains(strings.ToUpper(columnPart), "THEN") ||
+					strings.Contains(strings.ToUpper(columnPart), "END")
+
+				if isExpression {
+					selectColumns = append(selectColumns, fmt.Sprintf("%s AS %s", columnPart, aliasPart))
+				} else {
+					selectColumns = append(selectColumns, fmt.Sprintf("%s AS %s", qb.quoteIdentifier(columnPart), aliasPart))
+				}
 			} else {
-				// No "AS" or not in the expected format, just quote the whole thing
-				selectColumns = append(selectColumns, qb.quoteIdentifier(col))
+				// Улучшенная эвристика для выражений
+				isExpression := strings.ContainsAny(col, "()") ||
+					strings.ContainsAny(col, "+*/") ||
+					strings.Contains(strings.ToUpper(col), "CASE") ||
+					strings.Contains(strings.ToUpper(col), "WHEN") ||
+					strings.Contains(strings.ToUpper(col), "THEN") ||
+					strings.Contains(strings.ToUpper(col), "END")
+
+				if isExpression {
+					selectColumns = append(selectColumns, col)
+				} else {
+					selectColumns = append(selectColumns, qb.quoteIdentifier(col))
+				}
 			}
 		}
+		selectClause = strings.Join(selectColumns, ", ")
 	} else if dest != nil {
 		fields, _, _ := qb.getStructInfo(dest)
 		if len(fields) > 0 {
@@ -384,11 +439,9 @@ func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
 				selectColumns = append(selectColumns, qb.quoteIdentifier(field))
 			}
 		}
-	}
-
-	selectClause := "*"
-	if len(selectColumns) > 0 {
 		selectClause = strings.Join(selectColumns, ", ")
+	} else {
+		selectClause = "*"
 	}
 
 	tableName := qb.quoteIdentifier(qb.tableName)
@@ -403,56 +456,26 @@ func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
 
 // buildUpdateQuery собирает SQL запрос для UPDATE
 func (qb *Builder) buildUpdateQuery(data any, fields []string) (string, []any) {
-
-	var sets []string
-	var args []any
-
-	if len(fields) > 0 {
-		t := reflect.TypeOf(data)
-		if t.Kind() == reflect.Ptr {
-			t = t.Elem()
-		}
-
-		tagToField := getFieldNameByDBTag(t)
-
-		for _, dbTag := range fields {
-
-			fieldName, ok := tagToField[dbTag]
-			if !ok {
-				qb.queryBuilder.Error(fmt.Sprintf("tag %s not found", dbTag), time.Now(), "update")
-				continue // Пропускаем, если тег не найден
-			}
-			sets = append(sets, fmt.Sprintf("%s = ?", dbTag))
-
-			v := reflect.ValueOf(data)
-			if v.Kind() == reflect.Ptr {
-				v = v.Elem()
-			}
-
-			fieldVal := v.FieldByName(fieldName)
-
-			if fieldVal.IsValid() {
-				args = append(args, fieldVal.Interface())
-			}
-		}
-	} else {
-		fields, _, values := qb.getStructInfo(data)
-		for _, field := range fields {
-			sets = append(sets, fmt.Sprintf("%s = ?", field))
-			args = append(args, values[field])
-		}
+	setClause, setArgs, err := qb.buildSetClause(data, fields)
+	if err != nil {
+		// В случае ошибки, возвращаем пустую строку и nil,
+		// или можно логировать ошибку и возвращать что-то, что позволит запросу не упасть,
+		// но это зависит от желаемого поведения.
+		// Для простоты, пока вернем пустую строку и nil.
+		qb.queryBuilder.Error(err.Error(), time.Now(), "buildUpdateQuery")
+		return "", nil
 	}
+
 	tableName := qb.quoteIdentifier(qb.tableName)
 	if qb.alias != "" {
 		tableName = fmt.Sprintf("%s AS %s", tableName, qb.quoteIdentifier(qb.alias))
 	}
 
-	head := fmt.Sprintf("UPDATE %s SET %s", tableName, strings.Join(sets, ", "))
+	head := fmt.Sprintf("UPDATE %s SET %s", tableName, setClause)
 
 	body, bodyArgs := qb.buildBodyQuery()
-	args = append(args, bodyArgs...)
+	args := append(setArgs, bodyArgs...)
 	return head + body, args
-
 }
 
 // buildInsertQuery собирает SQL запрос для INSERT
@@ -476,6 +499,9 @@ func (qb *Builder) buildUpdateMapQuery(data map[string]any) (string, []any, erro
 
 // ToSql возвращает сгенерированный SQL-запрос и его аргументы.
 func (qb *Builder) ToSql() (string, []any) {
+	if qb.rawQuery != "" { // Если это уже сгенерированный rawQuery
+		return qb.rebindQuery(qb.rawQuery), qb.rawArgs
+	}
 	query, args := qb.buildSelectQuery(nil) // dest is nil as we don't execute
 	return qb.rebindQuery(query), args
 }

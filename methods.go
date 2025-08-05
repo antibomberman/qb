@@ -635,15 +635,27 @@ func (qb *Builder) OrWhere(condition string, args ...any) *Builder {
 
 // WhereIn добавляет условие IN
 func (qb *Builder) WhereIn(column string, values ...any) *Builder {
-	placeholders := make([]string, len(values))
-	for i := range values {
-		placeholders[i] = "?"
+	var finalPlaceholders []string
+	var finalArgs []any
+
+	for _, val := range values {
+		if subBuilder, ok := val.(*Builder); ok {
+			// If it's a sub-query builder, get its SQL and args
+			subSql, subArgs := subBuilder.ToSql()
+			finalPlaceholders = append(finalPlaceholders, subSql) // Removed extra parentheses
+			finalArgs = append(finalArgs, subArgs...)
+		} else {
+			// Otherwise, treat as a regular value
+			finalPlaceholders = append(finalPlaceholders, "?")
+			finalArgs = append(finalArgs, val)
+		}
 	}
-	condition := fmt.Sprintf("%s IN (%s)", column, strings.Join(placeholders, ","))
+
+	condition := fmt.Sprintf("%s IN (%s)", qb.quoteIdentifier(column), strings.Join(finalPlaceholders, ","))
 	qb.conditions = append(qb.conditions, Condition{
 		operator: "AND",
 		clause:   condition,
-		args:     values,
+		args:     finalArgs,
 	})
 	return qb
 }
@@ -752,13 +764,16 @@ func (qb *Builder) As(alias string) *Builder {
 
 // SubQuery создает подзапрос
 func (qb *Builder) SubQuery(alias string) *Builder {
-	sql, args := qb.buildSelectQuery(nil)
+	sql, args := qb.ToSql()
+	formattedQuery := sql // Default to just the raw SQL
+	if alias != "" {
+		formattedQuery = fmt.Sprintf("(%s) AS %s", sql, alias)
+	}
 	return &Builder{
-		columns: []string{fmt.Sprintf("(%s) AS %s", sql, alias)},
-		db:      qb.db,
-		conditions: []Condition{{
-			args: args,
-		}},
+		rawQuery:     formattedQuery,
+		rawArgs:      args,
+		db:           qb.db,
+		queryBuilder: qb.queryBuilder,
 	}
 }
 
@@ -779,11 +794,10 @@ func (qb *Builder) Union(other *Builder) *Builder {
 	sql2, args2 := other.buildSelectQuery(nil)
 
 	return &Builder{
-		db:      qb.db,
-		columns: []string{fmt.Sprintf("(%s) UNION (%s)", sql1, sql2)},
-		conditions: []Condition{{
-			args: append(args1, args2...),
-		}},
+		db:           qb.db,
+		queryBuilder: qb.queryBuilder,
+		rawQuery:     fmt.Sprintf("(%s) UNION (%s)", sql1, sql2),
+		rawArgs:      append(args1, args2...),
 	}
 }
 
@@ -793,11 +807,10 @@ func (qb *Builder) UnionAll(other *Builder) *Builder {
 	sql2, args2 := other.buildSelectQuery(nil)
 
 	return &Builder{
-		db:      qb.db,
-		columns: []string{fmt.Sprintf("(%s) UNION ALL (%s)", sql1, sql2)},
-		conditions: []Condition{{
-			args: append(args1, args2...),
-		}},
+		db:           qb.db,
+		queryBuilder: qb.queryBuilder,
+		rawQuery:     fmt.Sprintf("(%s) UNION ALL (%s)", sql1, sql2),
+		rawArgs:      append(args1, args2...),
 	}
 }
 
@@ -942,11 +955,9 @@ func (qb *Builder) WithinGroup(column string, window string) *Builder {
 
 // Distinct добавляет DISTINCT к запросу
 func (qb *Builder) Distinct(columns ...string) *Builder {
-	if len(columns) == 0 {
-		qb.columns = append(qb.columns, "DISTINCT *")
-	} else {
-		qb.columns = append(qb.columns, "DISTINCT "+strings.Join(columns, ", "))
-	}
+	qb.distinctColumns = columns
+	qb.columns = nil     // Очищаем qb.columns, чтобы избежать конфликтов
+	qb.isDistinct = true // Устанавливаем флаг
 	return qb
 }
 

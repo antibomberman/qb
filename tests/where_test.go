@@ -41,9 +41,9 @@ func TestWhereIn(t *testing.T) {
 	testingDb := Connect()
 	builder := testingDb.From("test_products")
 
-	sql, args := builder.WhereIn("id", 1, 2, 3).ToSql()
+	sql, args := builder.WhereIn("`id`", 1, 2, 3).ToSql()
 
-	assert.Equal(t, "SELECT * FROM `test_products` WHERE id IN (?,?,?)", sql)
+	assert.Equal(t, "SELECT * FROM `test_products` WHERE `id` IN (?,?,?)", sql)
 	assert.Equal(t, []any{1, 2, 3}, args)
 }
 
