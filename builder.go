@@ -41,7 +41,6 @@ type Builder struct {
 	rawQuery        string   // Для хранения уже сгенерированного SQL (для подзапросов/объединений)
 	rawArgs         []any    // Для хранения аргументов rawQuery
 	isDistinct      bool     // Флаг, указывающий, был ли вызван Distinct
-	withoutTrashed  bool     // Флаг для автоматического исключения удаленных записей
 
 }
 
