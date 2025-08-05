@@ -20,10 +20,6 @@ func (qb *Builder) buildConditions(conditions []Condition) (string, []any) {
 	var parts []string
 	var args []any
 
-	if qb.withoutTrashed {
-		parts = append(parts, "`deleted_at` IS NULL")
-	}
-
 	for i, cond := range conditions {
 		var part string
 		var currentArgs []any
@@ -37,7 +33,7 @@ func (qb *Builder) buildConditions(conditions []Condition) (string, []any) {
 			currentArgs = cond.args
 		}
 
-		if i == 0 && !qb.withoutTrashed {
+		if i == 0 {
 			parts = append(parts, part)
 		} else {
 			parts = append(parts, cond.operator+" "+part)
