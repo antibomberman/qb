@@ -9,7 +9,7 @@ import (
 )
 
 func Connect() qb.QueryBuilderInterface {
-	db, err := sql.Open("mysql", "root:rootpassword@tcp(localhost:3316)/test_db")
+	db, err := sql.Open("mysql", "root:rootpassword@tcp(localhost:3316)/test_db?parseTime=true")
 	if err != nil {
 		log.Fatal(err)
 	}

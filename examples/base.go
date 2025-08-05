@@ -13,12 +13,12 @@ import (
 )
 
 type Product struct {
-	ID        int          `db:"id" json:"id"`
-	Name      string       `db:"name" json:"name"`
-	Price     float64      `db:"price" json:"price"`
-	IsActive  bool         `db:"is_active" json:"is_active"`
-	CreatedAt sql.NullTime `db:"created_at" json:"created_at"`
-	UpdatedAt sql.NullTime `db:"updated_at" json:"updated_at"`
+	ID        int64        `db:"id"`
+	Name      string       `db:"name"`
+	Quantity  int          `db:"quantity"`
+	Price     float64      `db:"price"`
+	IsActive  bool         `db:"is_active"`
+	DeletedAt sql.NullTime `db:"deleted_at"`
 }
 
 func connectMysql() (string, *sql.DB, error) {
@@ -112,7 +112,7 @@ func createFromStruct(queryBuilder qb.QueryBuilderInterface, fake faker.Faker) {
 		IsActive: fake.Bool(),
 	}
 	for i := 0; i < 100; i++ {
-		_, err := queryBuilder.From("products").Create(product)
+		_, err := queryBuilder.From("products").Create(&product)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -125,8 +125,8 @@ func createFromMap(queryBuilder qb.QueryBuilderInterface, fake faker.Faker) {
 			"name":       fake.Person().Name(),
 			"price":      fake.Float64(100, 1000, 10000),
 			"is_active":  fake.Bool(),
-			"created_at": fake.Time().Time(time.Now()),
-			"updated_at": fake.Time().Time(time.Now()),
+			"created_at": time.Now(),
+			"updated_at": time.Now(),
 		})
 		if err != nil {
 			log.Fatal(err)

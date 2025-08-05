@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"database/sql"
 	"log"
 	"testing"
 
@@ -8,9 +9,10 @@ import (
 )
 
 type Product struct {
-	ID       int64  `db:"id"`
-	Name     string `db:"name"`
-	Quantity int    `db:"quantity"`
+	ID        int64        `db:"id"`
+	Name      string       `db:"name"`
+	Quantity  int          `db:"quantity"`
+	DeletedAt sql.NullTime `db:"deleted_at"`
 }
 
 func TestMain(m *testing.M) {

@@ -16,6 +16,38 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+func (qb *Builder) buildConditions(conditions []Condition) (string, []any) {
+	var parts []string
+	var args []any
+
+	if qb.withoutTrashed {
+		parts = append(parts, "`deleted_at` IS NULL")
+	}
+
+	for i, cond := range conditions {
+		var part string
+		var currentArgs []any
+
+		if len(cond.nested) > 0 {
+			nestedSQL, nestedArgs := qb.buildConditions(cond.nested)
+			part = "(" + nestedSQL + ")"
+			currentArgs = nestedArgs
+		} else {
+			part = cond.clause
+			currentArgs = cond.args
+		}
+
+		if i == 0 && !qb.withoutTrashed {
+			parts = append(parts, part)
+		} else {
+			parts = append(parts, cond.operator+" "+part)
+		}
+		args = append(args, currentArgs...)
+	}
+
+	return strings.Join(parts, " "), args
+}
+
 // ============= Базовые методы =============
 func (qb *Builder) Context(ctx context.Context) *Builder {
 	qb.ctx = ctx
@@ -891,7 +923,7 @@ func (qb *Builder) NoWait() *Builder {
 
 // Lock блокирует записи для обновления
 func (qb *Builder) Lock(mode string) *Builder {
-	qb.columns = append(qb.columns, mode)
+	qb.lockClause = mode
 	return qb
 }
 
@@ -959,35 +991,6 @@ func (qb *Builder) Distinct(columns ...string) *Builder {
 	qb.columns = nil     // Очищаем qb.columns, чтобы избежать конфликтов
 	qb.isDistinct = true // Устанавливаем флаг
 	return qb
-}
-
-// SoftDelete добавляет поддержку мягкого удаления
-type SoftDelete struct {
-	DeletedAt *time.Time `db:"deleted_at"`
-}
-
-// WithTrashed включает удаленные записи в выборку
-func (qb *Builder) WithTrashed() *Builder {
-	return qb
-}
-
-// OnlyTrashed выбирает только удаленные записи
-func (qb *Builder) OnlyTrashed() *Builder {
-	return qb.WhereNotNull("deleted_at")
-}
-
-// SoftDelete помечает записи как удаленные
-func (qb *Builder) SoftDelete() error {
-	return qb.UpdateMap(map[string]any{
-		"deleted_at": time.Now(),
-	})
-}
-
-// Restore восстанавливает удаленные записи
-func (qb *Builder) Restore() error {
-	return qb.UpdateMap(map[string]any{
-		"deleted_at": nil,
-	})
 }
 
 type JoinType string

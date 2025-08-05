@@ -225,7 +225,7 @@ type BuilderInterface interface {
 	WindowInterface
 	LockInterface
 	AggregateInterface
-	SoftDeleteInterface
+
 	JoinInterface
 	PaginationInterface
 	GroupSortInterface
@@ -799,24 +799,6 @@ type AggregateInterface interface {
 	// Пример:
 	// userExists, err := qb.From("users").Where("email = ?", "test@example.com").Exists()
 	Exists() (bool, error)
-}
-type SoftDeleteInterface interface {
-	// WithTrashed включает записи с мягким удалением в результаты запроса.
-	// Пример:
-	// qb.From("posts").WithTrashed().Get(&allPosts)
-	WithTrashed() *Builder
-	// OnlyTrashed фильтрует запрос, чтобы включить только записи с мягким удалением.
-	// Пример:
-	// qb.From("posts").OnlyTrashed().Get(&deletedPosts)
-	OnlyTrashed() *Builder
-	// SoftDelete помечает записи как удаленные, устанавливая временную метку 'deleted_at'.
-	// Пример:
-	// err := qb.From("posts").WhereId(1).SoftDelete()
-	SoftDelete() error
-	// Restore снимает пометку с записей с мягким удалением, устанавливая 'deleted_at' в NULL.
-	// Пример:
-	// err := qb.From("posts").WhereId(1).Restore()
-	Restore() error
 }
 
 // PaginationInterface определяет методы для пагинации результатов запроса.

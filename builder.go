@@ -37,40 +37,15 @@ type Builder struct {
 	cacheDuration   time.Duration
 	events          map[EventType][]EventHandler
 	distinctColumns []string // Новое поле для DISTINCT
+	lockClause      string   // Для хранения предложения блокировки
 	rawQuery        string   // Для хранения уже сгенерированного SQL (для подзапросов/объединений)
 	rawArgs         []any    // Для хранения аргументов rawQuery
 	isDistinct      bool     // Флаг, указывающий, был ли вызван Distinct
+	withoutTrashed  bool     // Флаг для автоматического исключения удаленных записей
 
 }
 
 // buildConditions собирает условия WHERE в строку
-func buildConditions(conditions []Condition) (string, []any) {
-	var parts []string
-	var args []any
-
-	for i, cond := range conditions {
-		var part string
-		var currentArgs []any
-
-		if len(cond.nested) > 0 {
-			nestedSQL, nestedArgs := buildConditions(cond.nested)
-			part = "(" + nestedSQL + ")"
-			currentArgs = nestedArgs
-		} else {
-			part = cond.clause
-			currentArgs = cond.args
-		}
-
-		if i == 0 {
-			parts = append(parts, part)
-		} else {
-			parts = append(parts, cond.operator+" "+part)
-		}
-		args = append(args, currentArgs...)
-	}
-
-	return strings.Join(parts, " "), args
-}
 
 // execGet выполняет запрос и получает одну запись
 func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
@@ -351,7 +326,7 @@ func (qb *Builder) buildBodyQuery() (string, []any) {
 	}
 
 	if len(qb.conditions) > 0 {
-		whereSQL, whereArgs := buildConditions(qb.conditions)
+		whereSQL, whereArgs := qb.buildConditions(qb.conditions)
 		sql.WriteString(" WHERE " + whereSQL)
 		args = append(args, whereArgs...)
 	}
@@ -451,7 +426,13 @@ func (qb *Builder) buildSelectQuery(dest any) (string, []any) {
 
 	head := fmt.Sprintf("SELECT %s FROM %s", selectClause, tableName)
 	body, args := qb.buildBodyQuery()
-	return head + body, args
+	finalQuery := head + body
+
+	if qb.lockClause != "" {
+		finalQuery = fmt.Sprintf("%s %s", finalQuery, qb.lockClause)
+	}
+
+	return finalQuery, args
 }
 
 // buildUpdateQuery собирает SQL запрос для UPDATE
