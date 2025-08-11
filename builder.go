@@ -44,8 +44,6 @@ type Builder struct {
 
 }
 
-// buildConditions собирает условия WHERE в строку
-
 // execGet выполняет запрос и получает одну запись
 func (qb *Builder) execGet(dest any, query string, args ...any) (bool, error) {
 	return qb.executeQuery(nil, "execGet", dest, query, args, true)
