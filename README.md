@@ -16,7 +16,7 @@
 ## 📦 Установка
 
 ```bash
-go get github.com/antibomberman/qb@v1.2.18
+go get github.com/antibomberman/qb@v1.2.19
 ```
 
 ## 💡 Пример использования
