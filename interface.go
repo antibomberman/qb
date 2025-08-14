@@ -388,6 +388,7 @@ type CacheInterface interface {
 
 // CrudInterface определяет методы для операций создания, чтения, обновления и удаления.
 type CrudInterface interface {
+
 	// Find извлекает одну запись по ее ID.
 	// Пример:
 	// var user User
@@ -515,6 +516,10 @@ type CrudInterface interface {
 	// records := []map[string]any{{"id": 1, "name": "X"}, {"id": 2, "name": "Y"}}
 	// err := qb.From("items").BatchUpdate(records, "id", 100)
 	BatchUpdate(records []map[string]any, keyColumn string, batchSize int) error
+	// Upsert вставляет новую запись или обновляет существующую.
+	// Пример:
+	// id, err := qb.From("users").Upsert(map[string]any{"name": "John", "email": "john@example.com"}, []string{"email"}, []string{"name"})
+	Upsert(data map[string]any, uniqueBy []string, updateColumns []string) (any, error)
 }
 
 // GroupSortInterface определяет методы для группировки и сортировки результатов запроса.

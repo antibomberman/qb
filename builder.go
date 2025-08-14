@@ -475,6 +475,56 @@ func (qb *Builder) buildUpdateMapQuery(data map[string]any) (string, []any, erro
 	return head + body, args, nil
 }
 
+// buildUpsertQuery собирает SQL запрос для UPSERT (MySQL)
+func (qb *Builder) buildUpsertQuery(data map[string]any, uniqueBy []string, updateColumns []string) (string, []any) {
+	var columns []string
+	var placeholders []string
+	var values []any
+	var updateSetClauses []string
+
+	// Collect all columns and values for the INSERT part
+	for col, val := range data {
+		columns = append(columns, qb.quoteIdentifier(col))
+		placeholders = append(placeholders, "?")
+		values = append(values, val)
+	}
+
+	// Determine which columns to update on duplicate key
+	// If updateColumns are specified, use them. Otherwise, update all non-uniqueBy columns.
+	colsToUpdate := updateColumns
+	if len(updateColumns) == 0 {
+		for col := range data {
+			isUniqueBy := false
+			for _, uCol := range uniqueBy {
+				if col == uCol {
+					isUniqueBy = true
+					break
+				}
+			}
+			if !isUniqueBy {
+				colsToUpdate = append(colsToUpdate, col)
+			}
+		}
+	}
+
+	// Form the ON DUPLICATE KEY UPDATE clause
+	for _, col := range colsToUpdate {
+		updateSetClauses = append(updateSetClauses, fmt.Sprintf("%s = VALUES(%s)", qb.quoteIdentifier(col), qb.quoteIdentifier(col)))
+	}
+
+	// Construct the final query
+	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s) ON DUPLICATE KEY UPDATE %s",
+		qb.quoteIdentifier(qb.tableName),
+		strings.Join(columns, ", "),
+		strings.Join(placeholders, ", "),
+		strings.Join(updateSetClauses, ", "),
+	)
+
+	fmt.Println("Generated UPSERT query:", query)
+	fmt.Println("Generated UPSERT values:", values)
+	return query, values
+}
+
 // ToSql возвращает сгенерированный SQL-запрос и его аргументы.
 func (qb *Builder) ToSql() (string, []any) {
 	if qb.rawQuery != "" { // Если это уже сгенерированный rawQuery

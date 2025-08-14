@@ -238,6 +238,20 @@ func (qb *Builder) clone() *Builder {
 
 // ============= Методы создания (CREATE) =============
 
+// Upsert вставляет новую запись или обновляет существующую
+func (qb *Builder) Upsert(data map[string]any, uniqueBy []string, updateColumns []string) (any, error) {
+	if qb.getDriverName() != "mysql" {
+		return nil, errors.New("upsert is only supported for mysql")
+	}
+	query, args := qb.buildUpsertQuery(data, uniqueBy, updateColumns)
+	query = qb.rebindQuery(query)
+	result, err := qb.getExecutor().ExecContext(qb.ctx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	return result.LastInsertId()
+}
+
 func (qb *Builder) Create(data any, fields ...string) (any, error) {
 	go qb.Trigger(BeforeCreate, data)
 	defer func() {
